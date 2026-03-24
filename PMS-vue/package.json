@@ -1,0 +1,24 @@
+{
+  "name": "pms-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "element-plus": "^2.8.5",
+    "mitt": "^3.0.1",
+    "vue": "^3.5.13",
+    "vue-router": "^4.4.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.5.2",
+    "typescript": "~5.0.2",
+    "vite": "^4.5.0",
+    "vue-tsc": "^1.8.27"
+  }
+}
