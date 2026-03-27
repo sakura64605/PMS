@@ -70,7 +70,36 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'activities',
         name: 'Activities',
-        component: () => import('../views/activities/index.vue')
+        component: () => import('../views/activity/index.vue')
+      },
+      {
+        path: 'activities/create',
+        name: 'ActivityCreate',
+        component: () => import('../views/activity/create.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'activities/:id',
+        name: 'ActivityDetail',
+        component: () => import('../views/activity/detail.vue')
+      },
+      {
+        path: 'activities/:id/edit',
+        name: 'ActivityEdit',
+        component: () => import('../views/activity/edit.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'my-activities',
+        name: 'MyActivities',
+        component: () => import('../views/activity/my-activities.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'activities/recycle',
+        name: 'ActivityRecycle',
+        component: () => import('../views/activity/recycle.vue'),
+        meta: { requiresAuth: true }
       },
       {
         path: 'settings',

@@ -207,7 +207,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { Search, View, Male, Female, QuestionFilled, User, Close, Star, ChatLineSquare, Share, Top } from '@element-plus/icons-vue';
 import { getPetList } from '../../api/pet';
@@ -215,6 +215,7 @@ import request from '../../utils/request';
 
 // 路由
 const router = useRouter();
+const route = useRoute();
 
 // 状态
 const activeType = ref('-1');
@@ -243,7 +244,7 @@ const handleCreate = () => {
 };
 
 const handleCardClick = (id: number) => {
-  router.push(`/pets/${id}`);
+  router.push({ path: `/pets/${id}`, query: { from: 'pets-index', type: activeType.value } });
 };
 
 const getStatusClass = (status: number) => {
@@ -422,7 +423,15 @@ const handleReset = () => {
 
 // 生命周期
 onMounted(() => {
-  fetchPets();
+  // 检查 URL 查询参数中的 type 参数
+  const typeParam = route.query.type as string;
+  if (typeParam) {
+    activeType.value = typeParam;
+    const newType = typeParam === '-1' ? undefined : parseInt(typeParam);
+    fetchPetsWithType(newType);
+  } else {
+    fetchPets();
+  }
 });
 </script>
 

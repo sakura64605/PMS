@@ -225,10 +225,14 @@ const isOwner = computed(() => {
 const handleBack = () => {
   // 从路由参数中获取来源页面
   const from = route.query.from as string;
+  const type = route.query.type as string;
   if (from === 'my-posts') {
     router.push('/pets/my-posts');
   } else if (from === 'collections') {
     router.push('/pets/collections');
+  } else if (from === 'pets-index') {
+    // 从领养或救助标签页进入，返回时保持原标签页
+    router.push({ path: '/pets', query: { type } });
   } else {
     router.push('/pets');
   }

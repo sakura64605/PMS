@@ -16,6 +16,10 @@ service.interceptors.request.use(
       config.headers = config.headers || {}
       config.headers['Authorization'] = `Bearer ${token}`
     }
+    // 设置默认的Content-Type为application/json
+    if (!config.headers['Content-Type']) {
+      config.headers['Content-Type'] = 'application/json'
+    }
     return config
   },
   (error) => {

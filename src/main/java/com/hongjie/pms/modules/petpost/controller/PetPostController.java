@@ -98,6 +98,9 @@ public class PetPostController {
         return CommonResult.success(page);
     }
 
+    /**
+     * 删除宠物信息
+     */
     @PostMapping("delete")
     public CommonResult<String> delete(@RequestParam Long id) {
         log.info("删除宠物信息: id={}", id);
@@ -105,6 +108,9 @@ public class PetPostController {
         return CommonResult.success();
     }
 
+    /**
+     * 恢复宠物信息
+     */
     @PostMapping("recover")
     public CommonResult<String> recover(@RequestParam Long id) {
         log.info("恢复宠物信息: id={}", id);
@@ -112,6 +118,9 @@ public class PetPostController {
         return CommonResult.success();
     }
 
+    /**
+     * 我的收藏列表
+     */
     @GetMapping("/favoriteList")
     public CommonResult<IPage<PetListResponseDto>> favoriteList(@RequestParam Integer pageNum, @RequestParam Integer pageSize) {
         log.info("我的收藏列表");
@@ -119,6 +128,9 @@ public class PetPostController {
         return CommonResult.success(page);
     }
 
+    /**
+     * 回收站列表
+     */
     @GetMapping("/recycle-bin")
     public CommonResult<IPage<PetListResponseDto>> recycleBin() {
         log.info("回收站列表");
@@ -132,6 +144,9 @@ public class PetPostController {
         return CommonResult.success(page);
     }
 
+    /**
+     * 下架宠物信息
+     */
     @PostMapping("offline")
     public CommonResult<String> offline(@RequestParam Long id) {
         log.info("下架宠物信息: id={}", id);
@@ -139,6 +154,9 @@ public class PetPostController {
         return CommonResult.success();
     }
 
+    /**
+     * 待处理列表
+     */
     @GetMapping("/pending-list")
     public CommonResult<IPage<PetListResponseDto>> pendingList() {
         log.info("待处理列表");
@@ -155,6 +173,9 @@ public class PetPostController {
         return CommonResult.success(page);
     }
 
+    /**
+     * 上传图片
+     */
     @PostMapping("/upload")
     public CommonResult<AvatarUploadResponse> uploadImage(@RequestParam("file") MultipartFile file) {
         log.info("上传图片");
@@ -162,6 +183,9 @@ public class PetPostController {
         return CommonResult.success(response);
     }
 
+    /**
+     * 删除图片
+     */
     @DeleteMapping("/delete-really")
     public CommonResult<String> deleteReally(@RequestParam Long id) {
         log.info("删除宠物信息: id={}", id);

@@ -1,7 +1,7 @@
 package com.hongjie.pms.common.interceptor;
 
 import com.hongjie.pms.common.base.core.UserContext;
-import com.hongjie.pms.common.util.JWTUtils;
+import com.hongjie.pms.common.utils.JWTUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

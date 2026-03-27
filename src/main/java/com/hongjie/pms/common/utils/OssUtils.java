@@ -1,4 +1,4 @@
-package com.hongjie.pms.common.util;
+package com.hongjie.pms.common.utils;
 
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.model.PutObjectRequest;

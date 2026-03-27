@@ -44,6 +44,9 @@ public class UserAuthController extends BaseController {
         return success(response, message);
     }
 
+    /**
+     * 修改密码
+     */
     @PostMapping("/changePassword")
     public CommonResult<String> updatePassword(@Valid @RequestBody ChangePasswordRequestDto changePasswordRequestDto) {
         Long userId = UserContext.getUserId();

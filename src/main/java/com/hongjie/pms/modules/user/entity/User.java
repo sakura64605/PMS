@@ -118,4 +118,10 @@ public class User {
     private Integer followerCount; // 粉丝数
     private Integer followingCount;// 关注数
     private Integer likeCount;     // 获赞总数
+
+    private Integer totalSignups;
+    private Integer totalNoShows;
+    private Integer recentNoShows;
+    private LocalDateTime punishmentEndTime;
+    private LocalDateTime lastActivityDate;
 }

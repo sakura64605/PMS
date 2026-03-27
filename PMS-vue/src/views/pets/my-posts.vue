@@ -2,10 +2,15 @@
   <div class="my-posts-container">
     <h2 class="page-title">我的发布</h2>
 
+    <el-tabs v-model="activeTab" @tab-click="handleTabChange">
+      <el-tab-pane label="领养/救助" name="adoption"></el-tab-pane>
+      <el-tab-pane label="我的活动" name="activities"></el-tab-pane>
+    </el-tabs>
+
     <div v-if="loading" class="loading-container">
       <el-skeleton :rows="8" animated />
     </div>
-    <div v-else-if="pets.length > 0" class="pets-grid">
+    <div v-else-if="activeTab === 'adoption' && pets.length > 0" class="pets-grid">
       <div
         v-for="pet in pets"
         :key="pet.id"
@@ -91,18 +96,90 @@
         </div>
       </div>
     </div>
-    <div v-else class="empty-state">
-      <el-empty description="暂无发布记录" />
+    <div v-else-if="activeTab === 'adoption'" class="empty-state">
+      <el-empty description="暂无领养/救助记录" />
+    </div>
+
+    <!-- 我的活动 -->
+    <div v-else-if="activeTab === 'activities' && activities.length > 0" class="pets-grid">
+      <div
+        v-for="activity in activities"
+        :key="activity.id"
+        class="pet-card"
+        @click="handleActivityView(activity.id)"
+      >
+        <div v-if="activity.images" class="card-image">
+          <img :src="activity.images" alt="活动图片" />
+        </div>
+        <div class="card-content">
+          <div class="card-header">
+            <h3 class="card-title">{{ activity.title || '' }}</h3>
+            <div class="status-tag" :class="getActivityStatusClass(activity.status)">
+              {{ getActivityStatusText(activity.status) }}
+            </div>
+          </div>
+          <div class="pet-info">
+            <div class="info-left">
+              <span class="pet-name">{{ activity.location || '未知地点' }}</span>
+              <span class="info-divider">·</span>
+              <span class="pet-type">{{ formatDateTime(activity.startTime) }}</span>
+            </div>
+          </div>
+          <div class="card-footer">
+            <div class="view-count">
+              <el-icon><View /></el-icon>
+              <span>{{ activity.viewCount || 0 }}</span>
+            </div>
+            <div class="create-time">
+              {{ formatDate(activity.createTime) }}
+            </div>
+          </div>
+          <div class="action-buttons">
+            <el-button
+              size="small"
+              @click.stop="handleActivityView(activity.id)"
+            >
+              查看
+            </el-button>
+            <el-button
+              size="small"
+              type="primary"
+              @click.stop="handleActivityEdit(activity.id)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              v-if="activity.status === 0 || activity.status === 1"
+              size="small"
+              type="danger"
+              @click.stop="handleActivityDelete(activity.id)"
+            >
+              删除
+            </el-button>
+            <el-button
+              v-if="activity.status === 2 || activity.status === 3"
+              size="small"
+              type="danger"
+              @click.stop="handleActivityDelete(activity.id)"
+            >
+              删除
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div v-else-if="activeTab === 'activities'" class="empty-state">
+      <el-empty description="暂无活动记录" />
     </div>
 
     <!-- 分页组件 -->
-    <div v-if="pets.length > 0" class="pagination-section">
+    <div v-if="(activeTab === 'adoption' && pets.length > 0) || (activeTab === 'activities' && activities.length > 0)" class="pagination-section">
       <el-pagination
         v-model:current-page="pageNum"
         v-model:page-size="pageSize"
         :page-sizes="[12, 24, 36]"
         layout="total, sizes, prev, pager, next, jumper"
-        :total="total"
+        :total="activeTab === 'adoption' ? total : activitiesTotal"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
@@ -152,23 +229,45 @@
         </span>
       </template>
     </el-dialog>
+
+
+
+    <!-- 活动删除确认弹窗 -->
+    <el-dialog
+      v-model="activityDeleteDialogVisible"
+      title="确认删除活动"
+      width="400px"
+    >
+      <span>确定要删除该活动吗？此操作不可恢复。</span>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="activityDeleteDialogVisible = false">取消</el-button>
+          <el-button type="danger" @click="confirmActivityDelete">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { View, Male, Female, QuestionFilled } from '@element-plus/icons-vue';
 import { getMyPosts, offlinePet, deletePet, recoverPet } from '../../api/pet';
+import { getMyActivityList, deleteActivity } from '../../api/activity';
 
 // 路由
 const router = useRouter();
+const route = useRoute();
 
 // 状态
 const loading = ref(false);
+const activeTab = ref(route.query.tab as string || 'adoption');
 const pets = ref<any[]>([]);
 const total = ref(0);
+const activities = ref<any[]>([]);
+const activitiesTotal = ref(0);
 const pageNum = ref(1);
 const pageSize = ref(12);
 const offlineDialogVisible = ref(false);
@@ -177,6 +276,8 @@ const deleteDialogVisible = ref(false);
 const deleteId = ref<number | null>(null);
 const recoverDialogVisible = ref(false);
 const recoverId = ref<number | null>(null);
+const activityDeleteDialogVisible = ref(false);
+const activityDeleteId = ref<number | null>(null);
 
 // 方法
 const handleView = (id: number) => {
@@ -185,6 +286,51 @@ const handleView = (id: number) => {
 
 const handleEdit = (id: number) => {
   router.push(`/pets/${id}/edit`);
+};
+
+// 处理标签页切换
+const handleTabChange = (tab: any) => {
+  pageNum.value = 1;
+  const currentTab = tab.props.name;
+  if (currentTab === 'adoption') {
+    fetchMyPosts();
+  } else if (currentTab === 'activities') {
+    fetchMyActivities();
+  }
+};
+
+// 活动相关方法
+const handleActivityView = (id: number) => {
+  router.push({ path: `/activities/${id}`, query: { from: 'my-posts-activities' } });
+};
+
+const handleActivityEdit = (id: number) => {
+  router.push(`/activities/${id}/edit`);
+};
+
+
+
+const handleActivityDelete = (id: number) => {
+  activityDeleteId.value = id;
+  activityDeleteDialogVisible.value = true;
+};
+
+const confirmActivityDelete = async () => {
+  if (!activityDeleteId.value) return;
+
+  try {
+    const response = await deleteActivity(activityDeleteId.value);
+    if (response.code === 200) {
+      ElMessage.success('活动已删除');
+      activityDeleteDialogVisible.value = false;
+      fetchMyActivities();
+    } else {
+      ElMessage.error(response.message || '删除活动失败');
+    }
+  } catch (error) {
+    ElMessage.error('删除活动失败，请重试');
+    console.error('删除活动失败:', error);
+  }
 };
 
 const handleOffline = (id: number) => {
@@ -276,20 +422,61 @@ const getStatusText = (status: number) => {
   }
 };
 
+// 活动状态相关函数
+const getActivityStatusClass = (status: number) => {
+  switch (status) {
+    case 0: return 'published'; // 报名中
+    case 1: return 'published'; // 进行中
+    case 2: return 'completed'; // 已结束
+    case 3: return 'offline'; // 已取消
+    default: return '';
+  }
+};
+
+const getActivityStatusText = (status: number) => {
+  switch (status) {
+    case 0: return '报名中';
+    case 1: return '进行中';
+    case 2: return '已结束';
+    case 3: return '已取消';
+    default: return '未知';
+  }
+};
+
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
   return date.toLocaleString('zh-CN');
 };
 
+const formatDateTime = (dateStr: string) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
 const handleSizeChange = (size: number) => {
   pageSize.value = size;
-  fetchMyPosts();
+  if (activeTab.value === 'adoption') {
+    fetchMyPosts();
+  } else if (activeTab.value === 'activities') {
+    fetchMyActivities();
+  }
 };
 
 const handleCurrentChange = (current: number) => {
   pageNum.value = current;
-  fetchMyPosts();
+  if (activeTab.value === 'adoption') {
+    fetchMyPosts();
+  } else if (activeTab.value === 'activities') {
+    fetchMyActivities();
+  }
 };
 
 const fetchMyPosts = async () => {
@@ -317,9 +504,39 @@ const fetchMyPosts = async () => {
   }
 };
 
+const fetchMyActivities = async () => {
+  console.log('===== 获取我的活动开始请求 =====');
+  console.log('token:', localStorage.getItem('token'));
+  
+  loading.value = true;
+  try {
+    const response = await getMyActivityList({
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
+    });
+    console.log('===== 响应 =====', response);
+    activities.value = response.data.records || [];
+    activitiesTotal.value = response.data.total || 0;
+  } catch (error) {
+    ElMessage.error('获取我的活动失败，请重试');
+    console.error('获取我的活动失败:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
 // 生命周期
 onMounted(() => {
-  fetchMyPosts();
+  // 检查是否从活动详情页面返回
+  const from = route.query.from as string
+  if (from === 'my-posts-activities') {
+    activeTab.value = 'activities';
+    fetchMyActivities();
+  } else if (activeTab.value === 'adoption') {
+    fetchMyPosts();
+  } else if (activeTab.value === 'activities') {
+    fetchMyActivities();
+  }
 });
 </script>
 

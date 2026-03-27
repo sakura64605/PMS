@@ -3,7 +3,7 @@ package com.hongjie.pms.modules.user.service.Impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.exception.BusinessException;
-import com.hongjie.pms.common.util.OssUtils;
+import com.hongjie.pms.common.utils.OssUtils;
 import com.hongjie.pms.modules.user.dto.response.AvatarUploadResponse;
 import com.hongjie.pms.modules.user.entity.AvatarHistory;
 import com.hongjie.pms.modules.user.entity.User;

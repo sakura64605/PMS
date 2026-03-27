@@ -1,4 +1,4 @@
-package com.hongjie.pms.common.util;
+package com.hongjie.pms.common.utils;
 
 import com.hongjie.pms.common.exception.BusinessException;
 import io.jsonwebtoken.*;

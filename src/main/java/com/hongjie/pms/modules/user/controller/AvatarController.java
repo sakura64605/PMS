@@ -19,6 +19,9 @@ public class AvatarController {
 
     private final AvatarService avatarService;
 
+    /**
+     * 上传头像
+     */
     @PostMapping("/upload")
     public CommonResult<AvatarUploadResponse> uploadAvatar(@RequestParam("file") MultipartFile file) {
         AvatarUploadResponse response = avatarService.uploadAvatar(file);

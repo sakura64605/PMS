@@ -1,4 +1,4 @@
-package com.hongjie.pms.common.util;
+package com.hongjie.pms.common.utils;
 
 import org.springframework.util.StringUtils;
 
