@@ -17,7 +17,7 @@ import com.hongjie.pms.modules.petpost.dto.response.FavoriteResponseDto;
 import com.hongjie.pms.modules.petpost.dto.response.LikeResponseDto;
 import com.hongjie.pms.modules.petpost.dto.response.PetListResponseDto;
 import com.hongjie.pms.modules.petpost.entity.FavoriteRecord;
-import com.hongjie.pms.modules.petpost.entity.LikeRecord;
+import com.hongjie.pms.modules.like.entity.LikeRecord;
 import com.hongjie.pms.modules.petpost.entity.PetPost;
 import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.petpost.mapper.FavoriteRecordMapper;

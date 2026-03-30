@@ -1,4 +1,4 @@
-package com.hongjie.pms.modules.petpost.entity;
+package com.hongjie.pms.modules.like.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;

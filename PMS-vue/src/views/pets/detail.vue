@@ -169,18 +169,141 @@
           </el-button>
         </div>
         <div class="comment-list">
-          <div v-if="(pet.comments && pet.comments.length > 0)" class="comment-item">
-            <!-- 评论列表项 -->
-            <div v-for="(comment, index) in pet.comments" :key="index" class="comment">
+          <div v-if="comments.length === 0" class="no-comments">
+            暂无评论，快来抢沙发~
+          </div>
+          <div v-else class="comment-item" v-for="comment in comments" :key="comment.id">
+            <img :src="comment.user.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="用户头像" class="comment-avatar" />
+            <div class="comment-content">
               <div class="comment-header">
-                <span class="comment-author">{{ comment.userNickname }}</span>
+                <div class="comment-author-info">
+                  <span class="comment-nickname">{{ comment.user.nickname }}</span>
+                  <span v-if="comment.replyTo" class="comment-reply-to"> &gt; {{ comment.replyTo.nickname }}</span>
+                </div>
                 <span class="comment-time">{{ formatDate(comment.createTime) }}</span>
               </div>
-              <div class="comment-content">{{ comment.content }}</div>
+              <div class="comment-text">
+                {{ comment.content }}
+              </div>
+              <div class="comment-footer">
+                <el-button
+                  type="text"
+                  size="small"
+                  @click="comment.showReplyBox = !comment.showReplyBox; comment.replyToId = comment.user.id"
+                >
+                  回复
+                </el-button>
+                <el-button
+                  type="text"
+                  size="small"
+                  @click="handleLikeComment(comment.id)"
+                  :type="comment.isLiked ? 'primary' : 'default'"
+                >
+                  <el-icon><Top /></el-icon>
+                  {{ comment.likeCount || 0 }}
+                </el-button>
+              </div>
+              
+              <!-- 回复输入框 -->
+              <div v-if="comment.showReplyBox" class="reply-input-box">
+                <el-input
+                  v-model="comment.replyContent"
+                  type="textarea"
+                  placeholder="写下你的回复..."
+                  :rows="2"
+                />
+                <div class="reply-input-actions">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    @click="handleSubmitReply(comment.id, comment.user.nickname, comment.replyContent)"
+                  >
+                    发送
+                  </el-button>
+                  <el-button
+                    type="default"
+                    size="small"
+                    @click="comment.showReplyBox = false; comment.replyContent = ''"
+                  >
+                    取消
+                  </el-button>
+                </div>
+              </div>
+              
+              <!-- 子评论 -->
+              <div v-if="comment.replies && comment.replies.length > 0" class="replies-list">
+                <!-- 显示第一条子评论 -->
+                <div v-for="(reply, index) in comment.replies.slice(0, comment.showAllReplies ? comment.replies.length : 1)" :key="reply.id" class="reply-item">
+                  <img :src="reply.user.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="用户头像" class="reply-avatar" />
+                  <div class="reply-content">
+                    <div class="reply-header">
+                      <div class="reply-author-info">
+                        <span class="reply-nickname">{{ reply.user.nickname }}</span>
+                        <span v-if="reply.replyTo" class="reply-reply-to"> &gt; {{ reply.replyTo.nickname }}</span>
+                      </div>
+                      <span class="reply-time">{{ formatDate(reply.createTime) }}</span>
+                    </div>
+                    <div class="reply-text">
+                      {{ reply.content }}
+                    </div>
+                    <div class="reply-footer">
+                      <el-button
+                        type="text"
+                        size="small"
+                        @click="reply.showReplyBox = !reply.showReplyBox; reply.replyToId = reply.user.id"
+                      >
+                        回复
+                      </el-button>
+                      <el-button
+                        type="text"
+                        size="small"
+                        @click="handleLikeComment(reply.id)"
+                        :type="reply.isLiked ? 'primary' : 'default'"
+                      >
+                        <el-icon><Top /></el-icon>
+                        {{ reply.likeCount || 0 }}
+                      </el-button>
+                    </div>
+                    
+                    <!-- 回复输入框 -->
+                    <div v-if="reply.showReplyBox" class="reply-input-box">
+                      <el-input
+                        v-model="reply.replyContent"
+                        type="textarea"
+                        placeholder="写下你的回复..."
+                        :rows="2"
+                      />
+                      <div class="reply-input-actions">
+                        <el-button
+                          type="primary"
+                          size="small"
+                          @click="handleSubmitReply(reply.id, reply.user.nickname, reply.replyContent)"
+                        >
+                          发送
+                        </el-button>
+                        <el-button
+                          type="default"
+                          size="small"
+                          @click="reply.showReplyBox = false; reply.replyContent = ''"
+                        >
+                          取消
+                        </el-button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- 显示展开/收起按钮 -->
+                <div v-if="comment.replies.length > 1" class="reply-expand">
+                  <el-button
+                    type="text"
+                    size="small"
+                    @click="comment.showAllReplies = !comment.showAllReplies"
+                  >
+                    {{ comment.showAllReplies ? '收起回复' : `查看${comment.replies.length - 1}条回复 >` }}
+                  </el-button>
+                </div>
+              </div>
             </div>
-          </div>
-          <div v-else class="no-comments">
-            暂无评论，快来抢沙发~
           </div>
         </div>
       </div>
@@ -197,6 +320,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, View, Male, Female, QuestionFilled, DocumentCopy, Star, ChatLineSquare, Share, Top } from '@element-plus/icons-vue';
 import { getPetDetail, likePet, collectPet } from '../../api/pet';
+import { getCommentList, createComment } from '../../api/activity';
 
 // 路由
 const route = useRoute();
@@ -339,15 +463,118 @@ const copyToClipboard = (text: string) => {
   });
 };
 
-const handleSubmitComment = () => {
+// 回复评论
+const replyToId = ref(0);
+const replyToName = ref('');
+
+const handleReply = (id: number, name: string) => {
+  replyToId.value = id;
+  replyToName.value = name;
+  commentContent.value = `@${name} `;
+  // 聚焦评论输入框
+  setTimeout(() => {
+    const textarea = document.querySelector('.comment-input-area textarea') as HTMLTextAreaElement;
+    textarea?.focus();
+  }, 100);
+};
+
+// 点赞评论
+const handleLikeComment = async (id: number) => {
+  try {
+    // 这里需要调用点赞评论的接口，暂时模拟
+    ElMessage.success('点赞成功');
+    // 刷新评论列表
+    await fetchComments();
+  } catch (error) {
+    ElMessage.error('点赞失败，请重试');
+    console.error('点赞评论失败:', error);
+  }
+};
+
+// 提交回复
+const handleSubmitReply = async (id: number, nickname: string, content: string) => {
+  if (!content.trim()) {
+    ElMessage.warning('请输入回复内容');
+    return;
+  }
+  
+  const petId = Number(route.params.id);
+  if (!petId) return;
+  
+  try {
+    // 查找评论对象，获取replyToId
+    let replyToId = null;
+    const findReplyToId = (comments: any[]) => {
+      for (const comment of comments) {
+        if (comment.id === id) {
+          replyToId = comment.replyToId;
+          return true;
+        }
+        if (comment.replies && comment.replies.length > 0) {
+          if (findReplyToId(comment.replies)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+    findReplyToId(comments.value);
+    
+    const response = await createComment({
+      targetType: 'pet_post',
+      targetId: petId,
+      content: content.trim(),
+      parentId: 1, // 子评论的parentId为1
+      replyTo: replyToId // 回复给的人的ID
+    });
+    if (response.code === 200) {
+      ElMessage.success('回复发布成功');
+      // 刷新评论列表
+      await fetchComments();
+    } else {
+      ElMessage.error(response.message || '回复发布失败');
+    }
+  } catch (error) {
+    ElMessage.error('回复发布失败，请重试');
+    console.error('回复发布失败:', error);
+  }
+};
+
+const handleSubmitComment = async () => {
   if (!commentContent.value.trim()) {
     ElMessage.warning('请输入评论内容');
     return;
   }
   
-  // 这里需要调用后端API提交评论
-  ElMessage.info('评论功能开发中');
-  commentContent.value = '';
+  const id = route.params.id;
+  if (!id) {
+    ElMessage.error('宠物ID不存在');
+    return;
+  }
+  
+  try {
+    const response = await createComment({
+      targetType: 'pet_post',
+      targetId: petId,
+      content: commentContent.value.trim(),
+      parentId: 0 // 顶级评论的parentId为0
+    });
+    if (response.code === 200) {
+      ElMessage.success('评论发布成功');
+      commentContent.value = '';
+      replyToId.value = 0;
+      replyToName.value = '';
+      // 刷新评论列表
+      await fetchComments();
+      // 刷新宠物详情，更新评论数
+      await fetchPetDetail();
+    } else {
+      ElMessage.error(response.message || '评论发布失败');
+    }
+  } catch (error) {
+    ElMessage.error('评论发布失败，请重试');
+    console.error('评论发布失败:', error);
+  }
 };
 
 const handleImageClick = (event: any) => {
@@ -355,6 +582,9 @@ const handleImageClick = (event: any) => {
   // 例如使用Element Plus的Image组件或第三方库
   ElMessage.info('图片查看功能开发中');
 };
+
+// 评论列表
+const comments = ref<any[]>([]);
 
 const fetchPetDetail = async () => {
   const id = route.params.id;
@@ -371,6 +601,8 @@ const fetchPetDetail = async () => {
       // 初始化点赞和收藏状态，使用后端返回的字段
       isLiked.value = pet.value.isLiked || false;
       isCollected.value = pet.value.isFavorite || false;
+      // 获取评论列表
+      await fetchComments();
     } else {
       ElMessage.error(response.message || '获取宠物详情失败');
     }
@@ -379,6 +611,91 @@ const fetchPetDetail = async () => {
     console.error('获取宠物详情失败:', error);
   } finally {
     loading.value = false;
+  }
+};
+
+// 获取评论列表
+const fetchComments = async () => {
+  const id = route.params.id;
+  if (!id) return;
+  
+  try {
+    const response = await getCommentList({
+      targetType: 'pet_post',
+      targetId: Number(id),
+      pageNum: 1,
+      pageSize: 100
+    });
+    console.log('评论列表响应:', response);
+    if (response.code === 200) {
+      console.log('评论数据:', response.data);
+      // 尝试不同的数据结构
+      if (response.data.records) {
+        // 为每个评论添加showAllReplies、showReplyBox和replyContent属性，默认为false和空字符串
+        // 扁平化所有嵌套回复，将所有回复都放在顶级评论的replies数组中
+        const flattenReplies = (replies: any[]) => {
+          let result: any[] = [];
+          (replies || []).forEach(reply => {
+            result.push(reply);
+            if (reply.replies && reply.replies.length > 0) {
+              result = result.concat(flattenReplies(reply.replies));
+            }
+          });
+          // 按时间从先到后排序
+          result.sort((a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime());
+          return result;
+        };
+        
+        comments.value = (response.data.records || []).map((comment: any) => ({
+          ...comment,
+          showAllReplies: false,
+          showReplyBox: false,
+          replyContent: '',
+          replies: flattenReplies(comment.replies).map((reply: any) => ({
+            ...reply,
+            showReplyBox: false,
+            replyContent: ''
+          }))
+        }));
+      } else if (Array.isArray(response.data)) {
+        // 为每个评论添加showAllReplies、showReplyBox和replyContent属性，默认为false和空字符串
+        // 扁平化所有嵌套回复，将所有回复都放在顶级评论的replies数组中
+        const flattenReplies = (replies: any[]) => {
+          let result: any[] = [];
+          (replies || []).forEach(reply => {
+            result.push(reply);
+            if (reply.replies && reply.replies.length > 0) {
+              result = result.concat(flattenReplies(reply.replies));
+            }
+          });
+          // 按时间从先到后排序
+          result.sort((a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime());
+          return result;
+        };
+        
+        comments.value = response.data.map((comment: any) => ({
+          ...comment,
+          showAllReplies: false,
+          showReplyBox: false,
+          replyContent: '',
+          replies: flattenReplies(comment.replies).map((reply: any) => ({
+            ...reply,
+            showReplyBox: false,
+            replyContent: ''
+          }))
+        }));
+      } else {
+        comments.value = [];
+      }
+      console.log('最终评论列表:', comments.value);
+    } else {
+      ElMessage.error(response.message || '获取评论列表失败');
+      comments.value = [];
+    }
+  } catch (error) {
+    ElMessage.error('获取评论列表失败，请重试');
+    console.error('获取评论列表失败:', error);
+    comments.value = [];
   }
 };
 
@@ -634,6 +951,9 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
 }
 
 .submit-comment-btn {
@@ -644,13 +964,42 @@ onMounted(() => {
   margin-top: 24px;
 }
 
-.comment {
-  padding: 16px 0;
-  border-bottom: 1px solid #f0f0f0;
+.comment-item {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.comment:last-child {
-  border-bottom: none;
+.comment-item {
+  display: flex;
+  margin-bottom: 16px;
+  padding: 0 0 0 40px;
+  background-color: transparent;
+  border-radius: 0;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.comment-item:hover {
+  background-color: #f9f9f9;
+}
+
+.comment-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+  position: absolute;
+  left: -16px;
+  top: 2px;
+}
+
+.comment-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .comment-header {
@@ -660,10 +1009,21 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 
-.comment-author {
+.comment-author-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.comment-nickname {
   font-size: 14px;
   font-weight: 500;
   color: #333;
+}
+
+.comment-reply-to {
+  font-size: 13px;
+  color: #606266;
 }
 
 .comment-time {
@@ -671,18 +1031,161 @@ onMounted(() => {
   color: #909399;
 }
 
-.comment-content {
-  font-size: 14px;
-  line-height: 1.6;
+.comment-text {
+  font-size: 13px;
+  line-height: 1.5;
   color: #333;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.comment-footer {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.comment-footer .el-button {
+  font-size: 12px;
+  padding: 0;
+  height: 24px;
+  line-height: 24px;
 }
 
 .no-comments {
   text-align: center;
-  padding: 48px 24px;
+  padding: 60px 24px;
   color: #909399;
   font-size: 14px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin-top: 24px;
 }
+
+/* 子评论样式 */
+.replies-list {
+  margin-top: 16px;
+  margin-left: 0;
+  border-left: 2px solid #e4e7ed;
+  padding-left: 20px;
+}
+
+.reply-item {
+  display: flex;
+  margin-bottom: 16px;
+  padding: 0;
+  background-color: transparent;
+  border-radius: 0;
+  transition: all 0.3s ease;
+}
+
+.reply-item:hover {
+  background-color: #f9f9f9;
+}
+
+.reply-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin-right: 12px;
+  object-fit: cover;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.reply-content {
+  flex: 1;
+}
+
+.reply-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.reply-author-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reply-nickname {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+}
+
+.reply-reply-to {
+  font-size: 12px;
+  color: #606266;
+}
+
+.reply-time {
+  font-size: 11px;
+  color: #909399;
+}
+
+.reply-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #333;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.reply-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.reply-footer .el-button {
+  font-size: 11px;
+  padding: 0;
+  height: 20px;
+  line-height: 20px;
+}
+
+.reply-expand {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.reply-expand .el-button {
+  font-size: 12px;
+  padding: 0;
+  color: #909399;
+}
+
+/* 回复输入框样式 */
+.reply-input-box {
+  margin-top: 16px;
+  padding: 16px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.reply-input-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.reply-input-actions .el-button {
+  font-size: 12px;
+  padding: 0 12px;
+  height: 28px;
+  line-height: 28px;
+}
+
+
+
+
 
 /* 响应式设计 */
 @media (max-width: 768px) {

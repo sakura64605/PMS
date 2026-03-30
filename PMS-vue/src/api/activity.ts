@@ -117,3 +117,32 @@ export const deleteActivityReally = (id: number) => {
     method: 'post'
   })
 }
+
+// 获取评论列表
+export const getCommentList = (params: {
+  targetType: string
+  targetId: number
+  pageNum?: number
+  pageSize?: number
+}) => {
+  return request({
+    url: '/comment/list',
+    method: 'get',
+    params
+  })
+}
+
+// 创建评论
+export const createComment = (data: {
+  targetType: string
+  targetId: number
+  content: string
+  parentId?: number
+  replyTo?: number
+}) => {
+  return request({
+    url: '/comment/create',
+    method: 'post',
+    data
+  })
+}
