@@ -1,4 +1,4 @@
-package com.hongjie.pms.modules.petpost.dto.response;
+package com.hongjie.pms.modules.like.dto.response;
 
 import lombok.Builder;
 import lombok.Data;

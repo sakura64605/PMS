@@ -14,14 +14,13 @@ import com.hongjie.pms.modules.petpost.dto.request.PetPostRequestDto;
 import com.hongjie.pms.modules.petpost.dto.request.PetQueryRequestDto;
 import com.hongjie.pms.modules.user.dto.response.AvatarUploadResponse;
 import com.hongjie.pms.modules.petpost.dto.response.FavoriteResponseDto;
-import com.hongjie.pms.modules.petpost.dto.response.LikeResponseDto;
 import com.hongjie.pms.modules.petpost.dto.response.PetListResponseDto;
 import com.hongjie.pms.modules.petpost.entity.FavoriteRecord;
 import com.hongjie.pms.modules.like.entity.LikeRecord;
 import com.hongjie.pms.modules.petpost.entity.PetPost;
 import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.petpost.mapper.FavoriteRecordMapper;
-import com.hongjie.pms.modules.petpost.mapper.LikeRecordMapper;
+import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -447,40 +446,6 @@ public class PetPostServiceImpl implements PetPostService {
             log.error("OSS删除失败，需要人工清理: {}", pet.getImages(), e);
             // 记录到失败队列，后续异步重试
         }
-    }
-
-    @Override
-    public LikeResponseDto like(Long id) {
-        QueryWrapper<PetPost> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("id", id);
-        PetPost pet = petPostMapper.selectOne(queryWrapper);
-        if (pet == null) {
-            throw new BusinessException(404, "宠物信息不存在");
-        }
-        LikeRecord likeRecord = likeRecordMapper.selectOne(new QueryWrapper<LikeRecord>().eq("user_id", UserContext.getUserId()).eq("target_id", id).eq("target_type", "pet_post"));
-        if (likeRecord != null) {
-            pet.setLikeCount(pet.getLikeCount() - 1);
-            likeRecordMapper.deleteById(likeRecord);
-            petPostMapper.decrementLikeCount(id);
-            log.info("取消点赞成功: {}", pet.getLikeCount());
-            return LikeResponseDto.builder()
-                    .isLiked(false)
-                    .likeCount(pet.getLikeCount())
-                    .build();
-        }
-        pet.setLikeCount(pet.getLikeCount() + 1);
-        likeRecordMapper.insert(LikeRecord.builder()
-                .userId(UserContext.getUserId())
-                .targetId(id)
-                .targetType("pet_post")
-                .createTime(LocalDateTime.now())
-                .build());
-        petPostMapper.incrementLikeCount(id);
-        log.info("点赞成功: {}", pet.getLikeCount());
-        return LikeResponseDto.builder()
-                .isLiked(true)
-                .likeCount(pet.getLikeCount())
-                .build();
     }
 
     @Override

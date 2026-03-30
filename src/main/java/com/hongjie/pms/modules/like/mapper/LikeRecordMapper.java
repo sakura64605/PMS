@@ -1,4 +1,4 @@
-package com.hongjie.pms.modules.petpost.mapper;
+package com.hongjie.pms.modules.like.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.hongjie.pms.modules.like.entity.LikeRecord;

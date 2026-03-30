@@ -9,7 +9,7 @@ import com.hongjie.pms.modules.petpost.dto.request.PetPostRequestDto;
 import com.hongjie.pms.modules.petpost.dto.request.PetQueryRequestDto;
 import com.hongjie.pms.modules.user.dto.response.AvatarUploadResponse;
 import com.hongjie.pms.modules.petpost.dto.response.FavoriteResponseDto;
-import com.hongjie.pms.modules.petpost.dto.response.LikeResponseDto;
+import com.hongjie.pms.modules.like.dto.response.LikeResponseDto;
 import com.hongjie.pms.modules.petpost.dto.response.PetListResponseDto;
 import com.hongjie.pms.modules.petpost.service.PetPostService;
 import lombok.RequiredArgsConstructor;
@@ -35,16 +35,6 @@ public class PetPostController {
 
         PetListResponseDto response = petPostService.post(request);
 
-        return CommonResult.success(response);
-    }
-
-    /**
-     * 点赞
-     */
-    @PostMapping("/{id}/like")
-    public CommonResult<LikeResponseDto> like(@PathVariable Long id) {
-        log.info("点赞宠物信息: id={}", id);
-        LikeResponseDto response = petPostService.like(id);
         return CommonResult.success(response);
     }
 

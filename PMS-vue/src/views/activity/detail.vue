@@ -360,6 +360,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getActivityDetail, signupActivity, cancelSignup, getCommentList, createComment } from '../../api/activity'
 import { MapLocation, Timer, UserFilled, View, Star, ChatLineRound } from '@element-plus/icons-vue'
+import request from '../../utils/request'
 
 const router = useRouter()
 const route = useRoute()
@@ -477,10 +478,21 @@ const handleReply = (id: number, name: string) => {
 // 点赞评论
 const handleLikeComment = async (id: number) => {
   try {
-    // 这里需要调用点赞评论的接口，暂时模拟
-    ElMessage.success('点赞成功')
-    // 刷新评论列表
-    await fetchComments()
+    const response = await request({
+      url: '/like',
+      method: 'post',
+      data: {
+        targetId: id,
+        targetType: 'pet_comment'
+      }
+    })
+    if (response.code === 200) {
+      ElMessage.success('点赞成功')
+      // 刷新评论列表
+      await fetchComments()
+    } else {
+      ElMessage.error(response.message || '点赞失败')
+    }
   } catch (error) {
     ElMessage.error('点赞失败，请重试')
     console.error('点赞评论失败:', error)

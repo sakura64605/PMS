@@ -129,8 +129,12 @@ export const auditPet = (id: number, status: number) => {
 // 点赞
 export const likePet = (id: number) => {
   return request({
-    url: `/pet/${id}/like`,
-    method: 'post'
+    url: '/like',
+    method: 'post',
+    data: {
+      targetId: id,
+      targetType: 'pet_post'
+    }
   })
 };
 

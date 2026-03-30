@@ -6,7 +6,6 @@ import com.hongjie.pms.modules.petpost.dto.request.PetPostRequestDto;
 import com.hongjie.pms.modules.petpost.dto.request.PetQueryRequestDto;
 import com.hongjie.pms.modules.user.dto.response.AvatarUploadResponse;
 import com.hongjie.pms.modules.petpost.dto.response.FavoriteResponseDto;
-import com.hongjie.pms.modules.petpost.dto.response.LikeResponseDto;
 import com.hongjie.pms.modules.petpost.dto.response.PetListResponseDto;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,8 +29,6 @@ public interface PetPostService {
     void recover(Long id);
 
     void deleteReally(Long id);
-
-    LikeResponseDto like(Long id);
 
     FavoriteResponseDto favorite(Long id);
 
