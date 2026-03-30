@@ -95,8 +95,8 @@
             <el-icon><View /></el-icon>
             {{ activity.viewCount }} 浏览
           </span>
-          <span class="interaction-item">
-            <el-icon><Star /></el-icon>
+          <span class="interaction-item" @click="handleLike" style="cursor: pointer;">
+            <el-icon :class="{ 'is-liked': isLiked }"><Star /></el-icon>
             {{ activity.likeCount }} 点赞
           </span>
           <span class="interaction-item">
@@ -368,6 +368,7 @@ const loading = ref(false)
 const activity = ref<any>(null)
 const comments = ref<any[]>([])
 const commentContent = ref('')
+const isLiked = ref(false)
 
 // 弹窗状态
 const showSignupDialog = ref(false)
@@ -457,6 +458,38 @@ const navigateToUser = (userId: number) => {
 const navigateToEdit = () => {
   if (activity.value) {
     router.push(`/activities/${activity.value.id}/edit`)
+  }
+}
+
+// 点赞活动
+const handleLike = async () => {
+  if (!activity.value) return
+  
+  try {
+    const response = await request({
+      url: '/like',
+      method: 'post',
+      data: {
+        targetId: activity.value.id,
+        targetType: 'pet_activity'
+      }
+    })
+    if (response.code === 200 && response.data) {
+        isLiked.value = response.data.isLiked
+        // 更新点赞数
+        if (response.data.likeCount !== undefined) {
+          activity.value.likeCount = response.data.likeCount
+        }
+        // 更新活动对象中的isLike字段，确保刷新后状态正确
+        activity.value.isLike = response.data.isLiked ? 1 : 0
+        const message = response.data.isLiked ? '点赞成功' : '取消点赞成功'
+        ElMessage.success(message)
+      } else {
+      ElMessage.error(response.message || '操作失败')
+    }
+  } catch (error) {
+    ElMessage.error('操作失败，请重试')
+    console.error('点赞操作失败:', error)
   }
 }
 
@@ -658,6 +691,8 @@ const fetchActivityDetail = async () => {
       ...response.data,
       isSignUp: response.data.isSignUp || 0
     }
+    // 设置点赞状态
+    isLiked.value = Boolean(response.data.isLike)
     // 获取评论列表
     await fetchComments()
   } catch (error) {
@@ -760,6 +795,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 点赞样式 */
+.is-liked {
+  color: #F56C6C !important;
+}
+
 .activity-detail-container {
   padding: 20px;
   max-width: 1000px;

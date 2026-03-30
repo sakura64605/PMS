@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.base.core.UserContext;
+import com.hongjie.pms.common.enums.CommentLikeTypes;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.utils.OssUtils;
 import com.hongjie.pms.modules.petpost.dto.PetDetailDto;
@@ -266,12 +267,12 @@ public class PetPostServiceImpl implements PetPostService {
         if (currentUserId != null) {
             // 检查是否点赞
             log.info("currentUserId = {}" , currentUserId);
-            LikeRecord likeRecord = likeRecordMapper.selectOne(new QueryWrapper<LikeRecord>().eq("user_id", currentUserId).eq("target_id", id).eq("target_type", "pet_post"));
+            LikeRecord likeRecord = likeRecordMapper.selectOne(new QueryWrapper<LikeRecord>().eq("user_id", currentUserId).eq("target_id", id).eq("target_type", CommentLikeTypes.PET_POST));
             detailDto.setIsLiked(likeRecord != null);
 
             log.info("currentUserId = {}" , currentUserId);
             // 检查是否收藏
-            FavoriteRecord favoriteRecord = favoriteRecordMapper.selectOne(new QueryWrapper<FavoriteRecord>().eq("user_id", currentUserId).eq("target_id", id).eq("target_type", "pet_post"));
+            FavoriteRecord favoriteRecord = favoriteRecordMapper.selectOne(new QueryWrapper<FavoriteRecord>().eq("user_id", currentUserId).eq("target_id", id).eq("target_type", CommentLikeTypes.PET_POST));
             detailDto.setIsFavorite(favoriteRecord != null);
         }
 

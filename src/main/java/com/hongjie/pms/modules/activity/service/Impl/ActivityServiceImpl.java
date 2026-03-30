@@ -16,9 +16,12 @@ import com.hongjie.pms.modules.activity.entity.ActivitySignup;
 import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
 import com.hongjie.pms.modules.activity.mapper.ActivitySignupMapper;
 import com.hongjie.pms.modules.activity.service.ActivityService;
+import com.hongjie.pms.modules.like.entity.LikeRecord;
+import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
+import com.hongjie.pms.common.enums.CommentLikeTypes;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -41,6 +44,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final UserMapper userMapper;
     private final ActivityMapper activityMapper;
     private final ActivitySignupMapper activitySignupMapper;
+    private final LikeRecordMapper likeRecordMapper;
 
     @Override
     public ActivityPostRespDto postActivity(ActivityRequestDto request) {
@@ -322,6 +326,18 @@ public class ActivityServiceImpl implements ActivityService {
 
         if (activitySignup != null) {
             activityDetailRespDto.setIsSignUp(1);
+        }
+
+        LikeRecord likeRecord = likeRecordMapper.selectOne(
+                new LambdaQueryWrapper<LikeRecord>()
+                        .eq(LikeRecord::getTargetId, id)
+                        .eq(LikeRecord::getUserId, currentUserId)
+                        .eq(LikeRecord::getTargetType, CommentLikeTypes.PET_ACTIVITY)
+        );
+        if (likeRecord != null) {
+            activityDetailRespDto.setIsLike(1);
+        } else {
+            activityDetailRespDto.setIsLike(0);
         }
         User user = userMapper.selectById(activity.getUserId());
         UserSimpleDto userSimpleDto = UserSimpleDto.builder()

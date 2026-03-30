@@ -113,4 +113,9 @@ public class ActivityDetailRespDto {
      */
     private Integer isSignUp;
 
+    /**
+     * 是否点赞
+     */
+    private Integer isLike;
+
 }
