@@ -1,0 +1,123 @@
+package com.hongjie.pms.modules.activity.controller;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.hongjie.pms.common.base.core.UserContext;
+import com.hongjie.pms.common.pojo.CommonResult;
+import com.hongjie.pms.modules.activity.dto.request.ActivityListRequestDto;
+import com.hongjie.pms.modules.activity.dto.request.SignUpInfoRequest;
+import com.hongjie.pms.modules.activity.dto.response.ActivityDetailRespDto;
+import com.hongjie.pms.modules.activity.dto.response.ActivityListRespDto;
+import com.hongjie.pms.modules.activity.dto.request.ActivityRequestDto;
+import com.hongjie.pms.modules.activity.dto.response.ActivityPostRespDto;
+import com.hongjie.pms.modules.activity.service.ActivityService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@Slf4j
+@RestController
+@RequestMapping("/pet-system/activity")
+@RequiredArgsConstructor
+public class ActivityController {
+
+    private final ActivityService activityService;
+
+    /**
+     * 创建活动
+     */
+    @PostMapping("/post")
+    public CommonResult<ActivityPostRespDto> postActivity(@RequestBody @Valid ActivityRequestDto request) {
+        ActivityPostRespDto activityListDto = activityService.postActivity(request);
+        return CommonResult.success(activityListDto);
+    }
+
+    /**
+     * 修改活动
+     */
+    @PostMapping("/update/{id}")
+    public CommonResult<String> updateActivity(@RequestBody @Valid ActivityRequestDto activityRequestDto) {
+        activityService.updateActivity(activityRequestDto);
+        return CommonResult.success("活动更新成功");
+    }
+
+    /**
+     * 删除活动
+     */
+    @PostMapping("/delete/{id}")
+    public CommonResult<String> deleteActivity(@PathVariable Long id) {
+        activityService.deleteActivity(id);
+        return CommonResult.success("活动删除成功");
+    }
+
+    /**
+     * 获取活动详情
+     */
+    @GetMapping("/detail/{id}")
+    public CommonResult<ActivityDetailRespDto> getActivityDetail(@PathVariable Long id) {
+        ActivityDetailRespDto activityDetail = activityService.getActivityDetail(id);
+        return CommonResult.success(activityDetail);
+    }
+
+    /**
+     * 获取回收站列表
+     */
+    @GetMapping("/recycle-bin")
+    public CommonResult<IPage<ActivityListRespDto>> getRecycleBinList(ActivityListRequestDto request) {
+        log.info("获取回收站列表");
+        IPage<ActivityListRespDto> activityList = activityService.getRecycleBinList(request);
+        return CommonResult.success(activityList);
+    }
+
+    /**
+     * 恢复活动
+     */
+    @PostMapping("/recover/{id}")
+    public CommonResult<String> recoverActivity(@PathVariable Long id) {
+        activityService.recoverActivity(id);
+        return CommonResult.success("活动恢复成功");
+    }
+    /**
+     * 获取活动列表
+     */
+    @GetMapping("/list")
+    public CommonResult<IPage<ActivityListRespDto>> getActivityList(ActivityListRequestDto request) {
+        log.info("获取活动列表");
+        IPage<ActivityListRespDto> activityList = activityService.getActivityList(request);
+        return CommonResult.success(activityList);
+    }
+
+    /**
+     * 报名活动
+     */
+    @PostMapping("/signUp")
+    public CommonResult<String> signUp(@RequestBody @Valid SignUpInfoRequest request) {
+        log.info("用户报名活动");
+        activityService.signUp(request);
+        return CommonResult.success("报名成功");
+    }
+
+    /**
+     * 取消报名
+     */
+    @PostMapping("/cancelSignUp/{id}")
+    public CommonResult<String> cancelSignUp(@PathVariable Long id) {
+        log.info("用户取消报名");
+        activityService.cancelSignUp(id);
+        return CommonResult.success("取消报名成功");
+    }
+
+    /**
+     * 获取我的活动列表
+     */
+    @GetMapping("/myActivity")
+    public CommonResult<IPage<ActivityListRespDto>> getMyActivityList(ActivityListRequestDto request) {
+        log.info("获取我的活动列表");
+        Long userId = UserContext.getUserId();
+        request.setUserId(userId);
+        IPage<ActivityListRespDto> activityList = activityService.getActivityList(request);
+        return CommonResult.success(activityList);
+    }
+}
