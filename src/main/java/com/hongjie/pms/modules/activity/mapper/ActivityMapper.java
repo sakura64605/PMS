@@ -9,10 +9,12 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface ActivityMapper extends BaseMapper<Activity> {
 
-    @Update("UPDATE activity SET like_count = like_count + 1 WHERE id = #{petId}")
-    void incrementLikeCount(@Param("petId") Long petId);
+    @Update("UPDATE activity SET like_count = like_count + 1 WHERE id = #{activityId}")
+    void incrementLikeCount(@Param("activityId") Long activityId);
 
-    @Update("UPDATE activity SET like_count = like_count - 1 WHERE id = #{petId} AND like_count > 0")
-    void decrementLikeCount(@Param("petId") Long petId);
+    @Update("UPDATE activity SET like_count = like_count - 1 WHERE id = #{activityId} AND like_count > 0")
+    void decrementLikeCount(@Param("activityId") Long activityId);
 
+    @Update("UPDATE activity SET comment_count = comment_count + 1 WHERE id = #{activityId}")
+    void incrementCommentCount(@Param("activityId") Long activityId);
 }

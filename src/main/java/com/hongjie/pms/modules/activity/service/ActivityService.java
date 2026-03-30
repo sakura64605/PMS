@@ -7,6 +7,7 @@ import com.hongjie.pms.modules.activity.dto.response.ActivityDetailRespDto;
 import com.hongjie.pms.modules.activity.dto.response.ActivityListRespDto;
 import com.hongjie.pms.modules.activity.dto.request.ActivityRequestDto;
 import com.hongjie.pms.modules.activity.dto.response.ActivityPostRespDto;
+import com.hongjie.pms.modules.activity.dto.response.SignUpResponse;
 import jakarta.validation.Valid;
 
 import java.util.List;
@@ -29,4 +30,6 @@ public interface ActivityService {
     IPage<ActivityListRespDto> getRecycleBinList(ActivityListRequestDto request);
 
     void recoverActivity(Long id);
+
+    IPage<SignUpResponse> getSignUpList(Long id, int pageNum, int pageSize);
 }

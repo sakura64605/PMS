@@ -9,6 +9,7 @@ import com.hongjie.pms.modules.activity.dto.response.ActivityDetailRespDto;
 import com.hongjie.pms.modules.activity.dto.response.ActivityListRespDto;
 import com.hongjie.pms.modules.activity.dto.request.ActivityRequestDto;
 import com.hongjie.pms.modules.activity.dto.response.ActivityPostRespDto;
+import com.hongjie.pms.modules.activity.dto.response.SignUpResponse;
 import com.hongjie.pms.modules.activity.service.ActivityService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -79,6 +80,19 @@ public class ActivityController {
         activityService.recoverActivity(id);
         return CommonResult.success("活动恢复成功");
     }
+
+    /**
+     * 查看报名人
+     */
+    @PostMapping("/signUpList/{id}")
+    public CommonResult<IPage<SignUpResponse>> getSignUpList(@PathVariable Long id,
+                                                             @RequestParam int pageNum,
+                                                             @RequestParam int pageSize) {
+        log.info("查看报名人");
+        IPage<SignUpResponse> signUpList = activityService.getSignUpList(id, pageNum, pageSize);
+        return CommonResult.success(signUpList);
+    }
+
     /**
      * 获取活动列表
      */

@@ -11,6 +11,7 @@ import com.hongjie.pms.modules.activity.dto.response.ActivityDetailRespDto;
 import com.hongjie.pms.modules.activity.dto.response.ActivityListRespDto;
 import com.hongjie.pms.modules.activity.dto.request.ActivityRequestDto;
 import com.hongjie.pms.modules.activity.dto.response.ActivityPostRespDto;
+import com.hongjie.pms.modules.activity.dto.response.SignUpResponse;
 import com.hongjie.pms.modules.activity.entity.Activity;
 import com.hongjie.pms.modules.activity.entity.ActivitySignup;
 import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
@@ -577,6 +578,58 @@ public class ActivityServiceImpl implements ActivityService {
         }
         activity.setDeleted(0);
         activityMapper.updateById(activity);
+    }
+
+    @Override
+    public IPage<SignUpResponse> getSignUpList(Long id, int pageNum, int pageSize) {
+        Long currentUserId = UserContext.getUserId();
+        Activity activity = activityMapper.selectById(id);
+        if (activity == null || !activity.getUserId().equals(currentUserId)) {
+            throw new BusinessException(400, "活动不存在或无权限查看");
+        }
+        IPage<ActivitySignup> page = new Page<>(pageNum, pageSize);
+        page = activitySignupMapper.selectPage(page, new LambdaQueryWrapper<ActivitySignup>()
+                .eq(ActivitySignup::getActivityId, id)
+                .orderByDesc(ActivitySignup::getCreateTime)
+        );
+        List<Long> userIds = page.getRecords().stream()
+                .map(ActivitySignup::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, UserSimpleDto> userMap;
+        if (!userIds.isEmpty()) {
+            List<User> users = userMapper.selectBatchIds(userIds);
+            userMap = users.stream().collect(Collectors.toMap(
+                    User::getId,
+                    user -> UserSimpleDto.builder()
+                            .userId(user.getId())
+                            .username(user.getUserName())
+                            .nickname(user.getNickName())
+                            .avatar(user.getAvatar())
+                            .build()
+            ));
+        } else {
+            userMap = new HashMap<>();
+        }
+        List<SignUpResponse> recordsDto = page.getRecords().stream().map(signup -> {
+            UserSimpleDto user = userMap.get(signup.getUserId());
+            return SignUpResponse.builder()
+                    .signupId(signup.getId())
+                    .realName(signup.getRealName())
+                    .phone(signup.getPhone())
+                    .remark(signup.getRemark())
+                    .status(signup.getStatus())
+                    .signupTime(signup.getCreateTime())
+                    .user(user)
+                    .build();
+        }).toList();
+        Page<SignUpResponse> resultPage = new Page<>(
+                page.getCurrent(),
+                page.getSize(),
+                page.getTotal()
+        );
+        resultPage.setRecords(recordsDto);
+        return resultPage;
     }
 
     /**

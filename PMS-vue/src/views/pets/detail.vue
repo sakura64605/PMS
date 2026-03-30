@@ -537,7 +537,7 @@ const handleSubmitReply = async (id: number, nickname: string, content: string) 
       targetType: 'pet_post',
       targetId: petId,
       content: content.trim(),
-      parentId: 1, // 子评论的parentId为1
+      parentId: id, // 回复给的评论的id
       replyTo: replyToId // 回复给的人的ID
     });
     if (response.code === 200) {
@@ -564,6 +564,8 @@ const handleSubmitComment = async () => {
     ElMessage.error('宠物ID不存在');
     return;
   }
+  
+  const petId = Number(id);
   
   try {
     const response = await createComment({

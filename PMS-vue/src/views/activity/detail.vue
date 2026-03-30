@@ -563,10 +563,10 @@ const handleSubmitReply = async (id: number, nickname: string, content: string) 
     findReplyToId(comments.value)
     
       const response = await createComment({
-        targetType: 'activity',
+        targetType: 'pet_activity',
         targetId: activityId,
-        content: commentContent.value.trim(),
-        parentId: 0 // 顶级评论的parentId为0
+        content: content.trim(),
+        parentId: id // 回复给的评论的id
       })
     if (response.code === 200) {
       ElMessage.success('回复发布成功')
@@ -596,7 +596,7 @@ const submitComment = async () => {
   
   try {
     const response = await createComment({
-      targetType: 'activity',
+      targetType: 'pet_activity',
       targetId: id,
       content: commentContent.value.trim(),
       parentId: 0 // 顶级评论的parentId为0
@@ -710,7 +710,7 @@ const fetchComments = async () => {
   
   try {
     const response = await getCommentList({
-      targetType: 'activity',
+      targetType: 'pet_activity',
       targetId: id,
       pageNum: 1,
       pageSize: 100

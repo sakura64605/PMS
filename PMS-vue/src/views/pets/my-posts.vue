@@ -149,6 +149,12 @@
               编辑
             </el-button>
             <el-button
+              size="small"
+              @click.stop="handleActivitySignUp(activity.id)"
+            >
+              查看报名人
+            </el-button>
+            <el-button
               v-if="activity.status === 0 || activity.status === 1"
               size="small"
               type="danger"
@@ -246,6 +252,58 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 查看报名人弹窗 -->
+    <el-dialog
+      v-model="signUpDialogVisible"
+      title="活动报名人列表"
+      width="800px"
+    >
+      <div v-if="signUpLoading" class="loading-container">
+        <el-skeleton :rows="8" animated />
+      </div>
+      <div v-else-if="signUpList.length > 0" class="sign-up-list">
+        <el-table :data="signUpList" style="width: 100%">
+          <el-table-column prop="user.nickname" label="用户昵称" width="180">
+            <template #default="scope">
+              <div class="user-info">
+                <img :src="scope.row.user.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="用户头像" class="user-avatar" />
+                <span>{{ scope.row.user.nickname }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="realName" label="真实姓名" width="120" />
+          <el-table-column prop="phone" label="联系电话" width="150" />
+          <el-table-column prop="remark" label="备注" />
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="scope">
+              <el-tag :type="scope.row.status === 1 ? 'success' : 'info'">
+                {{ scope.row.status === 1 ? '已报名' : '未知' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="signupTime" label="报名时间" width="200">
+            <template #default="scope">
+              {{ formatDateTime(scope.row.signupTime) }}
+            </template>
+          </el-table-column>
+        </el-table>
+        <div class="sign-up-pagination">
+          <el-pagination
+            v-model:current-page="signUpPageNum"
+            v-model:page-size="signUpPageSize"
+            :page-sizes="[10, 20, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="signUpTotal"
+            @size-change="handleSignUpSizeChange"
+            @current-change="handleSignUpCurrentChange"
+          />
+        </div>
+      </div>
+      <div v-else class="empty-state">
+        <el-empty description="暂无报名记录" />
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -255,7 +313,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { View, Male, Female, QuestionFilled } from '@element-plus/icons-vue';
 import { getMyPosts, offlinePet, deletePet, recoverPet } from '../../api/pet';
-import { getMyActivityList, deleteActivity } from '../../api/activity';
+import { getMyActivityList, deleteActivity, getActivitySignUpList } from '../../api/activity';
 
 // 路由
 const router = useRouter();
@@ -278,6 +336,15 @@ const recoverDialogVisible = ref(false);
 const recoverId = ref<number | null>(null);
 const activityDeleteDialogVisible = ref(false);
 const activityDeleteId = ref<number | null>(null);
+
+// 报名人相关状态
+const signUpDialogVisible = ref(false);
+const signUpList = ref<any[]>([]);
+const signUpTotal = ref(0);
+const signUpPageNum = ref(1);
+const signUpPageSize = ref(10);
+const signUpActivityId = ref<number | null>(null);
+const signUpLoading = ref(false);
 
 // 方法
 const handleView = (id: number) => {
@@ -313,6 +380,50 @@ const handleActivityEdit = (id: number) => {
 const handleActivityDelete = (id: number) => {
   activityDeleteId.value = id;
   activityDeleteDialogVisible.value = true;
+};
+
+// 查看活动报名人
+const handleActivitySignUp = async (id: number) => {
+  signUpActivityId.value = id;
+  signUpPageNum.value = 1;
+  signUpDialogVisible.value = true;
+  await fetchSignUpList();
+};
+
+// 获取报名人列表
+const fetchSignUpList = async () => {
+  if (!signUpActivityId.value) return;
+  
+  signUpLoading.value = true;
+  try {
+    const response = await getActivitySignUpList(signUpActivityId.value, {
+      pageNum: signUpPageNum.value,
+      pageSize: signUpPageSize.value
+    });
+    if (response.code === 200 && response.data) {
+      signUpList.value = response.data.records || [];
+      signUpTotal.value = response.data.total || 0;
+    } else {
+      ElMessage.error(response.message || '获取报名人列表失败');
+    }
+  } catch (error) {
+    ElMessage.error('获取报名人列表失败，请重试');
+    console.error('获取报名人列表失败:', error);
+  } finally {
+    signUpLoading.value = false;
+  }
+};
+
+// 报名人分页相关方法
+const handleSignUpSizeChange = (size: number) => {
+  signUpPageSize.value = size;
+  signUpPageNum.value = 1;
+  fetchSignUpList();
+};
+
+const handleSignUpCurrentChange = (current: number) => {
+  signUpPageNum.value = current;
+  fetchSignUpList();
 };
 
 const confirmActivityDelete = async () => {
@@ -734,6 +845,30 @@ onMounted(() => {
 }
 
 /* 响应式设计 */
+/* 报名人列表样式 */
+.sign-up-list {
+  margin: 20px 0;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sign-up-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
 @media (max-width: 768px) {
   .my-posts-container {
     padding: 16px;
@@ -750,6 +885,14 @@ onMounted(() => {
 
   .action-buttons {
     flex-direction: column;
+  }
+
+  .sign-up-list {
+    margin: 10px 0;
+  }
+
+  .sign-up-pagination {
+    margin-top: 10px;
   }
 }
 </style>

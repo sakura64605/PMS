@@ -5,11 +5,14 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.base.core.UserContext;
+import com.hongjie.pms.common.enums.CommentLikeTypes;
+import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
 import com.hongjie.pms.modules.comment.dto.request.CommentCreateRequest;
 import com.hongjie.pms.modules.comment.dto.response.CommentRespDto;
 import com.hongjie.pms.modules.comment.entity.Comment;
 import com.hongjie.pms.modules.comment.mapper.CommentMapper;
 import com.hongjie.pms.modules.comment.service.CommentService;
+import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
@@ -27,6 +30,8 @@ public class CommentServiceImpl implements CommentService {
 
     private final CommentMapper commentMapper;
     private final UserMapper userMapper;
+    private final PetPostMapper petPostMapper;
+    private final ActivityMapper activityMapper;
 
     @Override
     public void createComment(CommentCreateRequest request) {
@@ -50,6 +55,11 @@ public class CommentServiceImpl implements CommentService {
         comment.setStatus(1);
         log.debug("保存评论: {}", comment);
         commentMapper.insert(comment);
+        if (request.getTargetType().equals(CommentLikeTypes.PET_POST)){
+            petPostMapper.incrementCommentCount(request.getTargetId());
+        } else if (request.getTargetType().equals(CommentLikeTypes.PET_ACTIVITY)){
+            activityMapper.incrementCommentCount(request.getTargetId());
+        }
         log.info("保存评论成功: {}", comment);
     }
 

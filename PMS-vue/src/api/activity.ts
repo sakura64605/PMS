@@ -118,6 +118,18 @@ export const deleteActivityReally = (id: number) => {
   })
 }
 
+// 获取活动报名人列表
+export const getActivitySignUpList = (id: number, params: {
+  pageNum?: number
+  pageSize?: number
+}) => {
+  return request({
+    url: `/activity/signUpList/${id}`,
+    method: 'post',
+    params
+  })
+}
+
 // 获取评论列表
 export const getCommentList = (params: {
   targetType: string
