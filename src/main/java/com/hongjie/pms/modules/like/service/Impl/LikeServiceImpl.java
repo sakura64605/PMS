@@ -66,7 +66,7 @@ public class LikeServiceImpl implements LikeService {
                 if (likeRecord != null) {
                     comment.setLikeCount(comment.getLikeCount() - 1);
                     likeRecordMapper.deleteById(likeRecord);
-                    petPostMapper.decrementLikeCount(request.getTargetId());
+                    commentMapper.decrementLikeCount(request.getTargetId());
                     log.info("取消点赞成功: {}", comment.getLikeCount());
                     return LikeResponseDto.builder()
                             .isLiked(false)
@@ -74,7 +74,7 @@ public class LikeServiceImpl implements LikeService {
                             .build();
                 }
                 comment.setLikeCount(comment.getLikeCount() + 1);
-                petPostMapper.incrementLikeCount(request.getTargetId());
+                commentMapper.incrementLikeCount(request.getTargetId());
                 count = comment.getLikeCount();
                 break;
             case CommentLikeTypes.PET_ACTIVITY:
@@ -85,7 +85,7 @@ public class LikeServiceImpl implements LikeService {
                 if (likeRecord != null) {
                     activity.setLikeCount(activity.getLikeCount() - 1);
                     likeRecordMapper.deleteById(likeRecord);
-                    petPostMapper.decrementLikeCount(request.getTargetId());
+                    activityMapper.decrementLikeCount(request.getTargetId());
                     log.info("取消点赞成功: {}", activity.getLikeCount());
                     return LikeResponseDto.builder()
                             .isLiked(false)
@@ -93,7 +93,7 @@ public class LikeServiceImpl implements LikeService {
                             .build();
                 }
                 activity.setLikeCount(activity.getLikeCount() + 1);
-                petPostMapper.incrementLikeCount(request.getTargetId());
+                activityMapper.incrementLikeCount(request.getTargetId());
                 count = activity.getLikeCount();
                 break;
             default:

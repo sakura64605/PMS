@@ -490,15 +490,16 @@ const handleLikeComment = async (id: number) => {
         targetType: 'pet_comment'
       }
     });
-    if (response.code === 200) {
-      ElMessage.success('点赞成功');
+    if (response.code === 200 && response.data) {
+      const message = response.data.isLiked ? '点赞成功' : '取消点赞成功';
+      ElMessage.success(message);
       // 刷新评论列表
       await fetchComments();
     } else {
-      ElMessage.error(response.message || '点赞失败');
+      ElMessage.error(response.message || '操作失败');
     }
   } catch (error) {
-    ElMessage.error('点赞失败，请重试');
+    ElMessage.error('操作失败，请重试');
     console.error('点赞评论失败:', error);
   }
 };
