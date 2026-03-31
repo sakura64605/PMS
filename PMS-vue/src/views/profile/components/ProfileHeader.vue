@@ -200,7 +200,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { formatDate } from '../../../utils/format';
+import { formatDate, formatNumber } from '../../../utils/format';
 import { ElMessage } from 'element-plus';
 import { Camera, Upload, Picture, UserFilled } from '@element-plus/icons-vue';
 import emitter from '../../../utils/eventBus';
@@ -330,13 +330,7 @@ const selectHistoryAvatar = async (avatar: HistoryAvatar) => {
   }
 };
 
-// 格式化数字
-const formatNumber = (num: number): string => {
-  if (num >= 10000) {
-    return (num / 10000).toFixed(1) + 'w';
-  }
-  return num.toString();
-};
+
 
 // 获取粉丝列表
 const fetchFollowersList = async () => {

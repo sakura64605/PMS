@@ -80,11 +80,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft } from '@element-plus/icons-vue';
 import { getUserInfoByUserId } from '../../api/user';
+import { formatDate, formatNumber, getGenderText } from '../../utils/format';
 
 // 路由
 const route = useRoute();
@@ -97,42 +98,11 @@ const userPets = ref<any[]>([]);
 const isFollowing = ref(false);
 
 // 方法
-const handleBack = () => {
-  router.back();
-};
+const handleBack = () => router.back();
 
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return '';
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('zh-CN');
-};
+const navigateToPetDetail = (petId: number) => router.push(`/pets/${petId}`);
 
-const formatNumber = (num: number): string => {
-  if (num >= 10000) {
-    return (num / 10000).toFixed(1) + 'w';
-  }
-  return num.toString();
-};
-
-const navigateToPetDetail = (petId: number) => {
-  router.push(`/pets/${petId}`);
-};
-
-const handleFollow = () => {
-  // 关注/取消关注功能
-  ElMessage.info('功能开发中');
-};
-
-const getGenderText = (gender: number): string => {
-  switch (gender) {
-    case 1:
-      return '男';
-    case 2:
-      return '女';
-    default:
-      return '未知';
-  }
-};
+const handleFollow = () => ElMessage.info('功能开发中');
 
 const fetchUserInfo = async () => {
   const userId = route.params.id;

@@ -1,2 +1,15 @@
 /mvnw text eol=lf
 *.cmd text eol=crlf
+# 前端文件
+*.vue linguist-language=Vue
+*.ts linguist-language=TypeScript
+*.js linguist-language=JavaScript
+
+# 后端文件
+*.java linguist-language=Java
+
+# 忽略自动生成的代码
+src/api/** linguist-generated=true
+target/** linguist-generated=true
+node_modules/** linguist-generated=true
+dist/** linguist-generated=true

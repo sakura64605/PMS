@@ -22,5 +22,13 @@ export const getGenderText = (gender: number): string => {
 export const formatDate = (dateStr: string): string => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
-  return `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
+  return date.toLocaleDateString('zh-CN');
+};
+
+// 数字格式化
+export const formatNumber = (num: number): string => {
+  if (num >= 10000) {
+    return (num / 10000).toFixed(1) + 'w';
+  }
+  return num.toString();
 };
