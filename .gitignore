@@ -31,3 +31,12 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# 前端
+node_modules/
+dist/
+.vite/
+
+# 后端
+target/
+*.class
