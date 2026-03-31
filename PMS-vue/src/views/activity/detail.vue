@@ -12,12 +12,12 @@
     <div v-if="activity" class="activity-content">
       <!-- 发布者信息卡片 -->
       <div class="publisher-card">
-        <img :src="activity.user.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="发布者头像" class="publisher-avatar" />
-        <div class="publisher-info">
+        <img :src="activity.user.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="发布者头像" class="publisher-avatar" @click="navigateToUser(activity.user.userId)" style="cursor: pointer;" />
+        <div class="publisher-info" @click="navigateToUser(activity.user.userId)" style="cursor: pointer;">
           <h3 class="nickname">{{ activity.user.nickname }}</h3>
           <p class="username">@{{ activity.user.username }}</p>
         </div>
-        <el-button type="primary" size="small" @click="navigateToUser(activity.user.userId)">查看主页</el-button>
+        <el-button type="primary" size="small" :type="isFollowing ? 'info' : 'primary'" @click="handleFollow(activity.user.userId)">{{ isFollowing ? '已关注' : '关注' }}</el-button>
       </div>
 
       <!-- 标题和状态 -->
@@ -369,6 +369,7 @@ const activity = ref<any>(null)
 const comments = ref<any[]>([])
 const commentContent = ref('')
 const isLiked = ref(false)
+const isFollowing = ref(false)
 
 // 弹窗状态
 const showSignupDialog = ref(false)
@@ -452,6 +453,29 @@ const navigateBack = () => {
 // 导航到用户主页
 const navigateToUser = (userId: number) => {
   router.push(`/user/${userId}`)
+}
+
+// 关注用户
+const handleFollow = async (userId: number) => {
+  try {
+    const response = await request({
+      url: '/follow',
+      method: 'post',
+      params: {
+        userId: userId
+      }
+    })
+    if (response.code === 200) {
+      isFollowing.value = !isFollowing.value
+      const message = isFollowing.value ? '关注成功' : '取消关注成功'
+      ElMessage.success(message)
+    } else {
+      ElMessage.error(response.message || '操作失败')
+    }
+  } catch (error) {
+    ElMessage.error('操作失败，请重试')
+    console.error('关注操作失败:', error)
+  }
 }
 
 // 导航到编辑页面
@@ -693,6 +717,8 @@ const fetchActivityDetail = async () => {
     }
     // 设置点赞状态
     isLiked.value = Boolean(response.data.isLike)
+    // 设置关注状态
+    isFollowing.value = Boolean(response.data.user.isFollow)
     // 获取评论列表
     await fetchComments()
   } catch (error) {

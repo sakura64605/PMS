@@ -31,4 +31,9 @@ public class UserSimpleDto {
      */
     private String avatar;
 
+    /**
+     * 是否关注
+     */
+    private Boolean isFollow;
+
 }

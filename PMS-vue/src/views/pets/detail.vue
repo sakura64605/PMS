@@ -14,12 +14,25 @@
     <div v-else-if="pet" class="detail-content">
       <!-- 顶部标题栏 -->
       <div class="top-header">
-        <div class="title-section">
-          <h1 class="main-title">{{ pet.title }}</h1>
-          <div class="pet-name">宠物名：{{ pet.petName || '未知' }}</div>
+        <!-- 发布者信息 -->
+        <div class="publisher-card">
+          <img :src="pet.user.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="发布者头像" class="publisher-avatar" @click="navigateToUserInfo(pet.user.userId)" style="cursor: pointer;" />
+          <div class="publisher-info" @click="navigateToUserInfo(pet.user.userId)" style="cursor: pointer;">
+            <h3 class="nickname">{{ pet.user.nickname }}</h3>
+            <p class="username">@{{ pet.user.username }}</p>
+          </div>
+          <el-button type="primary" size="small" :type="isFollowing ? 'info' : 'primary'" @click="handleFollow(pet.user.userId)">{{ isFollowing ? '已关注' : '关注' }}</el-button>
         </div>
-        <div class="type-tag" :class="pet.type === 0 ? 'adopt' : 'rescue'">
-          {{ pet.type === 0 ? '领养' : '救助' }}
+        
+        <!-- 标题和标签部分 -->
+        <div class="title-and-tags">
+          <div class="title-section">
+            <h1 class="main-title">{{ pet.title }}</h1>
+            <div class="pet-name">宠物名：{{ pet.petName || '未知' }}</div>
+          </div>
+          <div class="type-tag" :class="pet.type === 0 ? 'adopt' : 'rescue'">
+            {{ pet.type === 0 ? '领养' : '救助' }}
+          </div>
         </div>
         <div class="time-section">
           <div class="time-item">发布：{{ formatDate(pet.createTime) }}</div>
@@ -332,6 +345,7 @@ const loading = ref(false);
 const pet = ref<any>(null);
 const isLiked = ref(false);
 const isCollected = ref(false);
+const isFollowing = ref(false);
 const commentContent = ref('');
 
 // 计算属性
@@ -422,6 +436,29 @@ const handleCollect = async () => {
 
 const navigateToUserInfo = (userId: number) => {
   router.push(`/user/${userId}`);
+};
+
+// 关注用户
+const handleFollow = async (userId: number) => {
+  try {
+    const response = await request({
+      url: '/follow',
+      method: 'post',
+      params: {
+        userId: userId
+      }
+    });
+    if (response.code === 200) {
+      isFollowing.value = !isFollowing.value;
+      const message = isFollowing.value ? '关注成功' : '取消关注成功';
+      ElMessage.success(message);
+    } else {
+      ElMessage.error(response.message || '操作失败');
+    }
+  } catch (error) {
+    ElMessage.error('操作失败，请重试');
+    console.error('关注操作失败:', error);
+  }
 };
 
 const getStatusClass = (status: number) => {
@@ -616,6 +653,8 @@ const fetchPetDetail = async () => {
       // 初始化点赞和收藏状态，使用后端返回的字段
       isLiked.value = pet.value.isLiked || false;
       isCollected.value = pet.value.isFavorite || false;
+      // 初始化关注状态
+      isFollowing.value = pet.value.user.isFollow || false;
       // 获取评论列表
       await fetchComments();
     } else {
@@ -747,9 +786,6 @@ onMounted(() => {
 
 /* 顶部标题栏 */
 .top-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
   background-color: white;
   padding: 24px;
   border-radius: 12px;
@@ -757,9 +793,54 @@ onMounted(() => {
   position: relative;
 }
 
+/* 标题和标签部分 */
+.title-and-tags {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+/* 发布者信息卡片 */
+.publisher-card {
+  display: flex;
+  align-items: center;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #f0f0f0;
+  width: 100%;
+}
+
+.publisher-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  margin-right: 16px;
+  object-fit: cover;
+}
+
+.publisher-info {
+  flex: 1;
+}
+
+.nickname {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.username {
+  margin: 0;
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 标题部分 */
 .title-section {
   flex: 1;
   min-width: 200px;
+  margin-bottom: 16px;
 }
 
 .main-title {
@@ -781,7 +862,7 @@ onMounted(() => {
   font-weight: 500;
   color: white;
   position: absolute;
-  top: 24px;
+  top: 120px;
   right: 24px;
   z-index: 1;
 }

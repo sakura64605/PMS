@@ -199,3 +199,21 @@ export const getUserInfoByUserId = (userId: number) => {
     params: { userId }
   })
 };
+
+// 获取关注列表
+export const getFollowingList = (pageNum: number, pageSize: number) => {
+  return request({
+    url: '/following/list',
+    method: 'get',
+    params: { pageNum, pageSize }
+  })
+};
+
+// 获取粉丝列表
+export const getFollowerList = (pageNum: number, pageSize: number) => {
+  return request({
+    url: '/follower/list',
+    method: 'get',
+    params: { pageNum, pageSize }
+  })
+};

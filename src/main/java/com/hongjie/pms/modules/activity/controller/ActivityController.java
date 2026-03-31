@@ -114,6 +114,16 @@ public class ActivityController {
     }
 
     /**
+     * 活动签到
+     */
+    @PostMapping("/signIn")
+    public CommonResult<String> signIn(@RequestParam Long activityId, @RequestParam Long userId) {
+        log.info("用户签到");
+        activityService.signIn(activityId, userId);
+        return CommonResult.success("签到成功");
+    }
+
+    /**
      * 取消报名
      */
     @PostMapping("/cancelSignUp/{id}")

@@ -15,7 +15,7 @@ import java.util.List;
 
 public interface UserService {
 
-    public LoginResponseDto login(LoginRequestDto loginRequestDto);
+    LoginResponseDto login(LoginRequestDto loginRequestDto);
 
     RegisterResponseDto register(@Valid RegisterRequestDto registerRequestDto);
 

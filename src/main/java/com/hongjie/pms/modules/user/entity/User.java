@@ -112,7 +112,6 @@ public class User {
     // 新增：是否允许被搜索
     private Integer searchable;  // 0-不允许 1-允许
 
-    @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime lastActiveTime;
 
     private Integer followerCount; // 粉丝数

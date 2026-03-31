@@ -17,6 +17,8 @@ import com.hongjie.pms.modules.activity.entity.ActivitySignup;
 import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
 import com.hongjie.pms.modules.activity.mapper.ActivitySignupMapper;
 import com.hongjie.pms.modules.activity.service.ActivityService;
+import com.hongjie.pms.modules.following.entity.Follow;
+import com.hongjie.pms.modules.following.mapper.FollowMapper;
 import com.hongjie.pms.modules.like.entity.LikeRecord;
 import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
@@ -46,6 +48,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final ActivityMapper activityMapper;
     private final ActivitySignupMapper activitySignupMapper;
     private final LikeRecordMapper likeRecordMapper;
+    private final FollowMapper followMapper;
 
     @Override
     public ActivityPostRespDto postActivity(ActivityRequestDto request) {
@@ -347,6 +350,15 @@ public class ActivityServiceImpl implements ActivityService {
                 .nickname(user.getNickName())
                 .avatar(user.getAvatar())
                 .build();
+
+        LambdaQueryWrapper<Follow> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Follow::getFollowerId, currentUserId);
+        wrapper.eq(Follow::getFollowingId, activity.getUserId());
+        Follow follow = followMapper.selectOne(wrapper);
+        if (follow != null) {
+            userSimpleDto.setIsFollow(true);
+        }
+
         activityDetailRespDto.setUser(userSimpleDto);
         activityDetailRespDto.setTitle(activity.getTitle());
         activityDetailRespDto.setContent(activity.getContent());
@@ -621,6 +633,7 @@ public class ActivityServiceImpl implements ActivityService {
                     .status(signup.getStatus())
                     .signupTime(signup.getCreateTime())
                     .user(user)
+                    .isCheckedIn(signup.getCheckInTime() != null)
                     .build();
         }).toList();
         Page<SignUpResponse> resultPage = new Page<>(
@@ -630,6 +643,34 @@ public class ActivityServiceImpl implements ActivityService {
         );
         resultPage.setRecords(recordsDto);
         return resultPage;
+    }
+
+    @Override
+    public void signIn(Long activityId, Long userId) {
+        Activity activity = activityMapper.selectById(activityId);
+        Long currentUserId = UserContext.getUserId();
+        if (activity == null) {
+            throw new BusinessException(400, "活动不存在");
+        }
+        if (!activity.getUserId().equals(currentUserId)) {
+            throw new BusinessException(403, "无操作权限");
+        }
+        if (activity.getStatus() == 2) {
+            throw new BusinessException(400, "活动已结束");
+        }
+        ActivitySignup signup = activitySignupMapper.selectOne(new LambdaQueryWrapper<ActivitySignup>()
+                .eq(ActivitySignup::getActivityId, activityId)
+                .eq(ActivitySignup::getUserId, userId)
+        );
+        if (signup == null) {
+            throw new BusinessException(400, "用户未报名");
+        }
+        if (signup.getStatus() == 2) {
+            throw new BusinessException(400, "用户已签到");
+        }
+        signup.setCheckInTime(LocalDateTime.now());
+        signup.setStatus(3);
+        activitySignupMapper.updateById(signup);
     }
 
     /**

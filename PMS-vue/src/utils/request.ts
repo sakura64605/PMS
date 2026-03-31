@@ -16,10 +16,7 @@ service.interceptors.request.use(
       config.headers = config.headers || {}
       config.headers['Authorization'] = `Bearer ${token}`
     }
-    // 设置默认的Content-Type为application/json
-    if (!config.headers['Content-Type']) {
-      config.headers['Content-Type'] = 'application/json'
-    }
+    // 不设置默认的Content-Type，让axios根据请求方式自动设置
     return config
   },
   (error) => {

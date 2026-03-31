@@ -8,6 +8,8 @@ import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.utils.OssUtils;
+import com.hongjie.pms.modules.following.entity.Follow;
+import com.hongjie.pms.modules.following.mapper.FollowMapper;
 import com.hongjie.pms.modules.petpost.dto.PetDetailDto;
 import com.hongjie.pms.modules.petpost.service.PetPostService;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
@@ -45,6 +47,7 @@ public class PetPostServiceImpl implements PetPostService {
     private final UserMapper userMapper;
     private final LikeRecordMapper likeRecordMapper;
     private final FavoriteRecordMapper favoriteRecordMapper;
+    private final FollowMapper followMapper;
 
     @Override
     public PetListResponseDto post(PetPostRequestDto request) {
@@ -231,6 +234,14 @@ public class PetPostServiceImpl implements PetPostService {
                 .nickname(user.getNickName())
                 .avatar(user.getAvatar())
                 .build();
+
+        LambdaQueryWrapper<Follow> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Follow::getFollowerId, currentUserId);
+        queryWrapper.eq(Follow::getFollowingId, pet.getUserId());
+        Follow follow = followMapper.selectOne(queryWrapper);
+        if (follow != null) {
+            userSimpleDto.setIsFollow(true);
+        }
 
         // TODO: 优化增加浏览次数，防止高并发导致浏览次数未增加
         // 3. 增加浏览次数（异步或直接更新）

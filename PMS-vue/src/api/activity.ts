@@ -130,6 +130,18 @@ export const getActivitySignUpList = (id: number, params: {
   })
 }
 
+// 活动签到
+export const signInActivity = (activityId: number, userId: number) => {
+  // 确保参数是有效的数字
+  if (!activityId || !userId || isNaN(activityId) || isNaN(userId)) {
+    return Promise.reject(new Error('无效的参数'));
+  }
+  return request({
+    url: `/activity/signIn?activityId=${activityId}&userId=${userId}`,
+    method: 'post'
+  })
+}
+
 // 获取评论列表
 export const getCommentList = (params: {
   targetType: string

@@ -6,11 +6,11 @@
           {{ userInfo?.nickName?.charAt(0) || '用' }}
         </el-avatar>
         <div class="stats-section">
-          <span class="stat-item">{{ formatNumber(userInfo?.followers || 0) }}粉丝</span>
+          <span class="stat-item" @click="showFollowersDialog = true">{{ formatNumber(userInfo?.followerCount || 0) }}粉丝</span>
           <span class="stat-divider"></span>
-          <span class="stat-item">{{ formatNumber(userInfo?.following || 0) }}关注</span>
+          <span class="stat-item" @click="showFollowingDialog = true">{{ formatNumber(userInfo?.followingCount || 0) }}关注</span>
           <span class="stat-divider"></span>
-          <span class="stat-item">{{ formatNumber(userInfo?.likes || 0) }}点赞</span>
+          <span class="stat-item">{{ formatNumber(userInfo?.likeCount || 0) }}点赞</span>
         </div>
       </div>
       <div class="info-section">
@@ -125,6 +125,76 @@
         </div>
       </div>
     </el-dialog>
+    
+    <!-- 粉丝列表弹窗 -->
+    <el-dialog
+      v-model="showFollowersDialog"
+      title="粉丝列表"
+      width="600px"
+      @open="fetchFollowersList"
+    >
+      <el-loading v-loading="followersLoading" element-loading-text="加载中..." />
+      <div v-if="followersList.length > 0" class="user-list">
+        <div v-for="user in followersList" :key="user.userId" class="user-item">
+          <img :src="user.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="用户头像" class="user-avatar" />
+          <div class="user-info">
+            <div class="user-name" @click="navigateToUser(user.userId)">{{ user.nickname }}</div>
+            <div class="user-username">@{{ user.username }}</div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="empty-state">
+        <el-empty description="暂无粉丝" />
+      </div>
+      <template #footer>
+        <div class="pagination-container">
+          <el-pagination
+            v-model:current-page="followersPageNum"
+            v-model:page-size="followersPageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="followersTotal"
+            @size-change="handleFollowersPageChange"
+            @current-change="handleFollowersPageChange"
+          />
+        </div>
+      </template>
+    </el-dialog>
+    
+    <!-- 关注列表弹窗 -->
+    <el-dialog
+      v-model="showFollowingDialog"
+      title="关注列表"
+      width="600px"
+      @open="fetchFollowingList"
+    >
+      <el-loading v-loading="followingLoading" element-loading-text="加载中..." />
+      <div v-if="followingList.length > 0" class="user-list">
+        <div v-for="user in followingList" :key="user.userId" class="user-item">
+          <img :src="user.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="用户头像" class="user-avatar" />
+          <div class="user-info">
+            <div class="user-name" @click="navigateToUser(user.userId)">{{ user.nickname }}</div>
+            <div class="user-username">@{{ user.username }}</div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="empty-state">
+        <el-empty description="暂无关注" />
+      </div>
+      <template #footer>
+        <div class="pagination-container">
+          <el-pagination
+            v-model:current-page="followingPageNum"
+            v-model:page-size="followingPageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="followingTotal"
+            @size-change="handleFollowingPageChange"
+            @current-change="handleFollowingPageChange"
+          />
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -132,9 +202,9 @@
 import { ref, watch } from 'vue';
 import { formatDate } from '../../../utils/format';
 import { ElMessage } from 'element-plus';
-import { Camera, Upload, Picture } from '@element-plus/icons-vue';
+import { Camera, Upload, Picture, UserFilled } from '@element-plus/icons-vue';
 import emitter from '../../../utils/eventBus';
-import { switchToHistoryAvatar } from '../../../api/user';
+import { switchToHistoryAvatar, getFollowerList, getFollowingList } from '../../../api/user';
 
 interface UserInfo {
   userId: number;
@@ -142,9 +212,9 @@ interface UserInfo {
   nickName: string;
   avatar: string | null;
   createTime: string;
-  followers?: number;
-  following?: number;
-  likes?: number;
+  followerCount?: number;
+  followingCount?: number;
+  likeCount?: number;
 }
 
 // 历史头像数据结构
@@ -182,6 +252,22 @@ const triggerFileInput = () => {
 const historyAvatars = ref<HistoryAvatar[]>([]);
 // 历史头像弹窗可见性
 const historyDialogVisible = ref(false);
+
+// 粉丝列表弹窗
+const showFollowersDialog = ref(false);
+const followersList = ref<any[]>([]);
+const followersTotal = ref(0);
+const followersPageNum = ref(1);
+const followersPageSize = ref(10);
+const followersLoading = ref(false);
+
+// 关注列表弹窗
+const showFollowingDialog = ref(false);
+const followingList = ref<any[]>([]);
+const followingTotal = ref(0);
+const followingPageNum = ref(1);
+const followingPageSize = ref(10);
+const followingLoading = ref(false);
 
 // 查看历史头像
 const viewHistoryAvatars = async () => {
@@ -250,6 +336,63 @@ const formatNumber = (num: number): string => {
     return (num / 10000).toFixed(1) + 'w';
   }
   return num.toString();
+};
+
+// 获取粉丝列表
+const fetchFollowersList = async () => {
+  followersLoading.value = true;
+  try {
+    const response = await getFollowerList(followersPageNum.value, followersPageSize.value);
+    if (response.code === 200) {
+      followersList.value = response.data.records || [];
+      followersTotal.value = response.data.total || 0;
+    } else {
+      ElMessage.error(response.message || '获取粉丝列表失败');
+    }
+  } catch (error) {
+    ElMessage.error('获取粉丝列表失败，请重试');
+    console.error('获取粉丝列表失败:', error);
+  } finally {
+    followersLoading.value = false;
+  }
+};
+
+// 获取关注列表
+const fetchFollowingList = async () => {
+  followingLoading.value = true;
+  try {
+    const response = await getFollowingList(followingPageNum.value, followingPageSize.value);
+    if (response.code === 200) {
+      followingList.value = response.data.records || [];
+      followingTotal.value = response.data.total || 0;
+    } else {
+      ElMessage.error(response.message || '获取关注列表失败');
+    }
+  } catch (error) {
+    ElMessage.error('获取关注列表失败，请重试');
+    console.error('获取关注列表失败:', error);
+  } finally {
+    followingLoading.value = false;
+  }
+};
+
+// 处理粉丝列表分页
+const handleFollowersPageChange = (current: number, size: number) => {
+  followersPageNum.value = current;
+  followersPageSize.value = size;
+  fetchFollowersList();
+};
+
+// 处理关注列表分页
+const handleFollowingPageChange = (current: number, size: number) => {
+  followingPageNum.value = current;
+  followingPageSize.value = size;
+  fetchFollowingList();
+};
+
+// 导航到用户主页
+const navigateToUser = (userId: number) => {
+  window.location.href = `/user/${userId}`;
 };
 
 // 处理文件上传
@@ -531,5 +674,65 @@ const handleFileChange = async (event: Event) => {
     text-align: center;
     gap: 16px;
   }
+}
+
+/* 粉丝和关注列表样式 */
+.user-list {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 16px 0;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.user-item:hover {
+  background-color: #f5f7fa;
+}
+
+.user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  margin-right: 16px;
+  object-fit: cover;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+
+.user-name:hover {
+  color: #409eff;
+}
+
+.user-username {
+  font-size: 12px;
+  color: #909399;
+}
+
+.pagination-container {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.empty-state {
+  padding: 40px 0;
+  text-align: center;
 }
 </style>

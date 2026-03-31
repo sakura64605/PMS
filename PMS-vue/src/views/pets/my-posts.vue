@@ -257,14 +257,14 @@
     <el-dialog
       v-model="signUpDialogVisible"
       title="活动报名人列表"
-      width="800px"
+      width="900px"
     >
       <div v-if="signUpLoading" class="loading-container">
         <el-skeleton :rows="8" animated />
       </div>
       <div v-else-if="signUpList.length > 0" class="sign-up-list">
         <el-table :data="signUpList" style="width: 100%">
-          <el-table-column prop="user.nickname" label="用户昵称" width="180">
+          <el-table-column prop="user.nickname" label="用户昵称" width="160">
             <template #default="scope">
               <div class="user-info">
                 <img :src="scope.row.user.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="用户头像" class="user-avatar" />
@@ -272,19 +272,37 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="realName" label="真实姓名" width="120" />
-          <el-table-column prop="phone" label="联系电话" width="150" />
-          <el-table-column prop="remark" label="备注" />
-          <el-table-column prop="status" label="状态" width="100">
+          <el-table-column prop="realName" label="真实姓名" width="100" />
+          <el-table-column prop="phone" label="联系电话" width="140" />
+          <el-table-column prop="remark" label="备注" width="150" />
+          <el-table-column prop="status" label="状态" width="80">
             <template #default="scope">
               <el-tag :type="scope.row.status === 1 ? 'success' : 'info'">
                 {{ scope.row.status === 1 ? '已报名' : '未知' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="signupTime" label="报名时间" width="200">
+          <el-table-column prop="signupTime" label="报名时间" width="120">
             <template #default="scope">
-              {{ formatDateTime(scope.row.signupTime) }}
+              {{ formatDate(scope.row.signupTime) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120">
+            <template #default="scope">
+              <el-button
+                v-if="!scope.row.isCheckedIn && signUpActivityId"
+                size="small"
+                type="primary"
+                @click="handleSignIn(signUpActivityId, scope.row.user.userId)"
+              >
+                签到
+              </el-button>
+              <el-tag v-else-if="scope.row.isCheckedIn" type="success">
+                已签到
+              </el-tag>
+              <el-tag v-else type="info">
+                无法签到
+              </el-tag>
             </template>
           </el-table-column>
         </el-table>
@@ -313,7 +331,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { View, Male, Female, QuestionFilled } from '@element-plus/icons-vue';
 import { getMyPosts, offlinePet, deletePet, recoverPet } from '../../api/pet';
-import { getMyActivityList, deleteActivity, getActivitySignUpList } from '../../api/activity';
+import { getMyActivityList, deleteActivity, getActivitySignUpList, signInActivity } from '../../api/activity';
 
 // 路由
 const router = useRouter();
@@ -424,6 +442,28 @@ const handleSignUpSizeChange = (size: number) => {
 const handleSignUpCurrentChange = (current: number) => {
   signUpPageNum.value = current;
   fetchSignUpList();
+};
+
+// 处理活动签到
+const handleSignIn = async (activityId: number, userId: number) => {
+  // 检查参数是否有效
+  if (!activityId || !userId || isNaN(activityId) || isNaN(userId)) {
+    ElMessage.error('无效的参数');
+    return;
+  }
+  try {
+    const response = await signInActivity(activityId, userId);
+    if (response.code === 200) {
+      ElMessage.success('签到成功');
+      // 刷新报名人列表
+      await fetchSignUpList();
+    } else {
+      ElMessage.error(response.message || '签到失败');
+    }
+  } catch (error) {
+    ElMessage.error('签到失败，请重试');
+    console.error('签到失败:', error);
+  }
 };
 
 const confirmActivityDelete = async () => {
@@ -557,7 +597,11 @@ const getActivityStatusText = (status: number) => {
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
 };
 
 const formatDateTime = (dateStr: string) => {

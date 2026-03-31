@@ -2,12 +2,17 @@ package com.hongjie.pms.modules.user.service.Impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.hongjie.pms.common.base.core.UpdateTimeContext;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.exception.BusinessException;
+import com.hongjie.pms.common.handler.MyMetaObjectHandler;
 import com.hongjie.pms.common.utils.AccountUtils;
 import com.hongjie.pms.common.utils.EmailUtils;
 import com.hongjie.pms.common.utils.JWTUtils;
 import com.hongjie.pms.common.utils.PasswordUtils;
+import com.hongjie.pms.modules.following.entity.Follow;
+import com.hongjie.pms.modules.following.mapper.FollowMapper;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import com.hongjie.pms.modules.user.dto.request.ChangePasswordRequestDto;
 import com.hongjie.pms.modules.user.dto.request.LoginRequestDto;
@@ -41,13 +46,24 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final JWTUtils jwtUtils;
     private final AvatarHistoryMapper avatarHistoryMapper;
+    private final FollowMapper followMapper;
 
     @Override
     public LoginResponseDto login(LoginRequestDto loginRequestDto) {
         User user = findUserByAccount(loginRequestDto.getAccount());
 
         user.setLastActiveTime(LocalDateTime.now());
-        userMapper.updateLastActiveTime(user.getId());
+
+        try {
+            UpdateTimeContext.skip();  // 设置跳过
+            userMapper.update(null,
+                    new LambdaUpdateWrapper<User>()
+                            .eq(User::getId, user.getId())
+                            .set(User::getLastActiveTime, LocalDateTime.now())
+            );
+        } finally {
+            UpdateTimeContext.clear();  // 确保清理
+        }
 
         // 1. 检查用户是否存在
         if (user == null) {
@@ -293,10 +309,30 @@ public class UserServiceImpl implements UserService {
         if(privacySettings.get("tags")){
             userProfileDto.setTags(user.getTags());
         }
-        userProfileDto.setUserId(user.getId());
-        userProfileDto.setUsername(user.getUserName());
-        userProfileDto.setNickname(user.getNickName());
-        userProfileDto.setAvatar(user.getAvatar());
+
+        Long currentUserId = UserContext.getUserId();
+
+        LambdaQueryWrapper<Follow> followWrapper = new LambdaQueryWrapper<>();
+        followWrapper.eq(Follow::getFollowingId, userId);
+        followWrapper.eq(Follow::getFollowerId, currentUserId);
+        Follow follow = followMapper.selectOne(followWrapper);
+        if(follow != null){
+            userProfileDto.setUser(UserSimpleDto.builder()
+                    .userId(user.getId())
+                    .username(user.getUserName())
+                    .nickname(user.getNickName())
+                    .avatar(user.getAvatar())
+                    .isFollow(true)
+                    .build());
+        } else {
+            userProfileDto.setUser(UserSimpleDto.builder()
+                    .userId(user.getId())
+                    .username(user.getUserName())
+                    .nickname(user.getNickName())
+                    .avatar(user.getAvatar())
+                    .build());
+        }
+
         userProfileDto.setSignature(user.getSignature());
         userProfileDto.setFollowerCount(user.getFollowerCount());
         userProfileDto.setFollowingCount(user.getFollowingCount());

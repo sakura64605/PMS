@@ -15,20 +15,20 @@
       <!-- 用户基本信息 -->
       <div class="user-header">
         <div class="avatar-section">
-          <el-avatar :size="100" :src="userInfo.avatar || ''">
-            {{ userInfo.nickname?.charAt(0) || '用' }}
+          <el-avatar :size="100" :src="userInfo.user.avatar || ''">
+            {{ userInfo.user.nickname?.charAt(0) || '用' }}
           </el-avatar>
           <div class="stats-section">
-            <span class="stat-item">{{ formatNumber(userInfo.followers || 0) }}粉丝</span>
+            <span class="stat-item">{{ formatNumber(userInfo.followerCount || 0) }}粉丝</span>
             <span class="stat-divider"></span>
-            <span class="stat-item">{{ formatNumber(userInfo.following || 0) }}关注</span>
+            <span class="stat-item">{{ formatNumber(userInfo.followingCount || 0) }}关注</span>
             <span class="stat-divider"></span>
-            <span class="stat-item">{{ formatNumber(userInfo.likes || 0) }}点赞</span>
+            <span class="stat-item">{{ formatNumber(userInfo.likeCount || 0) }}点赞</span>
           </div>
         </div>
         <div class="info-section">
-          <h2 class="nickname">{{ userInfo.nickname }}</h2>
-          <p class="username">{{ userInfo.username }}</p>
+          <h2 class="nickname">{{ userInfo.user.nickname }}</h2>
+          <p class="username">{{ userInfo.user.username }}</p>
           <p class="signature" v-if="userInfo.signature">{{ userInfo.signature }}</p>
           <div class="user-meta">
             <span class="meta-item">注册时间：{{ formatDate(userInfo.joinTime || '') }}</span>
@@ -147,6 +147,7 @@ const fetchUserInfo = async () => {
     const response = await getUserInfoByUserId(Number(userId));
     if (response.code === 200 && response.data) {
       userInfo.value = response.data;
+      isFollowing.value = response.data.user.isFollow || false;
     } else {
       ElMessage.error(response.message || '获取用户信息失败');
     }

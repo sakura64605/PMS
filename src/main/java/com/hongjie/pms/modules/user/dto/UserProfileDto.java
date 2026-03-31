@@ -10,10 +10,7 @@ import java.util.List;
 @NoArgsConstructor
 public class UserProfileDto {
 
-    private Long userId;
-    private String username;      // 用户名
-    private String nickname;      // 昵称
-    private String avatar;        // 头像
+    private UserSimpleDto user;
     private String signature;     // 个性签名
     private Integer gender;        // 性别，0:未知, 1:男, 2:女
 

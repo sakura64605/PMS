@@ -32,4 +32,6 @@ public interface ActivityService {
     void recoverActivity(Long id);
 
     IPage<SignUpResponse> getSignUpList(Long id, int pageNum, int pageSize);
+
+    void signIn(Long activityId, Long userId);
 }
