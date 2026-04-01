@@ -114,14 +114,24 @@ export const getPendingList = (params: {
   })
 }
 
-// 审核操作
-export const auditPet = (id: number, status: number) => {
+// 审核通过
+export const acceptPet = (id: number) => {
   return request({
-    url: '/pet/pend',
+    url: '/admin/pet_post/accept',
     method: 'post',
     params: {
-      id,
-      status
+      id
+    }
+  })
+};
+
+// 审核拒绝
+export const rejectPet = (id: number) => {
+  return request({
+    url: '/admin/pet_post/reject',
+    method: 'post',
+    params: {
+      id
     }
   })
 };

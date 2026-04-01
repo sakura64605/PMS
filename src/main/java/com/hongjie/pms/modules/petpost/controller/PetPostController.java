@@ -191,27 +191,6 @@ public class PetPostController {
     }
 
     /**
-     * 审核通过/拒绝
-     */
-    @PostMapping("/pend")
-    public CommonResult<PetListResponseDto> pend(
-            @RequestParam Long id,
-            @RequestParam Integer status) {
-
-        // 1. 获取当前用户
-        Long userId = UserContext.getUserId();
-
-        // 2. 检查是否是管理员
-        if (!UserContext.isAdmin()) {
-            log.warn("非管理员用户尝试审核宠物信息: userId={}, petId={}", userId, id);
-            throw new BusinessException(403, "无权操作，需要管理员权限");
-        }
-
-        PetListResponseDto response = petPostService.pend(id, status);
-        return CommonResult.success(response);
-    }
-
-    /**
      * 宠物详情
      */
     @GetMapping("/{id}")

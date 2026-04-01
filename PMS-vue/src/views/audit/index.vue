@@ -4,15 +4,19 @@
       <template #header>
         <div class="card-header">
           <h2 class="audit-title">审核管理</h2>
-          <el-tabs v-model="activeTab" class="audit-tabs">
-            <el-tab-pane label="内容审核" name="content"></el-tab-pane>
-            <el-tab-pane label="用户管理" name="user"></el-tab-pane>
-            <el-tab-pane label="举报管理" name="report"></el-tab-pane>
-            <el-tab-pane label="数据统计" name="stats"></el-tab-pane>
-            <el-tab-pane label="公告管理" name="announcement"></el-tab-pane>
-          </el-tabs>
         </div>
       </template>
+      
+      <!-- 类型切换 -->
+      <div class="type-tabs-container">
+        <el-tabs v-model="activeTab" class="type-tabs" @tab-click="handleTabChange">
+          <el-tab-pane label="内容审核" name="content"></el-tab-pane>
+          <el-tab-pane label="用户管理" name="user"></el-tab-pane>
+          <el-tab-pane label="举报管理" name="report"></el-tab-pane>
+          <el-tab-pane label="数据统计" name="stats"></el-tab-pane>
+          <el-tab-pane label="公告管理" name="announcement"></el-tab-pane>
+        </el-tabs>
+      </div>
       
       <div class="audit-content">
         <!-- 内容审核 -->
@@ -44,9 +48,10 @@
               start-placeholder="开始日期"
               end-placeholder="结束日期"
               class="date-picker"
+              style="width: 180px;"
             />
-            <el-button type="primary" icon="el-icon-refresh" @click="fetchAuditList" class="refresh-btn">
-              刷新
+            <el-button type="primary" icon="el-icon-search" @click="fetchAuditList" class="search-btn">
+              搜索
             </el-button>
           </div>
           
@@ -176,7 +181,7 @@ const getStatusClass = (status: number) => {
   switch (status) {
     case 0: return 'pending'
     case 1: return 'approved'
-    case 2: return 'rejected'
+    case 4: return 'rejected'
     default: return ''
   }
 }
@@ -186,7 +191,7 @@ const getStatusText = (status: number) => {
   switch (status) {
     case 0: return '待审核'
     case 1: return '已通过'
-    case 2: return '已拒绝'
+    case 4: return '已拒绝'
     default: return '未知'
   }
 }
@@ -203,6 +208,14 @@ const handleCurrentChange = (current: number) => {
   fetchAuditList()
 }
 
+// 处理选项卡切换
+const handleTabChange = () => {
+  // 切换选项卡时可以添加相应的逻辑
+  if (activeTab.value === 'content') {
+    fetchAuditList()
+  }
+}
+
 // 页面加载时获取审核列表
 onMounted(() => {
   fetchAuditList()
@@ -216,17 +229,10 @@ onMounted(() => {
 
 .audit-card {
   margin-bottom: 10px;
-  border: none !important;
-  box-shadow: none !important;
 }
 
 .card-header {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 5px;
-  padding: 5px 0;
-  border-bottom: none !important;
+  padding: 10px 0;
 }
 
 .audit-title {
@@ -236,10 +242,13 @@ onMounted(() => {
   color: #303133;
 }
 
-.audit-tabs {
-  /* 调整宽度，避免线条过长 */
-  display: inline-block;
-  border-bottom: none !important;
+/* 类型切换容器 */
+.type-tabs-container {
+  margin: 10px 0;
+}
+
+.type-tabs {
+  width: 100%;
 }
 
 /* 优化选项卡高亮效果 */
@@ -275,10 +284,10 @@ onMounted(() => {
 }
 
 .date-picker {
-  width: 200px;
+  width: 180px !important; /* 减短日期选择器的宽度 */
 }
 
-.refresh-btn {
+.search-btn {
   flex-shrink: 0;
 }
 

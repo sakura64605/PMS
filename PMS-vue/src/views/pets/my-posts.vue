@@ -85,12 +85,20 @@
               恢复
             </el-button>
             <el-button
-              v-if="pet.status === 3"
+              v-if="pet.status === 3 || pet.status === 4"
               size="small"
               type="danger"
               @click.stop="handleDelete(pet.id)"
             >
               删除
+            </el-button>
+            <el-button
+              v-if="pet.status === 4"
+              size="small"
+              type="primary"
+              @click.stop="handleRepublish(pet.id)"
+            >
+              重新发布
             </el-button>
           </div>
         </div>
@@ -330,7 +338,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { View, Male, Female, QuestionFilled } from '@element-plus/icons-vue';
-import { getMyPosts, offlinePet, deletePet, recoverPet } from '../../api/pet';
+import { getMyPosts, offlinePet, deletePet, recoverPet, getPetDetail, updatePet } from '../../api/pet';
 import { getMyActivityList, deleteActivity, getActivitySignUpList, signInActivity } from '../../api/activity';
 
 // 路由
@@ -512,6 +520,48 @@ const handleDelete = (id: number) => {
   deleteDialogVisible.value = true;
 };
 
+// 处理重新发布
+const handleRepublish = async (id: number) => {
+  try {
+    // 先获取宠物详情
+    const detailResponse = await getPetDetail(id);
+    if (detailResponse.code === 200 && detailResponse.data) {
+      const petData = detailResponse.data;
+      
+      // 准备更新数据（包含id，状态设为待审核）
+      const updateData = {
+        id: petData.id,
+        type: petData.type,
+        title: petData.title,
+        content: petData.content,
+        images: petData.images,
+        petGender: petData.petGender,
+        petAge: petData.petAge,
+        petType: petData.petType,
+        petName: petData.petName,
+        contactPhone: petData.contactPhone,
+        contactWechat: petData.contactWechat,
+        address: petData.address,
+        status: 0 // 设为待审核状态
+      };
+      
+      // 调用更新接口
+      const updateResponse = await updatePet(updateData);
+      if (updateResponse.code === 200) {
+        ElMessage.success('重新发布成功');
+        fetchMyPosts();
+      } else {
+        ElMessage.error(updateResponse.message || '重新发布失败');
+      }
+    } else {
+      ElMessage.error('获取宠物详情失败');
+    }
+  } catch (error) {
+    ElMessage.error('重新发布失败，请重试');
+    console.error('重新发布失败:', error);
+  }
+};
+
 const confirmDelete = async () => {
   if (!deleteId.value) return;
 
@@ -559,6 +609,7 @@ const getStatusClass = (status: number) => {
     case 1: return 'published';
     case 2: return 'completed';
     case 3: return 'offline';
+    case 4: return 'rejected';
     default: return '';
   }
 };
@@ -569,6 +620,7 @@ const getStatusText = (status: number) => {
     case 1: return '已发布';
     case 2: return '已完成';
     case 3: return '已下架';
+    case 4: return '审核未通过';
     default: return '未知';
   }
 };
@@ -781,6 +833,10 @@ onMounted(() => {
 
 .status-tag.offline {
   background-color: #f56c6c;
+}
+
+.status-tag.rejected {
+  background-color: #e6a23c;
 }
 
 .card-content {

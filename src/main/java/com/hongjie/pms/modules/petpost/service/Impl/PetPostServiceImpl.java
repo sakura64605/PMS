@@ -329,6 +329,7 @@ public class PetPostServiceImpl implements PetPostService {
         if(request.getAddress() != null){
             pet.setAddress(request.getAddress());
         }
+        pet.setStatus(0);
         petPostMapper.updateById(pet);
         return PetListResponseDto.builder()
                 .id(pet.getId())
@@ -359,34 +360,6 @@ public class PetPostServiceImpl implements PetPostService {
             throw new BusinessException(400, "图片上传失败");
         }
 
-    }
-
-    @Override
-    public PetListResponseDto pend(Long id, Integer status) {
-        QueryWrapper<PetPost> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("id", id);
-        PetPost pet = petPostMapper.selectOne(queryWrapper);
-        if (pet == null) {
-            throw new BusinessException(404, "宠物信息不存在");
-        }
-
-        if(pet.getStatus() != 0){
-            throw new BusinessException(400, "宠物信息已审核");
-        }
-
-        pet.setStatus(status);
-        petPostMapper.updateById(pet);
-        return PetListResponseDto.builder()
-                .id(pet.getId())
-                .type(pet.getType())
-                .title(pet.getTitle())
-                .petName(pet.getPetName())
-                .petType(pet.getPetType())
-                .petAge(pet.getPetAge())
-                .petGender(pet.getPetGender())
-                .images(pet.getImages())
-                .viewCount(pet.getViewCount())
-                .build();
     }
 
     @Override

@@ -20,8 +20,6 @@ public interface PetPostService {
 
     AvatarUploadResponse uploadImage(MultipartFile file);
 
-    PetListResponseDto pend(Long id, Integer status);
-
     void delete(Long id);
 
     void offline(Long id);

@@ -167,7 +167,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, View, Male, Female, QuestionFilled, DocumentCopy } from '@element-plus/icons-vue';
-import { getPetDetail, auditPet } from '../../api/pet';
+import { getPetDetail, acceptPet, rejectPet } from '../../api/pet';
 
 // 路由
 const route = useRoute();
@@ -187,7 +187,7 @@ const handleApprove = async () => {
   if (!pet.value) return;
   
   try {
-    const response = await auditPet(pet.value.id, 1); // 1表示审核通过
+    const response = await acceptPet(pet.value.id);
     if (response.code === 200) {
       ElMessage.success('审核通过');
       // 重新获取宠物详情
@@ -206,7 +206,7 @@ const handleReject = async () => {
   if (!pet.value) return;
   
   try {
-    const response = await auditPet(pet.value.id, 4); // 4表示审核拒绝
+    const response = await rejectPet(pet.value.id);
     if (response.code === 200) {
       ElMessage.success('审核拒绝');
       // 重新获取宠物详情
@@ -225,6 +225,8 @@ const getStatusClass = (status: number) => {
     case 0: return 'pending';
     case 1: return 'published';
     case 2: return 'completed';
+    case 3: return 'offline';
+    case 4: return 'rejected';
     default: return '';
   }
 };
@@ -234,6 +236,8 @@ const getStatusText = (status: number) => {
     case 0: return '待审核';
     case 1: return '已发布';
     case 2: return '已完成';
+    case 3: return '已下架';
+    case 4: return '审核未通过';
     default: return '未知';
   }
 };
@@ -374,6 +378,14 @@ onMounted(() => {
 
 .status-tag.completed {
   background-color: #67c23a;
+}
+
+.status-tag.rejected {
+  background-color: #e6a23c;
+}
+
+.status-tag.offline {
+  background-color: #f56c6c;
 }
 
 .title {
