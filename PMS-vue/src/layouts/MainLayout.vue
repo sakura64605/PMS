@@ -69,7 +69,7 @@
           </el-menu-item>
           <el-menu-item index="/audit" v-if="userInfo?.role === 1">
             <el-icon><Check /></el-icon>
-            <template #title>审核</template>
+            <template #title>管理员后台</template>
           </el-menu-item>
           <el-menu-item index="/activities">
             <el-icon><Ticket /></el-icon>

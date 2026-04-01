@@ -117,6 +117,11 @@ const routes: RouteRecordRaw[] = [
         name: 'AuditDetail',
         component: () => import('../views/audit/detail.vue'),
         meta: { requiresAuth: true }
+      },
+      {
+        path: 'notice/:id',
+        name: 'NoticeDetail',
+        component: () => import('../views/notice/detail.vue')
       }
     ]
   }

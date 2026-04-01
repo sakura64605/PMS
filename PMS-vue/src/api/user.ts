@@ -166,6 +166,38 @@ interface ChangePasswordRequest {
   confirmPassword: string
 }
 
+// 管理员获取用户列表接口
+export const getAdminUserList = (params: {
+  pageNum?: number
+  pageSize?: number
+  keyword?: string
+  status?: number
+}) => {
+  return request({
+    url: '/admin/users',
+    method: 'get',
+    params
+  })
+}
+
+// 管理员禁用用户接口
+export const disableUser = (userId: number) => {
+  return request({
+    url: '/admin/users/disable',
+    method: 'post',
+    params: { userId }
+  })
+}
+
+// 管理员启用用户接口
+export const enableUser = (userId: number) => {
+  return request({
+    url: '/admin/users/enable',
+    method: 'post',
+    params: { userId }
+  })
+}
+
 // 修改密码响应数据接口
 interface ChangePasswordResponse {
   code: number

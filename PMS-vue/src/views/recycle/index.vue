@@ -395,6 +395,16 @@ onMounted(() => {
   margin: 0 0 16px 0;
 }
 
+.category-tabs :deep(.el-tabs__nav) {
+  display: flex;
+  width: 100%;
+}
+
+.category-tabs :deep(.el-tabs__item) {
+  flex: 1;
+  text-align: center;
+}
+
 .loading-container {
   padding: 20px 0;
 }
