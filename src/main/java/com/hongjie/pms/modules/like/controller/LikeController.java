@@ -8,6 +8,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 点赞
+ */
 @Slf4j
 @RestController
 @RequestMapping("/pet-system/like")

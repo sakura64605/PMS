@@ -16,6 +16,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * @description: 用户认证控制器
+ * @author: Hongjie
+ * @date: 2026/04/01
+ **/
 @Slf4j
 @RestController
 @RequestMapping("/pet-system/user")

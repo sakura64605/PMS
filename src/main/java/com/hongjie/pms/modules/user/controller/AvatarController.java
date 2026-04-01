@@ -11,6 +11,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+/**
+ * 头像
+ */
 @Slf4j
 @RestController
 @RequestMapping("/pet-system/avatar")

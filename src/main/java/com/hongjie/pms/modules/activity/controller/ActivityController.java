@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 活动
+ */
 @Slf4j
 @RestController
 @RequestMapping("/pet-system/activity")

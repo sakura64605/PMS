@@ -5,6 +5,7 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   plugins: [vue()],
   server: {
+    allowedHosts: ['637621ee.xq0.cn'],
     proxy: {
       '/pet-system': {
         target: 'http://localhost:8080',
