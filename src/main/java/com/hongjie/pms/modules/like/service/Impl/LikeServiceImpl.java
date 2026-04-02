@@ -1,6 +1,6 @@
 package com.hongjie.pms.modules.like.service.Impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
 import com.hongjie.pms.common.exception.BusinessException;
@@ -13,6 +13,7 @@ import com.hongjie.pms.modules.like.entity.LikeRecord;
 import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
 import com.hongjie.pms.modules.like.service.LikeService;
 import com.hongjie.pms.modules.like.dto.response.LikeResponseDto;
+import com.hongjie.pms.modules.message.service.MessageService;
 import com.hongjie.pms.modules.petpost.entity.PetPost;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
 import lombok.RequiredArgsConstructor;
@@ -30,89 +31,140 @@ public class LikeServiceImpl implements LikeService {
     private final LikeRecordMapper likeRecordMapper;
     private final CommentMapper commentMapper;
     private final ActivityMapper activityMapper;
+    private final MessageService messageService;  // 新增
 
     @Override
     public LikeResponseDto like(LikeRequest request) {
-        LikeRecord likeRecord = likeRecordMapper.selectOne(new QueryWrapper<LikeRecord>()
-                .eq("user_id", UserContext.getUserId())
-                .eq("target_id", request.getTargetId())
-                .eq("target_type", request.getTargetType()));
-        Integer count = 0;
+        Long currentUserId = UserContext.getUserId();
+
+        // 查询是否已点赞
+        LikeRecord likeRecord = likeRecordMapper.selectOne(
+                new LambdaQueryWrapper<LikeRecord>()
+                        .eq(LikeRecord::getUserId, currentUserId)
+                        .eq(LikeRecord::getTargetId, request.getTargetId())
+                        .eq(LikeRecord::getTargetType, request.getTargetType())
+        );
+
+        boolean isNewLike = (likeRecord == null);
+        Integer likeCount = 0;
+
         switch (request.getTargetType()) {
             case CommentLikeTypes.PET_POST:
                 PetPost pet = petPostMapper.selectById(request.getTargetId());
                 if (pet == null) {
                     throw new BusinessException(404, "宠物信息不存在");
                 }
-                if (likeRecord != null) {
-                    pet.setLikeCount(pet.getLikeCount() - 1);
-                    likeRecordMapper.deleteById(likeRecord);
+
+                if (isNewLike) {
+                    // 新增点赞
+                    petPostMapper.incrementLikeCount(request.getTargetId());
+                    likeCount = pet.getLikeCount() + 1;
+
+                    // 发送点赞通知（不是给自己点赞）
+                    if (!currentUserId.equals(pet.getUserId())) {
+                        messageService.sendLikeNotification(
+                                pet.getUserId(),           // 接收者（帖子作者）
+                                currentUserId,             // 发送者（点赞用户）
+                                CommentLikeTypes.PET_POST,                // 目标类型
+                                pet.getTitle(),            // 标题
+                                request.getTargetId(),     // 业务ID
+                                "/pet/" + request.getTargetId()  // 跳转链接
+                        );
+                    }
+                } else {
+                    // 取消点赞
                     petPostMapper.decrementLikeCount(request.getTargetId());
-                    log.info("取消点赞成功: {}", pet.getLikeCount());
-                    return LikeResponseDto.builder()
-                            .isLiked(false)
-                            .likeCount(pet.getLikeCount())
-                            .build();
+                    likeCount = pet.getLikeCount() - 1;
                 }
-                pet.setLikeCount(pet.getLikeCount() + 1);
-                petPostMapper.incrementLikeCount(request.getTargetId());
-                count = pet.getLikeCount();
                 break;
+
             case CommentLikeTypes.PET_COMMENT:
                 Comment comment = commentMapper.selectById(request.getTargetId());
                 if (comment == null) {
-                    throw new BusinessException(404, "评论信息不存在");
+                    throw new BusinessException(404, "评论不存在");
                 }
-                if (likeRecord != null) {
-                    comment.setLikeCount(comment.getLikeCount() - 1);
-                    likeRecordMapper.deleteById(likeRecord);
+
+                if (isNewLike) {
+                    commentMapper.incrementLikeCount(request.getTargetId());
+                    likeCount = comment.getLikeCount() + 1;
+
+                    if (!currentUserId.equals(comment.getUserId())) {
+                        // 根据评论所属类型生成跳转链接
+                        String link = "";
+                        if (CommentLikeTypes.PET_POST.equals(comment.getTargetType())) {
+                            link = "/pet/" + comment.getTargetId() + "?commentId=" + request.getTargetId();
+                        } else if (CommentLikeTypes.PET_ACTIVITY.equals(comment.getTargetType())) {
+                            link = "/activity/" + comment.getTargetId() + "?commentId=" + request.getTargetId();
+                        }
+
+                        messageService.sendLikeNotification(
+                                comment.getUserId(),
+                                currentUserId,
+                                CommentLikeTypes.PET_COMMENT,
+                                null,
+                                request.getTargetId(),
+                                link
+                        );
+                    }
+                } else {
                     commentMapper.decrementLikeCount(request.getTargetId());
-                    log.info("取消点赞成功: {}", comment.getLikeCount());
-                    return LikeResponseDto.builder()
-                            .isLiked(false)
-                            .likeCount(comment.getLikeCount())
-                            .build();
+                    likeCount = comment.getLikeCount() - 1;
                 }
-                comment.setLikeCount(comment.getLikeCount() + 1);
-                commentMapper.incrementLikeCount(request.getTargetId());
-                count = comment.getLikeCount();
                 break;
+
             case CommentLikeTypes.PET_ACTIVITY:
                 Activity activity = activityMapper.selectById(request.getTargetId());
                 if (activity == null) {
-                    throw new BusinessException(404, "活动信息不存在");
+                    throw new BusinessException(404, "活动不存在");
                 }
-                if (likeRecord != null) {
-                    activity.setLikeCount(activity.getLikeCount() - 1);
-                    likeRecordMapper.deleteById(likeRecord);
+
+                if (isNewLike) {
+                    activityMapper.incrementLikeCount(request.getTargetId());
+                    likeCount = activity.getLikeCount() + 1;
+
+                    // 发送点赞通知（不是给自己点赞）
+                    if (!currentUserId.equals(activity.getUserId())) {
+                        messageService.sendLikeNotification(
+                                activity.getUserId(),      // 接收者（活动发布者）
+                                currentUserId,             // 发送者
+                                CommentLikeTypes.PET_ACTIVITY,            // 目标类型
+                                activity.getTitle(),       // 标题
+                                request.getTargetId(),     // 业务ID
+                                "/activity/" + request.getTargetId()
+                        );
+                    }
+                } else {
                     activityMapper.decrementLikeCount(request.getTargetId());
-                    log.info("取消点赞成功: {}", activity.getLikeCount());
-                    return LikeResponseDto.builder()
-                            .isLiked(false)
-                            .likeCount(activity.getLikeCount())
-                            .build();
+                    likeCount = activity.getLikeCount() - 1;
                 }
-                activity.setLikeCount(activity.getLikeCount() + 1);
-                activityMapper.incrementLikeCount(request.getTargetId());
-                count = activity.getLikeCount();
                 break;
+
             default:
                 throw new BusinessException(400, "不支持的点赞目标类型");
         }
 
+        // 处理点赞记录
+        if (isNewLike) {
+            // 新增点赞记录
+            likeRecordMapper.insert(LikeRecord.builder()
+                    .userId(currentUserId)
+                    .targetId(request.getTargetId())
+                    .targetType(request.getTargetType())
+                    .createTime(LocalDateTime.now())
+                    .build());
+        } else {
+            // 删除点赞记录
+            likeRecordMapper.deleteById(likeRecord);
+        }
 
-        likeRecordMapper.insert(LikeRecord.builder()
-                .userId(UserContext.getUserId())
-                .targetId(request.getTargetId())
-                .targetType(request.getTargetType())
-                .createTime(LocalDateTime.now())
-                .build());
+        log.info("{} 成功: targetId={}, targetType={}",
+                isNewLike ? "点赞" : "取消点赞",
+                request.getTargetId(),
+                request.getTargetType());
 
-        log.info("点赞成功");
         return LikeResponseDto.builder()
-                .isLiked(true)
-                .likeCount(count)
+                .isLiked(isNewLike)
+                .likeCount(likeCount)
                 .build();
     }
-
 }

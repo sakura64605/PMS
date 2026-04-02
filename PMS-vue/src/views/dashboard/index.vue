@@ -3,7 +3,7 @@
     <el-container>
       <el-header height="60px">
         <div class="header">
-          <h1>宠物管理系统</h1>
+          <h1>PetCircle -宠友社</h1>
           <el-button type="primary" @click="logout">退出登录</el-button>
         </div>
       </el-header>
@@ -15,7 +15,7 @@
             </div>
           </template>
           <div class="welcome">
-            <p>这是宠物管理系统的首页</p>
+            <p>这是PetCircle -宠友社的首页</p>
             <p>您的角色：{{ role === 1 ? '系统管理员' : '普通用户' }}</p>
           </div>
         </el-card>

@@ -7,6 +7,7 @@ import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.modules.admin.dto.response.AdminUserSimpleDto;
 import com.hongjie.pms.modules.admin.service.AdminService;
+import com.hongjie.pms.modules.message.service.MessageService;
 import com.hongjie.pms.modules.petpost.dto.response.PetListResponseDto;
 import com.hongjie.pms.modules.petpost.entity.PetPost;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
@@ -28,6 +29,7 @@ public class AdminServiceImpl implements AdminService {
 
     private final PetPostMapper petPostMapper;
     private final UserMapper userMapper;
+    private final MessageService messageService;
 
     @Override
     public PetListResponseDto accept(Long id) {
@@ -39,11 +41,17 @@ public class AdminServiceImpl implements AdminService {
         }
         petPost.setStatus(1);
         petPostMapper.updateById(petPost);
+        messageService.sendAuditPassNotification(
+                petPost.getUserId(),
+                petPost.getTitle(),
+                petPost.getId(),
+                "pet_post"
+        );
         return null;
     }
 
     @Override
-    public PetListResponseDto reject(Long id) {
+    public PetListResponseDto reject(Long id, String reason) {
         LambdaQueryWrapper<PetPost> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(PetPost::getId, id);
         PetPost petPost = petPostMapper.selectOne(queryWrapper);
@@ -52,6 +60,13 @@ public class AdminServiceImpl implements AdminService {
         }
         petPost.setStatus(4);
         petPostMapper.updateById(petPost);
+        messageService.sendAuditRejectNotification(
+                petPost.getUserId(),
+                petPost.getTitle(),
+                petPost.getId(),
+                "pet_post",
+                reason
+        );
         return null;
     }
 

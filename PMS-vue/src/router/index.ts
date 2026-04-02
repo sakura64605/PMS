@@ -65,8 +65,19 @@ const routes: RouteRecordRaw[] = [
         name: 'Collections',
         component: () => import('../views/pets/collections.vue'),
         meta: { requiresAuth: true }
-      },      {        path: 'recycle',        name: 'Recycle',        component: () => import('../views/recycle/index.vue'),        meta: { requiresAuth: true }      },
-      {        path: 'user/:id',        name: 'UserInfo',        component: () => import('../views/user/index.vue'),        meta: { requiresAuth: true }      },
+      },
+      {
+        path: 'recycle',
+        name: 'Recycle',
+        component: () => import('../views/recycle/index.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'user/:id',
+        name: 'UserInfo',
+        component: () => import('../views/user/index.vue'),
+        meta: { requiresAuth: true }
+      },
       {
         path: 'activities',
         name: 'Activities',
@@ -104,7 +115,14 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'settings',
         name: 'Settings',
-        component: () => import('../views/settings/index.vue')
+        component: () => import('../views/settings/index.vue'),
+        meta: { requiresAuth: true, isAdminOnly: true }
+      },
+      {
+        path: 'message',
+        name: 'Message',
+        component: () => import('../views/message/index.vue'),
+        meta: { requiresAuth: true }
       },
       {
         path: 'audit',
@@ -137,6 +155,18 @@ router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('token')
   if (to.meta.requiresAuth && !token) {
     next('/login')
+  } else if (to.meta.isAdminOnly) {
+    const userInfo = localStorage.getItem('userInfo')
+    if (userInfo) {
+      const info = JSON.parse(userInfo)
+      if (info.role === 1) {
+        next()
+      } else {
+        next('/dashboard')
+      }
+    } else {
+      next('/login')
+    }
   } else {
     next()
   }

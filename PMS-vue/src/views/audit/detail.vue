@@ -165,7 +165,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowLeft, View, Male, Female, QuestionFilled, DocumentCopy } from '@element-plus/icons-vue';
 import { getPetDetail, acceptPet, rejectPet } from '../../api/pet';
 
@@ -205,18 +205,33 @@ const handleApprove = async () => {
 const handleReject = async () => {
   if (!pet.value) return;
   
-  try {
-    const response = await rejectPet(pet.value.id);
-    if (response.code === 200) {
-      ElMessage.success('审核拒绝');
-      // 重新获取宠物详情
-      fetchPetDetail();
-    } else {
-      ElMessage.error(response.message || '审核拒绝失败');
+  // 弹出输入框，让审核人员输入拒绝原因
+  const { value: reason } = await ElMessageBox.prompt('请输入拒绝原因', '审核拒绝', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    inputPlaceholder: '请输入拒绝原因',
+    inputValidator: (value) => {
+      if (!value || value.trim() === '') {
+        return '拒绝原因不能为空';
+      }
+      return true;
     }
-  } catch (error) {
-    ElMessage.error('审核拒绝失败');
-    console.error('审核拒绝失败:', error);
+  });
+  
+  if (reason) {
+    try {
+      const response = await rejectPet(pet.value.id, reason);
+      if (response.code === 200) {
+        ElMessage.success('审核拒绝');
+        // 重新获取宠物详情
+        fetchPetDetail();
+      } else {
+        ElMessage.error(response.message || '审核拒绝失败');
+      }
+    } catch (error) {
+      ElMessage.error('审核拒绝失败');
+      console.error('审核拒绝失败:', error);
+    }
   }
 };
 

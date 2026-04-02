@@ -8,7 +8,7 @@ import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 public interface AdminService {
     PetListResponseDto accept(Long id);
 
-    PetListResponseDto reject(Long id);
+    PetListResponseDto reject(Long id, String reason);
 
     IPage<AdminUserSimpleDto> userList(int pageNum, int pageSize, String keyword, Integer status);
 

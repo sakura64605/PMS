@@ -3,10 +3,12 @@ package com.hongjie.pms.modules.following.service.Impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.modules.following.entity.Follow;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
 import com.hongjie.pms.modules.following.service.FollowService;
+import com.hongjie.pms.modules.message.service.MessageService;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ public class FollowServiceImpl implements FollowService {
 
     private final FollowMapper followMapper;
     private final UserMapper userMapper;
+    private final MessageService messageService;
 
     @Override
     public void followUser(Long currentUserId, Long userId) {
@@ -51,6 +54,17 @@ public class FollowServiceImpl implements FollowService {
             userMapper.increaseFollowerCount(userId);
             userMapper.increaseFollowingCount(currentUserId);
         }
+
+        if (existFollow == null) {
+            // 新增关注
+            messageService.sendFollowNotification(
+                    userId,
+                    currentUserId,
+                    UserContext.getUserName(),
+                    "/user/" + userId
+            );
+        }
+
     }
 
     //TODO 查看他人的关注列表和粉丝列表

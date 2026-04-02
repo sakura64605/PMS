@@ -141,7 +141,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getRecycleBinList, recoverActivity, deleteActivityReally } from '../../api/activity'
+import { getActivityRecycleList, recoverActivity, deleteActivityReally } from '../../api/activity'
 
 const router = useRouter()
 
@@ -267,7 +267,7 @@ const handleSortChange = () => {
 // 获取回收站列表
 const fetchRecycleBinList = async (status) => {
   try {
-    const response = await getRecycleBinList({
+    const response = await getActivityRecycleList({
       pageNum: pageNum.value,
       pageSize: pageSize.value,
       keyword: searchForm.value.keyword,

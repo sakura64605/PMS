@@ -50,7 +50,8 @@ public class AdminController {
      */
     @PostMapping("/pet_post/reject")
     public CommonResult<String> reject(
-            @RequestParam Long id) {
+            @RequestParam Long id,
+            @RequestParam String reason) {
 
         // 1. 获取当前用户
         Long userId = UserContext.getUserId();
@@ -61,7 +62,7 @@ public class AdminController {
             throw new BusinessException(403, "无权操作，需要管理员权限");
         }
 
-        PetListResponseDto response = adminService.reject(id);
+        PetListResponseDto response = adminService.reject(id, reason);
         return CommonResult.success("审核未通过");
     }
 

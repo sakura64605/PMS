@@ -185,7 +185,7 @@
           <div v-if="comments.length === 0" class="no-comments">
             暂无评论，快来抢沙发~
           </div>
-          <div v-else class="comment-item" v-for="comment in comments" :key="comment.id">
+          <div v-else class="comment-item" v-for="comment in comments" :key="comment.id" :id="`comment-${comment.id}`">
             <img :src="comment.user.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="用户头像" class="comment-avatar" />
             <div class="comment-content">
               <div class="comment-header">
@@ -246,7 +246,7 @@
               <!-- 子评论 -->
               <div v-if="comment.replies && comment.replies.length > 0" class="replies-list">
                 <!-- 显示第一条子评论 -->
-                <div v-for="(reply, index) in comment.replies.slice(0, comment.showAllReplies ? comment.replies.length : 1)" :key="reply.id" class="reply-item">
+                <div v-for="(reply, index) in comment.replies.slice(0, comment.showAllReplies ? comment.replies.length : 1)" :key="reply.id" class="reply-item" :id="`comment-${reply.id}`">
                   <img :src="reply.user.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="用户头像" class="reply-avatar" />
                   <div class="reply-content">
                     <div class="reply-header">
@@ -742,6 +742,22 @@ const fetchComments = async () => {
         comments.value = [];
       }
       console.log('最终评论列表:', comments.value);
+      
+      // 检查是否需要滚动到指定评论
+      const commentId = route.query.commentId;
+      if (commentId) {
+        setTimeout(() => {
+          const commentElement = document.getElementById(`comment-${commentId}`);
+          if (commentElement) {
+            commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // 可以添加一个高亮效果
+            commentElement.style.backgroundColor = '#f0f9ff';
+            setTimeout(() => {
+              commentElement.style.backgroundColor = '';
+            }, 2000);
+          }
+        }, 300);
+      }
     } else {
       ElMessage.error(response.message || '获取评论列表失败');
       comments.value = [];

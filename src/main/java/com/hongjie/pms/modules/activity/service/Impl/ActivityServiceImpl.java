@@ -21,6 +21,7 @@ import com.hongjie.pms.modules.following.entity.Follow;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
 import com.hongjie.pms.modules.like.entity.LikeRecord;
 import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
+import com.hongjie.pms.modules.message.service.MessageService;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
@@ -49,6 +50,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final ActivitySignupMapper activitySignupMapper;
     private final LikeRecordMapper likeRecordMapper;
     private final FollowMapper followMapper;
+    private final MessageService messageService;
 
     @Override
     public ActivityPostRespDto postActivity(ActivityRequestDto request) {
@@ -408,6 +410,30 @@ public class ActivityServiceImpl implements ActivityService {
         activitySignupMapper.insert(activitySignup);
         activity.setCurrentPeople(activity.getCurrentPeople() + 1);
         activityMapper.updateById(activity);
+
+        if (activity.getCurrentPeople() == activity.getMaxPeople()){
+            messageService.sendActivityFullNotification(
+                    activity.getUserId(),
+                    activity.getTitle(),
+                    activity.getId()
+            );
+        }
+        
+        // 向活动发布者发送有人报名的通知
+        messageService.sendSomeoneSignUpNotification(
+                activity.getUserId(),
+                currentUserId,
+                request.getRealName(),
+                activity.getTitle(),
+                activity.getId()
+        );
+        
+        // 向报名者发送报名成功的通知
+        messageService.sendSignUpSuccessNotification(
+                currentUserId,
+                activity.getTitle(),
+                activity.getId()
+        );
     }
 
     @Override
@@ -671,6 +697,11 @@ public class ActivityServiceImpl implements ActivityService {
         signup.setCheckInTime(LocalDateTime.now());
         signup.setStatus(3);
         activitySignupMapper.updateById(signup);
+        messageService.sendSignInSuccessNotification(
+                signup.getUserId(),
+                activity.getTitle(),
+                activityId
+        );
     }
 
     /**

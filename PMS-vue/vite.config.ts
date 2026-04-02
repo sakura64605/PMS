@@ -9,8 +9,12 @@ export default defineConfig({
     proxy: {
       '/pet-system': {
         target: 'http://localhost:8080',
+        ws: true,
         changeOrigin: true
       }
     }
+  },
+  define: {
+    global: 'window'
   }
 })

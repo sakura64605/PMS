@@ -126,12 +126,13 @@ export const acceptPet = (id: number) => {
 };
 
 // 审核拒绝
-export const rejectPet = (id: number) => {
+export const rejectPet = (id: number, reason: string) => {
   return request({
     url: '/admin/pet_post/reject',
     method: 'post',
     params: {
-      id
+      id,
+      reason
     }
   })
 };

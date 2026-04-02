@@ -8,7 +8,7 @@
     <!-- 注册表单层 -->
     <div class="login-form-wrapper">
       <div class="login-header">
-        <h2>宠物管理系统</h2>
+        <h2>PetCircle -宠友社</h2>
         <p>欢迎注册</p>
       </div>
       <el-form

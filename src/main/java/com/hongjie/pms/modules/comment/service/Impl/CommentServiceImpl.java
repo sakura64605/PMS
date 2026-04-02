@@ -6,12 +6,15 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
+import com.hongjie.pms.modules.activity.entity.Activity;
 import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
 import com.hongjie.pms.modules.comment.dto.request.CommentCreateRequest;
 import com.hongjie.pms.modules.comment.dto.response.CommentRespDto;
 import com.hongjie.pms.modules.comment.entity.Comment;
 import com.hongjie.pms.modules.comment.mapper.CommentMapper;
 import com.hongjie.pms.modules.comment.service.CommentService;
+import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.modules.petpost.entity.PetPost;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import com.hongjie.pms.modules.user.entity.User;
@@ -32,6 +35,7 @@ public class CommentServiceImpl implements CommentService {
     private final UserMapper userMapper;
     private final PetPostMapper petPostMapper;
     private final ActivityMapper activityMapper;
+    private final MessageService messageService;
 
     @Override
     public void createComment(CommentCreateRequest request) {
@@ -61,6 +65,63 @@ public class CommentServiceImpl implements CommentService {
             activityMapper.incrementCommentCount(request.getTargetId());
         }
         log.info("保存评论成功: {}", comment);
+
+        // 增加评论计数
+        if (request.getTargetType().equals(CommentLikeTypes.PET_POST)) {
+            petPostMapper.incrementCommentCount(request.getTargetId());
+
+            // 发送评论通知
+            PetPost petPost = petPostMapper.selectById(request.getTargetId());
+            if (petPost != null && !userId.equals(petPost.getUserId())) {
+                messageService.sendCommentNotification(
+                        petPost.getUserId(),           // 接收者（帖子作者）
+                        userId,                        // 发送者（评论者）
+                        CommentLikeTypes.PET_POST,                    // 目标类型
+                        petPost.getTitle(),            // 标题
+                        request.getContent(),          // 评论内容
+                        request.getTargetId(),         // 业务ID
+                        "/pet/" + request.getTargetId()  // 链接
+                );
+            }
+
+        } else if (request.getTargetType().equals(CommentLikeTypes.PET_ACTIVITY)) {
+            activityMapper.incrementCommentCount(request.getTargetId());
+
+            // 发送评论通知
+            Activity activity = activityMapper.selectById(request.getTargetId());
+            if (activity != null && !userId.equals(activity.getUserId())) {
+                messageService.sendCommentNotification(
+                        activity.getUserId(),          // 接收者（活动发布者）
+                        userId,                        // 发送者
+                        CommentLikeTypes.PET_ACTIVITY,                // 目标类型
+                        activity.getTitle(),           // 标题
+                        request.getContent(),          // 评论内容
+                        request.getTargetId(),         // 业务ID
+                        "/activity/" + request.getTargetId()  // 链接
+                );
+            }
+        }
+
+        // 如果是回复评论，还需要通知被回复的人
+        if (request.getParentId() != null && request.getParentId() > 0) {
+            Comment parentComment = commentMapper.selectById(request.getParentId());
+            if (parentComment != null && !parentComment.getUserId().equals(userId)) {
+                // 回复评论时
+                messageService.sendCommentNotification(
+                        parentComment.getUserId(),
+                        userId,
+                        CommentLikeTypes.COMMENT_REPLY,
+                        null,
+                        "回复了你的评论：" + request.getContent(),
+                        request.getParentId(),
+                        "/pet/" + request.getTargetId() + "?commentId=" + request.getParentId()  // 带评论锚点
+                );
+            }
+        }
+
+        log.info("评论创建成功: userId={}, targetType={}, targetId={}",
+                userId, request.getTargetType(), request.getTargetId());
+
     }
 
     @Override
