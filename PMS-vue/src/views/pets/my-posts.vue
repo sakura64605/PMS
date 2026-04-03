@@ -285,8 +285,8 @@
           <el-table-column prop="remark" label="备注" width="150" />
           <el-table-column prop="status" label="状态" width="80">
             <template #default="scope">
-              <el-tag :type="scope.row.status === 1 ? 'success' : 'info'">
-                {{ scope.row.status === 1 ? '已报名' : '未知' }}
+              <el-tag :type="scope.row.isCheckedIn ? 'success' : (scope.row.status === 1 ? 'primary' : 'info')">
+                {{ scope.row.isCheckedIn ? '已签到' : (scope.row.status === 1 ? '已报名' : '未知') }}
               </el-tag>
             </template>
           </el-table-column>
