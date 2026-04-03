@@ -167,15 +167,17 @@ const handleMessageCommand = (command: string) => {
   if (command === 'message') {
     router.push('/message')
   } else if (command === 'markAllRead') {
-    markAllMessagesAsRead()
-      .then(() => {
-        ElMessage.success('全部标记已读成功')
-        unreadCount.value = 0
-      })
-      .catch(() => {
-        ElMessage.error('全部标记已读失败')
-      })
-  }
+        markAllMessagesAsRead()
+          .then(() => {
+            ElMessage.success('全部标记已读成功')
+            unreadCount.value = 0
+            // 通知消息中心页面刷新消息列表
+            emitter.emit('refresh-messages')
+          })
+          .catch(() => {
+            ElMessage.error('全部标记已读失败')
+          })
+      }
 }
 
 // 加载未读消息数量
