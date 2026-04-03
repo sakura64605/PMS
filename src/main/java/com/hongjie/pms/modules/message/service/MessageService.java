@@ -8,6 +8,8 @@ import com.hongjie.pms.common.enums.CommentLikeTypes;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.modules.message.entity.UserMessage;
 import com.hongjie.pms.modules.message.mapper.UserMessageMapper;
+import com.hongjie.pms.modules.message.mq.MessageMqDto;
+import com.hongjie.pms.modules.message.mq.MessageMqProducer;
 import com.hongjie.pms.modules.message.websocket.WebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,21 +24,39 @@ import java.util.List;
 public class MessageService {
 
     private final UserMessageMapper messageMapper;
+    private final MessageMqProducer messageMqProducer;
 
     // ==================== 核心方法 ====================
 
-    /**
-     * 发送消息（存储 + 实时推送）
-     */
-    public void sendAndPush(UserMessage message) {
-        // 1. 存储到数据库
-        message.setIsRead(0);
-        message.setCreateTime(LocalDateTime.now());
-        messageMapper.insert(message);
-        log.info("消息已存储: userId={}, type={}", message.getUserId(), message.getType());
+//    /**
+//     * 发送消息（存储 + 实时推送）
+//     */
+//    public void sendAndPush(UserMessage message) {
+//        // 1. 存储到数据库
+//        message.setIsRead(0);
+//        message.setCreateTime(LocalDateTime.now());
+//        messageMapper.insert(message);
+//        log.info("消息已存储: userId={}, type={}", message.getUserId(), message.getType());
+//
+//        // 2. 实时推送（WebSocket）
+//        WebSocketHandler.pushToUser(message.getUserId(), message);
+//    }
 
-        // 2. 实时推送（WebSocket）
-        WebSocketHandler.pushToUser(message.getUserId(), message);
+    // 修改 sendAndPush 方法
+    public void sendAndPush(UserMessage message) {
+        // 转换为 DTO
+        MessageMqDto dto = MessageMqDto.builder()
+                .userId(message.getUserId())
+                .senderId(message.getSenderId())
+                .type(message.getType())
+                .title(message.getTitle())
+                .content(message.getContent())
+                .businessId(message.getBusinessId())
+                .link(message.getLink())
+                .createTime(LocalDateTime.now())
+                .build();
+        // 发送到 MQ，消费者会处理存库和推送
+        messageMqProducer.send(dto);
     }
 
     /**

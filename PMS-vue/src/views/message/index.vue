@@ -116,7 +116,17 @@ const loadMessages = async () => {
       pageSize: pageSize.value,
       type: filterType.value || undefined
     })
-    messageList.value = response.data.records || []
+    // 对返回的列表进行去重处理（按id去重）
+    const records = response.data.records || []
+    const uniqueMessages = []
+    const idSet = new Set()
+    for (const message of records) {
+      if (!idSet.has(message.id)) {
+        idSet.add(message.id)
+        uniqueMessages.push(message)
+      }
+    }
+    messageList.value = uniqueMessages
     total.value = response.data.total || 0
   } catch (error) {
     ElMessage.error('获取消息列表失败')
@@ -289,7 +299,17 @@ watch(filterType, () => {
 // 处理新消息事件
 const handleNewMessage = (message: any) => {
   console.log('收到新消息事件:', message)
-  // 重新加载消息列表
+  // 检查消息是否已存在于当前列表中
+  const exists = messageList.value.some(item => item.id === message.id)
+  if (!exists) {
+    // 如果不存在，添加到列表顶部
+    messageList.value.unshift(message)
+    // 重新排序（按创建时间降序）
+    messageList.value.sort((a, b) => new Date(b.createTime).getTime() - new Date(a.createTime).getTime())
+    // 更新总数
+    total.value += 1
+  }
+  // 加载最新消息列表
   loadMessages()
 }
 
