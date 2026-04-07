@@ -3,6 +3,7 @@ package com.hongjie.pms.modules.like.service.Impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
+import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.modules.activity.entity.Activity;
 import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
@@ -55,7 +56,7 @@ public class LikeServiceImpl implements LikeService {
             case CommentLikeTypes.PET_POST:
                 PetPost pet = petPostMapper.selectById(request.getTargetId());
                 if (pet == null) {
-                    throw new BusinessException(404, "宠物信息不存在");
+                    throw new BusinessException(ErrorCode.PET_NOT_FOUND);
                 }
 
                 if (isNewLike) {
@@ -84,7 +85,7 @@ public class LikeServiceImpl implements LikeService {
             case CommentLikeTypes.PET_COMMENT:
                 Comment comment = commentMapper.selectById(request.getTargetId());
                 if (comment == null) {
-                    throw new BusinessException(404, "评论不存在");
+                    throw new BusinessException(ErrorCode.NOT_FOUND, "评论不存在");
                 }
 
                 if (isNewLike) {
@@ -118,7 +119,7 @@ public class LikeServiceImpl implements LikeService {
             case CommentLikeTypes.PET_ACTIVITY:
                 Activity activity = activityMapper.selectById(request.getTargetId());
                 if (activity == null) {
-                    throw new BusinessException(404, "活动不存在");
+                    throw new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND);
                 }
 
                 if (isNewLike) {
@@ -143,7 +144,7 @@ public class LikeServiceImpl implements LikeService {
                 break;
 
             default:
-                throw new BusinessException(400, "不支持的点赞目标类型");
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "不支持的点赞目标类型");
         }
 
         // 处理点赞记录

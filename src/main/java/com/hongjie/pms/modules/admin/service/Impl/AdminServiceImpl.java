@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.base.core.UserContext;
+import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.modules.admin.dto.response.AdminUserSimpleDto;
 import com.hongjie.pms.modules.admin.service.AdminService;
@@ -11,7 +12,6 @@ import com.hongjie.pms.modules.message.service.MessageService;
 import com.hongjie.pms.modules.petpost.dto.response.PetListResponseDto;
 import com.hongjie.pms.modules.petpost.entity.PetPost;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
-import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +37,7 @@ public class AdminServiceImpl implements AdminService {
         queryWrapper.eq(PetPost::getId, id);
         PetPost petPost = petPostMapper.selectOne(queryWrapper);
         if (petPost == null){
-            throw new RuntimeException("未找到该宠物信息");
+            throw new BusinessException(ErrorCode.PET_NOT_FOUND);
         }
         petPost.setStatus(1);
         petPostMapper.updateById(petPost);
@@ -56,7 +56,7 @@ public class AdminServiceImpl implements AdminService {
         queryWrapper.eq(PetPost::getId, id);
         PetPost petPost = petPostMapper.selectOne(queryWrapper);
         if (petPost == null){
-            throw new RuntimeException("未找到该宠物信息");
+            throw new BusinessException(ErrorCode.PET_NOT_FOUND);
         }
         petPost.setStatus(4);
         petPostMapper.updateById(petPost);
@@ -74,7 +74,7 @@ public class AdminServiceImpl implements AdminService {
     public IPage<AdminUserSimpleDto> userList(int pageNum, int pageSize, String keyword, Integer status) {
         // 1. 权限校验
         if (!UserContext.isAdmin()) {
-            throw new BusinessException(403, "无权限查看");
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
 
         // 2. 构建查询条件
@@ -126,7 +126,7 @@ public class AdminServiceImpl implements AdminService {
         queryWrapper.eq(User::getId, userId);
         User user = userMapper.selectOne(queryWrapper);
         if (user == null) {
-            throw new BusinessException(400, "用户不存在");
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
         user.setStatus(0);
         userMapper.updateById(user);
@@ -139,7 +139,7 @@ public class AdminServiceImpl implements AdminService {
         queryWrapper.eq(User::getId, userId);
         User user = userMapper.selectOne(queryWrapper);
         if (user == null) {
-            throw new BusinessException(400, "用户不存在");
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
         user.setStatus(1);
         userMapper.updateById(user);

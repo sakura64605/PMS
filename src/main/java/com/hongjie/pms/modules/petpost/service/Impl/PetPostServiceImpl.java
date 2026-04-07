@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
 import com.hongjie.pms.common.exception.BusinessException;
+import com.hongjie.pms.common.exception.SystemException;
 import com.hongjie.pms.common.utils.OssUtils;
 import com.hongjie.pms.modules.following.entity.Follow;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
@@ -26,6 +27,7 @@ import com.hongjie.pms.modules.petpost.mapper.FavoriteRecordMapper;
 import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
+import com.hongjie.pms.common.enums.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -222,7 +224,7 @@ public class PetPostServiceImpl implements PetPostService {
         // 1. 查询宠物信息
         PetPost pet = petPostMapper.selectById(id);
         if (pet == null) {
-            throw new BusinessException(404, "宠物信息不存在");
+            throw new BusinessException(ErrorCode.PET_NOT_FOUND);
         }
 
         // 2. 查询发布者信息
@@ -297,7 +299,7 @@ public class PetPostServiceImpl implements PetPostService {
         PetPost pet = petPostMapper.selectById(request.getId());
 
         if (pet == null || !pet.getUserId().equals(userId)) {
-            throw new BusinessException(404, "宠物信息不存在");
+            throw new BusinessException(ErrorCode.PET_NOT_FOUND);
         }
         if(request.getTitle() != null){
             pet.setTitle(request.getTitle());
@@ -357,7 +359,7 @@ public class PetPostServiceImpl implements PetPostService {
                     .build();
         } catch (Exception e) {
             log.error("图片上传失败: {}", e.getMessage());
-            throw new BusinessException(400, "图片上传失败");
+            throw new BusinessException(ErrorCode.UPLOAD_FAIL);
         }
 
     }
@@ -368,7 +370,7 @@ public class PetPostServiceImpl implements PetPostService {
         queryWrapper.eq("id", id);
         PetPost pet = petPostMapper.selectOne(queryWrapper);
         if (pet == null) {
-            throw new BusinessException(404, "宠物信息不存在");
+            throw new BusinessException(ErrorCode.PET_NOT_FOUND);
         }
         pet.setStatus(-1);
         petPostMapper.updateById(pet);
@@ -380,7 +382,7 @@ public class PetPostServiceImpl implements PetPostService {
         queryWrapper.eq("id", id);
         PetPost pet = petPostMapper.selectOne(queryWrapper);
         if (pet == null) {
-            throw new BusinessException(404, "宠物信息不存在");
+            throw new BusinessException(ErrorCode.PET_NOT_FOUND);
         }
         pet.setStatus(3);
         petPostMapper.updateById(pet);
@@ -392,7 +394,7 @@ public class PetPostServiceImpl implements PetPostService {
         queryWrapper.eq("id", id);
         PetPost pet = petPostMapper.selectOne(queryWrapper);
         if (pet == null) {
-            throw new BusinessException(404, "宠物信息不存在");
+            throw new BusinessException(ErrorCode.PET_NOT_FOUND);
         }
         pet.setStatus(1);
         petPostMapper.updateById(pet);
@@ -409,19 +411,19 @@ public class PetPostServiceImpl implements PetPostService {
         PetPost pet = petPostMapper.selectOne(queryWrapper);
 
         if (!UserContext.isAdmin() && !pet.getUserId().equals(userId)) {
-            throw new BusinessException(403, "无权限删除");
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
 
         if (pet == null) {
-            throw new BusinessException(404, "宠物信息不存在");
+            throw new BusinessException(ErrorCode.PET_NOT_FOUND);
         }
         if(pet.getStatus() != -1){
-            throw new BusinessException(400, "宠物信息状态错误");
+            throw new BusinessException(ErrorCode.PET_STATUS_ERROR);
         }
 
         int result = petPostMapper.deleteById(id);
         if (result != 1) {
-            throw new BusinessException(500, "删除失败");
+            throw new SystemException(ErrorCode.DB_ERROR);
         }
 
         // 2. 再删OSS（即使失败，数据库已删，可异步清理）
@@ -439,7 +441,7 @@ public class PetPostServiceImpl implements PetPostService {
         queryWrapper.eq("id", id);
         PetPost pet = petPostMapper.selectOne(queryWrapper);
         if (pet == null) {
-            throw new BusinessException(404, "宠物信息不存在");
+            throw new BusinessException(ErrorCode.PET_NOT_FOUND);
         }
         FavoriteRecord favoriteRecord = favoriteRecordMapper.selectOne(new QueryWrapper<FavoriteRecord>().eq("user_id", UserContext.getUserId()).eq("target_id", id).eq("target_type", "pet_post"));
         if (favoriteRecord != null) {

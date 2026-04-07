@@ -1,11 +1,12 @@
 package com.hongjie.pms.modules.comment.service.Impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
+import com.hongjie.pms.common.enums.ErrorCode;
+import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.modules.activity.entity.Activity;
 import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
 import com.hongjie.pms.modules.comment.dto.request.CommentCreateRequest;
@@ -42,12 +43,12 @@ public class CommentServiceImpl implements CommentService {
         Long userId = UserContext.getUserId();
         if (userId == null) {
             log.error("用户未登录");
-            throw new RuntimeException("用户未登录");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
         log.debug("用户创建评论: userId={}, username={}", userId, UserContext.getUserName());
         if (request.getContent() == null || request.getContent().isEmpty()) {
             log.error("评论内容为空");
-            throw new RuntimeException("评论内容为空");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "评论内容不能为空");
         }
         Comment comment = new Comment();
         comment.setUserId(userId);

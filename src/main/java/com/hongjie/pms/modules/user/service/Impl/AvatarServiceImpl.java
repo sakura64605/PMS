@@ -2,6 +2,7 @@ package com.hongjie.pms.modules.user.service.Impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.hongjie.pms.common.base.core.UserContext;
+import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.utils.OssUtils;
 import com.hongjie.pms.modules.user.dto.response.AvatarUploadResponse;
@@ -69,10 +70,10 @@ public class AvatarServiceImpl implements AvatarService {
 
         } catch (IllegalArgumentException e) {
             log.warn("上传失败: {}", e.getMessage());
-            throw new BusinessException(400, e.getMessage());
+            throw new BusinessException(ErrorCode.PARAM_ERROR, e.getMessage());
         } catch (Exception e) {
             log.error("上传失败", e);
-            throw new BusinessException(500, "头像上传失败");
+            throw new BusinessException(ErrorCode.UPLOAD_FAIL);
         }
     }
 
@@ -102,12 +103,12 @@ public class AvatarServiceImpl implements AvatarService {
             // 1. 获取历史头像信息
             AvatarHistory history = avatarHistoryMapper.selectById(historyId);
             if (history == null) {
-                throw new BusinessException(404, "历史头像不存在");
+                throw new BusinessException(ErrorCode.NOT_FOUND, "历史头像不存在");
             }
 
             // 2. 验证历史头像是否属于当前用户
             if (!history.getUserId().equals(userId)) {
-                throw new BusinessException(403, "无权访问该历史头像");
+                throw new BusinessException(ErrorCode.FORBIDDEN);
             }
 
             // 3. 更新用户表的当前头像
@@ -129,7 +130,7 @@ public class AvatarServiceImpl implements AvatarService {
             throw e;
         } catch (Exception e) {
             log.error("切换历史头像失败", e);
-            throw new BusinessException(500, "切换历史头像失败");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "切换历史头像失败");
         }
     }
 

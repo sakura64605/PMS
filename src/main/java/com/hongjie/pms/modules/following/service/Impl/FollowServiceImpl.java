@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.base.core.UserContext;
+import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.modules.following.entity.Follow;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
@@ -32,7 +33,7 @@ public class FollowServiceImpl implements FollowService {
     public void followUser(Long currentUserId, Long userId) {
 
         if (currentUserId.equals(userId)) {
-            throw new BusinessException(400, "不能关注自己");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "不能关注自己");
         }
         Follow follow = new Follow();
         follow.setFollowerId(currentUserId);

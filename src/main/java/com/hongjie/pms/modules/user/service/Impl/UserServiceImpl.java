@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.hongjie.pms.common.base.core.UpdateTimeContext;
 import com.hongjie.pms.common.base.core.UserContext;
+import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
+import com.hongjie.pms.common.exception.SystemException;
 import com.hongjie.pms.common.handler.MyMetaObjectHandler;
 import com.hongjie.pms.common.utils.AccountUtils;
 import com.hongjie.pms.common.utils.EmailUtils;
@@ -67,17 +69,17 @@ public class UserServiceImpl implements UserService {
 
         // 1. 检查用户是否存在
         if (user == null) {
-            throw new BusinessException(40103, "用户名或密码错误");  // 统一提示，避免枚举用户名
+            throw new BusinessException(ErrorCode.PASSWORD_ERROR, "用户名或密码错误");  // 统一提示，避免枚举用户名
         }
 
         // 2. 检查用户状态
         if (user.getStatus() != 1) {
-            throw new BusinessException(40104, "账号已被禁用");
+            throw new BusinessException(ErrorCode.USER_DISABLED);
         }
 
         String password = loginRequestDto.getPassword();
         if(!PasswordUtils.matches(password, user.getPassword())){
-            throw new BusinessException(40103, "用户名或密码错误");
+            throw new BusinessException(ErrorCode.PASSWORD_ERROR, "用户名或密码错误");
         }
 
         String token = jwtUtils.generateToken(user.getUserName(), user.getRole(), user.getId());
@@ -103,17 +105,17 @@ public class UserServiceImpl implements UserService {
         String password = registerRequestDto.getPassword();
         String phone = registerRequestDto.getPhone();
 
-        if(findUserByUsername(userName) != null){
-            throw new BusinessException(400, "用户名已存在");
+        if (findUserByUsername(userName) != null) {
+            throw new BusinessException(ErrorCode.USERNAME_EXISTS);
         }
-        if(findUserByPhone(phone) != null){
-            throw new BusinessException(400, "手机号已存在");
+        if (findUserByPhone(phone) != null) {
+            throw new BusinessException(ErrorCode.PHONE_EXISTS);
         }
-        if(password.isBlank()) {
-            throw new BusinessException(400, "密码不能为空");
+        if (password.isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "密码不能为空");
         }
-        if(password.length() < 6) {
-            throw new BusinessException(400, "密码长度不能小于6");
+        if (password.length() < 6) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "密码长度不能小于6");
         }
 
         if(nickName == null || nickName.isBlank()){
@@ -144,7 +146,7 @@ public class UserServiceImpl implements UserService {
                     .phone(phone)
                     .build();
         }else{
-            throw new BusinessException(500, "注册失败");
+            throw new SystemException(ErrorCode.DB_ERROR);
         }
     }
 
@@ -205,7 +207,7 @@ public class UserServiceImpl implements UserService {
         if(EmailUtils.isEmail(updateDto.getEmail()) && updateDto.getEmail() != null) {
             user.setEmail(updateDto.getEmail());
         } else {
-            throw new BusinessException(400, "邮箱格式错误");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "邮箱格式错误");
         }
 
         Integer result = userMapper.updateById(user);
@@ -238,18 +240,18 @@ public class UserServiceImpl implements UserService {
         String confirmPassword = changePasswordRequestDto.getConfirmPassword();
 
         if (!PasswordUtils.matches(oldPassword, user.getPassword(), user.getUserName())) {
-            throw new BusinessException(400, "旧密码错误");
+            throw new BusinessException(ErrorCode.PASSWORD_ERROR, "旧密码错误");
         }
 
         if (!newPassword.equals(confirmPassword)) {
-            throw new BusinessException(400, "新密码和确认密码不一致");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "新密码和确认密码不一致");
         }
         user.setPassword(PasswordUtils.encrypt(newPassword));
         boolean result = userMapper.updateById(user) > 0;
         if (result) {
             return true;
         } else {
-            throw new BusinessException(500, "修改密码失败");
+            throw new BusinessException(ErrorCode.DB_ERROR, "修改密码失败");
         }
     }
 

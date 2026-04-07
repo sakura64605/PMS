@@ -5,12 +5,12 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
+import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.modules.message.entity.UserMessage;
 import com.hongjie.pms.modules.message.mapper.UserMessageMapper;
 import com.hongjie.pms.modules.message.mq.MessageMqDto;
 import com.hongjie.pms.modules.message.mq.MessageMqProducer;
-import com.hongjie.pms.modules.message.websocket.WebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -364,10 +364,10 @@ public class MessageService {
     public void markAsRead(Long messageId) {
         UserMessage message = messageMapper.selectById(messageId);
         if (message == null) {
-            throw new BusinessException(404, "消息不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "消息不存在");
         }
         if (!message.getUserId().equals(UserContext.getUserId())) {
-            throw new BusinessException(403, "无权操作");
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
 
         message.setIsRead(1);

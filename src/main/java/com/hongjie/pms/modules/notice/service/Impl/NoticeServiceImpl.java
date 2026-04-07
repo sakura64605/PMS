@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.base.core.UserContext;
+import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.modules.notice.dto.request.NoticeRequestDto;
 import com.hongjie.pms.modules.notice.dto.response.NoticeDetailDto;
@@ -36,7 +37,7 @@ public class NoticeServiceImpl implements NoticeService {
     @Transactional
     public NoticeDetailDto create(NoticeRequestDto request) {
         if (!UserContext.isAdmin()) {
-            throw new BusinessException(403, "无权限操作");
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
 
         Notice notice = new Notice();
@@ -69,12 +70,12 @@ public class NoticeServiceImpl implements NoticeService {
     @Transactional
     public NoticeDetailDto update(NoticeRequestDto request) {
         if (!UserContext.isAdmin()) {
-            throw new BusinessException(403, "无权限操作");
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         
         Notice notice = noticeMapper.selectById(request.getId());
         if (notice == null) {
-            throw new BusinessException(404, "公告不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "公告不存在");
         }
         
         notice.setTitle(request.getTitle());
@@ -93,12 +94,12 @@ public class NoticeServiceImpl implements NoticeService {
     @Transactional
     public void delete(Long id) {
         if (!UserContext.isAdmin()) {
-            throw new BusinessException(403, "无权限操作");
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         
         Notice notice = noticeMapper.selectById(id);
         if (notice == null) {
-            throw new BusinessException(404, "公告不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "公告不存在");
         }
         
         noticeMapper.deleteById(id);
@@ -109,17 +110,17 @@ public class NoticeServiceImpl implements NoticeService {
     @Transactional
     public void publish(Long id) {
         if (!UserContext.isAdmin()) {
-            throw new BusinessException(403, "无权限操作");
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
 
         Notice notice = noticeMapper.selectById(id);
         if (notice == null) {
-            throw new BusinessException(404, "公告不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "公告不存在");
         }
 
         // 已发布的不能重复发布
         if (notice.getStatus() == 1) {
-            throw new BusinessException(400, "公告已发布");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "公告已发布");
         }
 
         // 设置发布时间为当前时间
@@ -134,12 +135,12 @@ public class NoticeServiceImpl implements NoticeService {
     @Transactional
     public void unpublish(Long id) {
         if (!UserContext.isAdmin()) {
-            throw new BusinessException(403, "无权限操作");
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         
         Notice notice = noticeMapper.selectById(id);
         if (notice == null) {
-            throw new BusinessException(404, "公告不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "公告不存在");
         }
         
         notice.setStatus(2);
@@ -151,7 +152,7 @@ public class NoticeServiceImpl implements NoticeService {
     public IPage<NoticeListDto> listForAdmin(Integer pageNum, Integer pageSize, 
                                                Integer status, String keyword) {
         if (!UserContext.isAdmin()) {
-            throw new BusinessException(403, "无权限查看");
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         
         Page<Notice> page = new Page<>(pageNum, pageSize);
@@ -222,17 +223,17 @@ public class NoticeServiceImpl implements NoticeService {
         
         Notice notice = noticeMapper.selectById(id);
         if (notice == null) {
-            throw new BusinessException(404, "公告不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "公告不存在");
         }
         
         // 检查是否已发布
         if (notice.getStatus() != 1) {
-            throw new BusinessException(404, "公告不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "公告不存在");
         }
         
         // 检查是否已过期
         if (notice.getExpireTime() != null && notice.getExpireTime().isBefore(LocalDateTime.now())) {
-            throw new BusinessException(404, "公告已过期");
+            throw new BusinessException(ErrorCode.NOT_FOUND, "公告已过期");
         }
         
         // 标记为已读

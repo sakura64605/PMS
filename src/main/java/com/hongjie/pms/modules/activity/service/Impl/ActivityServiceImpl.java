@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.base.core.UserContext;
+import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
+import com.hongjie.pms.common.exception.SystemException;
 import com.hongjie.pms.modules.activity.dto.request.ActivityListRequestDto;
 import com.hongjie.pms.modules.activity.dto.request.SignUpInfoRequest;
 import com.hongjie.pms.modules.activity.dto.response.ActivityDetailRespDto;
@@ -57,10 +59,10 @@ public class ActivityServiceImpl implements ActivityService {
 
         // 校验时间
         if (request.getStartTime().isBefore(LocalDateTime.now())) {
-            throw new BusinessException(400, "开始时间不能早于当前时间");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "开始时间不能早于当前时间");
         }
         if (request.getEndTime().isBefore(request.getStartTime())) {
-            throw new BusinessException(400, "结束时间不能早于开始时间");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "结束时间不能早于开始时间");
         }
 
         Activity activity = new Activity();
@@ -96,23 +98,23 @@ public class ActivityServiceImpl implements ActivityService {
     public void updateActivity(ActivityRequestDto activityRequestDto) {
         // 校验时间
         if (activityRequestDto.getStartTime().isBefore(LocalDateTime.now())) {
-            throw new BusinessException(400, "开始时间不能早于当前时间");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "开始时间不能早于当前时间");
         }
         if (activityRequestDto.getEndTime().isBefore(activityRequestDto.getStartTime())) {
-            throw new BusinessException(400, "结束时间不能早于开始时间");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "结束时间不能早于开始时间");
         }
 
         Long userId = UserContext.getUserId();
         if(activityRequestDto.getUserId() != null && !activityRequestDto.getUserId().equals(userId)){
-            throw new BusinessException(400, "无权限修改该活动");
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         Activity activity = activityMapper.selectById(activityRequestDto.getId());
         log.info("updateActivity: userId={}, activity={}", userId, activity);
         if (activity == null) {
-            throw new BusinessException(400, "活动不存在");
+            throw new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND);
         }
         if(activity.getStatus() == 2){
-            throw new BusinessException(400, "活动已结束，不可修改");
+            throw new BusinessException(ErrorCode.ACTIVITY_ENDED, "活动已结束，不可修改");
         }
 
         // 检测是否有重大变更
@@ -130,7 +132,7 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setEndTime(activityRequestDto.getEndTime());
         Integer result = activityMapper.updateById(activity);
         if (result <= 0) {
-            throw new BusinessException(500, "活动更新失败");
+            throw new SystemException(ErrorCode.DB_ERROR);
         }
     }
 
@@ -138,18 +140,18 @@ public class ActivityServiceImpl implements ActivityService {
     public void deleteActivity(Long id) {
         Activity activity = activityMapper.selectById(id);
         if (activity == null) {
-            throw new BusinessException(400, "活动不存在");
+            throw new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND);
         }
         if(activity.getStatus() == 2){
-            throw new BusinessException(400, "活动已结束，不可删除");
+            throw new BusinessException(ErrorCode.ACTIVITY_ENDED, "活动已结束，不可删除");
         }
         if(activity.getUserId() != UserContext.getUserId()){
-            throw new BusinessException(400, "无删除权限");
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         activity.setDeleted(1);
         Integer result = activityMapper.updateById(activity);
         if (result <= 0) {
-            throw new BusinessException(500, "活动删除失败");
+            throw new SystemException(ErrorCode.DB_ERROR);
         }
     }
 
@@ -318,6 +320,7 @@ public class ActivityServiceImpl implements ActivityService {
         Activity activity = activityMapper.selectById(id);
         Long currentUserId = UserContext.getUserId();
         if (currentUserId != activity.getUserId()) {
+            // TODO: 并发处理 - 使用乐观锁或悲观锁确保并发安全
             activity.setViewCount(activity.getViewCount() + 1);
             activityMapper.updateById(activity);
         }
@@ -387,18 +390,19 @@ public class ActivityServiceImpl implements ActivityService {
         Long currentUserId = UserContext.getUserId();
         Activity activity = activityMapper.selectById(request.getActivityId());
         if (activity.getUserId().equals(currentUserId)) {
-            throw new BusinessException(400, "不能报名自己的活动");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "不能报名自己的活动");
         }
         if (activity.getStatus() != 0) {
-            throw new BusinessException(400, "活动不在报名中");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "活动不在报名中");
         }
+        // TODO: 并发处理 - 使用乐观锁或悲观锁确保并发安全
         if (activity.getCurrentPeople() >= activity.getMaxPeople()) {
-            throw new BusinessException(400, "活动已满");
+            throw new BusinessException(ErrorCode.ACTIVITY_FULL);
         }
         if (activitySignupMapper.exists(new LambdaQueryWrapper<ActivitySignup>()
                 .eq(ActivitySignup::getActivityId, request.getActivityId())
                 .eq(ActivitySignup::getUserId, currentUserId))) {
-            throw new BusinessException(400, "已报名");
+            throw new BusinessException(ErrorCode.ACTIVITY_SIGNUP_EXISTS);
         }
         ActivitySignup activitySignup = new ActivitySignup();
         activitySignup.setActivityId(request.getActivityId());
@@ -408,6 +412,7 @@ public class ActivityServiceImpl implements ActivityService {
         activitySignup.setPhone(request.getPhone());
         activitySignup.setRemark(request.getRemark());
         activitySignupMapper.insert(activitySignup);
+        // TODO: 并发处理 - 使用乐观锁或悲观锁确保并发安全
         activity.setCurrentPeople(activity.getCurrentPeople() + 1);
         activityMapper.updateById(activity);
 
@@ -445,9 +450,10 @@ public class ActivityServiceImpl implements ActivityService {
                 .eq(ActivitySignup::getActivityId, id)
                 .eq(ActivitySignup::getUserId, currentUserId));
         if (activitySignup == null) {
-            throw new BusinessException(400, "未报名");
+            throw new BusinessException(ErrorCode.ACTIVITY_NOT_SIGNUP);
         }
         activitySignupMapper.deleteById(activitySignup);
+        // TODO: 并发处理 - 使用乐观锁或悲观锁确保并发安全
         activity.setCurrentPeople(activity.getCurrentPeople() - 1);
         activityMapper.updateById(activity);
     }
@@ -609,10 +615,10 @@ public class ActivityServiceImpl implements ActivityService {
         Long currentUserId = UserContext.getUserId();
         Activity activity = activityMapper.selectById(id);
         if (activity == null || activity.getDeleted() == 0) {
-            throw new BusinessException(400, "活动不存在或未被删除");
+            throw new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND);
         }
         if (!UserContext.isAdmin() && !activity.getUserId().equals(currentUserId)) {
-            throw new BusinessException(403, "无操作权限");
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         activity.setDeleted(0);
         activityMapper.updateById(activity);
@@ -623,7 +629,7 @@ public class ActivityServiceImpl implements ActivityService {
         Long currentUserId = UserContext.getUserId();
         Activity activity = activityMapper.selectById(id);
         if (activity == null || !activity.getUserId().equals(currentUserId)) {
-            throw new BusinessException(400, "活动不存在或无权限查看");
+            throw new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND);
         }
         IPage<ActivitySignup> page = new Page<>(pageNum, pageSize);
         page = activitySignupMapper.selectPage(page, new LambdaQueryWrapper<ActivitySignup>()
@@ -676,23 +682,23 @@ public class ActivityServiceImpl implements ActivityService {
         Activity activity = activityMapper.selectById(activityId);
         Long currentUserId = UserContext.getUserId();
         if (activity == null) {
-            throw new BusinessException(400, "活动不存在");
+            throw new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND);
         }
         if (!activity.getUserId().equals(currentUserId)) {
-            throw new BusinessException(403, "无操作权限");
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         if (activity.getStatus() == 2) {
-            throw new BusinessException(400, "活动已结束");
+            throw new BusinessException(ErrorCode.ACTIVITY_ENDED);
         }
         ActivitySignup signup = activitySignupMapper.selectOne(new LambdaQueryWrapper<ActivitySignup>()
                 .eq(ActivitySignup::getActivityId, activityId)
                 .eq(ActivitySignup::getUserId, userId)
         );
         if (signup == null) {
-            throw new BusinessException(400, "用户未报名");
+            throw new BusinessException(ErrorCode.ACTIVITY_NOT_SIGNUP);
         }
         if (signup.getStatus() == 2) {
-            throw new BusinessException(400, "用户已签到");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户已签到");
         }
         signup.setCheckInTime(LocalDateTime.now());
         signup.setStatus(3);
