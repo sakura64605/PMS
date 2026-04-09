@@ -169,6 +169,12 @@
             <artifactId>commons-pool2</artifactId>
         </dependency>
 
+        <!-- Apache Commons Lang3（提供 HTML 转义） -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

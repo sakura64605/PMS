@@ -13,7 +13,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 public interface ActivityService {
-    ActivityPostRespDto postActivity(ActivityRequestDto activityRequestDto);
+    ActivityPostRespDto postActivity(@Valid ActivityRequestDto activityRequestDto);
 
     void updateActivity(@Valid ActivityRequestDto activityRequestDto);
 
@@ -23,7 +23,7 @@ public interface ActivityService {
 
     ActivityDetailRespDto getActivityDetail(Long id);
 
-    void signUp(SignUpInfoRequest signUpInfoRequest);
+    void signUp(@Valid SignUpInfoRequest signUpInfoRequest);
 
     void cancelSignUp(Long id);
 
