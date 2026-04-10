@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * 限流器管理器（支持秒/分/时/天）
  */
+@Deprecated
 @Slf4j
 @Component
 public class RateLimiterManager {

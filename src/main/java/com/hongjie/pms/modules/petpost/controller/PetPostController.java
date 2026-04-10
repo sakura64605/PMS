@@ -1,7 +1,7 @@
 package com.hongjie.pms.modules.petpost.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.hongjie.pms.common.annotation.RateLimit;
+import com.hongjie.pms.common.annotation.RedisRateLimit;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.pojo.CommonResult;
@@ -40,7 +40,7 @@ public class PetPostController {
      * @param request
      * @return
      */
-    @RateLimit(key = "postPet", count = 10, timeUnit = TimeUnit.HOURS, message = "1小时只能发布10条信息")
+    @RedisRateLimit(key = "postPet", capacity = 10, refillRate = 10, duration = 1, timeUnit = TimeUnit.HOURS, message = "1小时只能发布10条信息")
     @PostMapping("/post")
     public CommonResult<PetListResponseDto> post(@RequestBody PetPostRequestDto request) {
 
@@ -52,7 +52,7 @@ public class PetPostController {
     /**
      * 收藏
      */
-    @RateLimit(key = "collectPet", count = 5, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(key = "collectPet", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.SECONDS)
     @PostMapping("/{id}/collect")
     public CommonResult<FavoriteResponseDto> favorite(@PathVariable Long id) {
         log.info("收藏宠物信息: id={}", id);
@@ -75,7 +75,7 @@ public class PetPostController {
      * @param request
      * @return
      */
-    @RateLimit(key = "getPetList", count = 30, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(key = "getPetList", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
     @GetMapping("/list")
     public CommonResult<IPage<PetListResponseDto>> list(PetQueryRequestDto request) {
 
@@ -89,7 +89,7 @@ public class PetPostController {
     /**
      * 我的发布列表
      */
-    @RateLimit(key = "getActivityDetail", count = 30, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(key = "getActivityDetail", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
     @GetMapping("/my-posts")
     public CommonResult<IPage<PetListResponseDto>> myPosts() {
         log.info("我的发布列表");
@@ -126,7 +126,7 @@ public class PetPostController {
      * 我的收藏列表
      */
     @GetMapping("/favoriteList")
-    @RateLimit(key = "getFavoriteList", count = 30, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(key = "getFavoriteList", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
     public CommonResult<IPage<PetListResponseDto>> favoriteList(@RequestParam Integer pageNum, @RequestParam Integer pageSize) {
         log.info("我的收藏列表");
         IPage<PetListResponseDto> page = petPostService.favoriteList(pageNum, pageSize);
@@ -137,7 +137,7 @@ public class PetPostController {
      * 回收站列表
      */
     @GetMapping("/recycle-bin")
-    @RateLimit(key = "getRecycleBinList", count = 30, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(key = "getRecycleBinList", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
     public CommonResult<IPage<PetListResponseDto>> recycleBin() {
         log.info("回收站列表");
         PetQueryRequestDto queryDto = new PetQueryRequestDto();
@@ -164,7 +164,7 @@ public class PetPostController {
      * 待处理列表
      */
     @GetMapping("/pending-list")
-    @RateLimit(key = "getPendingList", count = 30, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(key = "getPendingList", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
     public CommonResult<IPage<PetListResponseDto>> pendingList() {
         log.info("待处理列表");
         PetQueryRequestDto queryDto = new PetQueryRequestDto();
@@ -183,7 +183,7 @@ public class PetPostController {
     /**
      * 上传图片
      */
-    @RateLimit(key = "uploadImage", count = 30, timeUnit = TimeUnit.MINUTES)
+    @RedisRateLimit(key = "uploadImage", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.MINUTES)
     @PostMapping("/upload")
     public CommonResult<AvatarUploadResponse> uploadImage(@RequestParam("file") MultipartFile file) {
         log.info("上传图片");
@@ -204,7 +204,7 @@ public class PetPostController {
     /**
      * 宠物详情
      */
-    @RateLimit(key = "getPetDetail", count = 30, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(key = "getPetDetail", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
     @GetMapping("/{id}")
     public CommonResult<PetDetailDto> detail(
             @PathVariable Long id) {

@@ -1,6 +1,6 @@
 package com.hongjie.pms.modules.user.controller;
 
-import com.hongjie.pms.common.annotation.RateLimit;
+import com.hongjie.pms.common.annotation.RedisRateLimit;
 import com.hongjie.pms.common.base.BaseController;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.pojo.CommonResult;
@@ -35,7 +35,7 @@ public class UserAuthController extends BaseController {
     /**
      * 登录
      */
-    @RateLimit(key = "login", count = 5, timeUnit = TimeUnit.MINUTES)
+    @RedisRateLimit(key = "login", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.MINUTES)
     @PostMapping("/login")
     public CommonResult<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto loginRequestDto) {
         LoginResponseDto response = userService.login(loginRequestDto);
@@ -46,9 +46,10 @@ public class UserAuthController extends BaseController {
     /**
      * 注册
      */
-    @RateLimit(
+    @RedisRateLimit(
             key = "#request.phone",           // 按手机号限流
-            count = 1,
+            capacity = 1, 
+            refillRate = 1, 
             duration = 1,
             timeUnit = TimeUnit.DAYS,
             perUser = false,
@@ -64,7 +65,7 @@ public class UserAuthController extends BaseController {
     /**
      * 修改密码
      */
-    @RateLimit(key = "changePassword", count = 5, timeUnit = TimeUnit.DAYS)
+    @RedisRateLimit(key = "changePassword", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.DAYS)
     @PostMapping("/changePassword")
     public CommonResult<String> updatePassword(@Valid @RequestBody ChangePasswordRequestDto changePasswordRequestDto) {
         Long userId = UserContext.getUserId();
