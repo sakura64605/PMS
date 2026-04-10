@@ -14,7 +14,10 @@ public enum ErrorCode {
     NOT_FOUND(404, "资源不存在"),
     METHOD_NOT_ALLOWED(405, "请求方法不支持"),
     MEDIA_TYPE_NOT_SUPPORTED(415, "不支持的媒体类型"),
-    
+
+    // 限流错误 1020-1029
+    RATE_LIMIT(1020, "请求过于频繁，请稍后再试"),
+
     // 业务错误 (2000-2999)
     USER_NOT_FOUND(2001, "用户不存在"),
     USER_DISABLED(2002, "账号已被禁用"),

@@ -1,6 +1,7 @@
 package com.hongjie.pms.modules.activity.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.hongjie.pms.common.annotation.RateLimit;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.pojo.CommonResult;
 import com.hongjie.pms.modules.activity.dto.request.ActivityListRequestDto;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 活动
@@ -32,6 +34,7 @@ public class ActivityController {
     /**
      * 创建活动
      */
+    @RateLimit(key = "postActivity", count = 5, timeUnit = TimeUnit.HOURS, message = "1小时只能发布5条活动")
     @PostMapping("/post")
     public CommonResult<ActivityPostRespDto> postActivity(@RequestBody @Valid ActivityRequestDto request) {
         ActivityPostRespDto activityListDto = activityService.postActivity(request);
@@ -59,6 +62,7 @@ public class ActivityController {
     /**
      * 获取活动详情
      */
+    @RateLimit(key = "getActivityDetail", count = 30, timeUnit = TimeUnit.SECONDS)
     @GetMapping("/detail/{id}")
     public CommonResult<ActivityDetailRespDto> getActivityDetail(@PathVariable Long id) {
         ActivityDetailRespDto activityDetail = activityService.getActivityDetail(id);
@@ -68,6 +72,7 @@ public class ActivityController {
     /**
      * 获取回收站列表
      */
+    @RateLimit(key = "getRecycleBinList", count = 30, timeUnit = TimeUnit.SECONDS)
     @GetMapping("/recycle-bin")
     public CommonResult<IPage<ActivityListRespDto>> getRecycleBinList(ActivityListRequestDto request) {
         log.info("获取回收站列表");
@@ -99,6 +104,7 @@ public class ActivityController {
     /**
      * 获取活动列表
      */
+    @RateLimit(key = "getActivityList", count = 30, timeUnit = TimeUnit.SECONDS)
     @GetMapping("/list")
     public CommonResult<IPage<ActivityListRespDto>> getActivityList(ActivityListRequestDto request) {
         log.info("获取活动列表");
@@ -109,7 +115,7 @@ public class ActivityController {
     /**
      * 报名活动
      */
-    @PostMapping("/signUp")
+    @RateLimit(key = "signUp", count = 5, timeUnit = TimeUnit.SECONDS)
     public CommonResult<String> signUp(@RequestBody @Valid SignUpInfoRequest request) {
         log.info("用户报名活动");
         activityService.signUp(request);
@@ -129,6 +135,7 @@ public class ActivityController {
     /**
      * 取消报名
      */
+    @RateLimit(key = "cancelSignUp", count = 5, timeUnit = TimeUnit.SECONDS)
     @PostMapping("/cancelSignUp/{id}")
     public CommonResult<String> cancelSignUp(@PathVariable Long id) {
         log.info("用户取消报名");
@@ -139,6 +146,7 @@ public class ActivityController {
     /**
      * 获取我的活动列表
      */
+    @RateLimit(key = "getMyActivityList", count = 30, timeUnit = TimeUnit.SECONDS)
     @GetMapping("/myActivity")
     public CommonResult<IPage<ActivityListRespDto>> getMyActivityList(ActivityListRequestDto request) {
         log.info("获取我的活动列表");

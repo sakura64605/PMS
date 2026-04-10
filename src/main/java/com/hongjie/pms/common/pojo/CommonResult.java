@@ -1,5 +1,6 @@
 package com.hongjie.pms.common.pojo;
 
+import com.hongjie.pms.common.enums.ErrorCode;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -64,4 +65,39 @@ public class CommonResult<T> implements Serializable {
         result.setException(exception);
         return result;
     }
+
+    /**
+     * 使用错误码枚举返回错误
+     */
+    public static <T> CommonResult<T> error(ErrorCode errorCode) {
+        CommonResult<T> result = new CommonResult<>();
+        result.setCode(errorCode.getCode());
+        result.setMessage(errorCode.getMessage());
+        return result;
+    }
+
+    /**
+     * 使用错误码枚举返回错误（自定义消息）
+     */
+    public static <T> CommonResult<T> error(ErrorCode errorCode, String message) {
+        CommonResult<T> result = new CommonResult<>();
+        result.setCode(errorCode.getCode());
+        result.setMessage(message);
+        return result;
+    }
+
+    /**
+     * 限流错误快捷方法
+     */
+    public static <T> CommonResult<T> rateLimit() {
+        return error(ErrorCode.RATE_LIMIT);
+    }
+
+    /**
+     * 限流错误快捷方法（自定义消息）
+     */
+    public static <T> CommonResult<T> rateLimit(String message) {
+        return error(ErrorCode.RATE_LIMIT, message);
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.hongjie.pms.modules.user.controller;
 
+import com.hongjie.pms.common.annotation.RateLimit;
 import com.hongjie.pms.common.base.BaseController;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.pojo.CommonResult;
@@ -15,6 +16,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * 用户认证控制器
@@ -32,6 +35,7 @@ public class UserAuthController extends BaseController {
     /**
      * 登录
      */
+    @RateLimit(key = "login", count = 5, timeUnit = TimeUnit.MINUTES)
     @PostMapping("/login")
     public CommonResult<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto loginRequestDto) {
         LoginResponseDto response = userService.login(loginRequestDto);
@@ -42,6 +46,14 @@ public class UserAuthController extends BaseController {
     /**
      * 注册
      */
+    @RateLimit(
+            key = "#request.phone",           // 按手机号限流
+            count = 1,
+            duration = 1,
+            timeUnit = TimeUnit.DAYS,
+            perUser = false,
+            message = "该手机号已注册过，如需帮助请联系客服"
+    )
     @PostMapping("/register")
     public CommonResult<RegisterResponseDto> register(@Valid @RequestBody RegisterRequestDto registerRequestDto) {
         RegisterResponseDto response = userService.register(registerRequestDto);
@@ -52,6 +64,7 @@ public class UserAuthController extends BaseController {
     /**
      * 修改密码
      */
+    @RateLimit(key = "changePassword", count = 5, timeUnit = TimeUnit.DAYS)
     @PostMapping("/changePassword")
     public CommonResult<String> updatePassword(@Valid @RequestBody ChangePasswordRequestDto changePasswordRequestDto) {
         Long userId = UserContext.getUserId();
@@ -62,7 +75,7 @@ public class UserAuthController extends BaseController {
     }
 
     /**
-     * 获取用户信息
+     * 获取当前用户信息
      */
     @GetMapping("/info")
     public CommonResult<UserInfoDto> info() {

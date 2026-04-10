@@ -175,6 +175,19 @@
             <artifactId>commons-lang3</artifactId>
         </dependency>
 
+        <!-- Spring Boot AOP  starters -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
+        <!-- 如果还不行，添加 AspectJ -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>1.9.19</version>
+        </dependency>
+
     </dependencies>
 
     <build>

@@ -1,5 +1,6 @@
 package com.hongjie.pms.modules.user.controller;
 
+import com.hongjie.pms.common.annotation.RateLimit;
 import com.hongjie.pms.common.pojo.CommonResult;
 import com.hongjie.pms.modules.user.dto.response.AvatarUploadResponse;
 import com.hongjie.pms.modules.user.entity.AvatarHistory;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 头像
@@ -25,6 +27,7 @@ public class AvatarController {
     /**
      * 上传头像
      */
+    @RateLimit(key = "uploadAvatar", count = 30, timeUnit = TimeUnit.MINUTES)
     @PostMapping("/upload")
     public CommonResult<AvatarUploadResponse> uploadAvatar(@RequestParam("file") MultipartFile file) {
         AvatarUploadResponse response = avatarService.uploadAvatar(file);

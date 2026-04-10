@@ -1,6 +1,7 @@
 package com.hongjie.pms.modules.following.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.hongjie.pms.common.annotation.RateLimit;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.pojo.CommonResult;
 import com.hongjie.pms.modules.following.service.FollowService;
@@ -8,6 +9,8 @@ import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * 关注
@@ -42,6 +45,7 @@ public class FollowingController {
     /**
      * 关注用户
      */
+    @RateLimit(key = "followUser", count = 5, timeUnit = TimeUnit.SECONDS)
     @PostMapping("/follow")
     public CommonResult<String> followUser(@RequestParam Long userId) {
         Long currentUserId = UserContext.getUserId();

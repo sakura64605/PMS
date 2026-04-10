@@ -2,6 +2,7 @@ package com.hongjie.pms.common.exception.handler;
 
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
+import com.hongjie.pms.common.exception.RateLimitException;
 import com.hongjie.pms.common.exception.SystemException;
 import com.hongjie.pms.common.pojo.CommonResult;
 import jakarta.validation.ConstraintViolation;
@@ -143,6 +144,15 @@ public class GlobalExceptionHandler {
     public CommonResult<Void> handleNullPointerException(NullPointerException e) {
         log.error("空指针异常: ", e);
         return CommonResult.error(ErrorCode.FAIL.getCode(), "系统内部错误");
+    }
+
+    /**
+     * 限流异常处理
+     */
+    @ExceptionHandler(RateLimitException.class)
+    public CommonResult<Void> handleRateLimitException(RateLimitException e) {
+        log.warn("限流拦截: {} - {}", e.getRequestUri(), e.getMessage());
+        return CommonResult.rateLimit(e.getMessage());
     }
 
     // ==================== 兜底异常 ====================

@@ -2,6 +2,7 @@ package com.hongjie.pms.modules.comment.controller;
 
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.hongjie.pms.common.annotation.RateLimit;
 import com.hongjie.pms.common.pojo.CommonResult;
 import com.hongjie.pms.modules.comment.dto.request.CommentCreateRequest;
 import com.hongjie.pms.modules.comment.dto.response.CommentRespDto;
@@ -10,6 +11,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * 评论
@@ -40,6 +43,7 @@ public class CommentController {
     /**
      * 创建评论
      */
+    @RateLimit(key = "createComment", count = 5, timeUnit = TimeUnit.SECONDS)
     @PostMapping("/create")
     public CommonResult<String> createComment(@RequestBody @Valid CommentCreateRequest request) {
         // 创建评论
