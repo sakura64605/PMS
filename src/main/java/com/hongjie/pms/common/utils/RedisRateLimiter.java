@@ -76,7 +76,7 @@ public class RedisRateLimiter {
                     tokenBucketScript,
                     keys,
                     capacity,      // ARGV[1]: 桶容量
-                    capacity,      // ARGV[2]: count = capacity
+                    refillRate,      // ARGV[2]: count = capacity
                     duration,      // ARGV[3]: 时间窗口长度
                     timeUnitCode,  // ARGV[4]: 时间单位
                     now,           // ARGV[5]: 当前时间
