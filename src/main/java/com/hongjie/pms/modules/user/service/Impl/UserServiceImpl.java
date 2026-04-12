@@ -3,6 +3,7 @@ package com.hongjie.pms.modules.user.service.Impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.hongjie.pms.common.annotation.DistributedCacheable;
 import com.hongjie.pms.common.base.core.UpdateTimeContext;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.ErrorCode;
@@ -292,6 +293,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @DistributedCacheable(
+            value = "user",
+            key = "#userId",
+            ttl = 3600,
+            bloomFilter = true   // 开启布隆过滤器
+    )
     public UserProfileDto getUserProfileInfo(Long userId) {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("id", userId);

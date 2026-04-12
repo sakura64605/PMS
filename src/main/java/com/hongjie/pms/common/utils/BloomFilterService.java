@@ -13,6 +13,9 @@ import com.hongjie.pms.modules.user.mapper.UserMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -31,65 +34,46 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BloomFilterService {
 
-    private final UserMapper userMapper;
-    private final PetPostMapper petPostMapper;
+    @Autowired
+    private UserMapper userMapper;
 
-    private final ActivityMapper activityMapper;
-
-    // 统一布隆过滤器
     private BloomFilter<CharSequence> bloomFilter;
 
-    // 预期总数据量（用户+宠物+活动）
-    private static final long EXPECTED_INSERTIONS = 5000000;  // 500万
-
-    // 误判率
-    private static final double FPP = 0.01;
-
     @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     public void init() {
-        log.info("初始化统一布隆过滤器...");
-        long start = System.currentTimeMillis();
+        log.info("初始化用户布隆过滤器...");
 
-        // 创建布隆过滤器
         bloomFilter = BloomFilter.create(
                 Funnels.stringFunnel(StandardCharsets.UTF_8),
-                EXPECTED_INSERTIONS,
-                FPP
+                1000000,  // 预期100万用户
+                0.01
         );
 
-        int totalLoaded = 0;
+        // 只加载用户ID
+        int count = loadUserIds();
 
-        // 加载所有用户
-        totalLoaded += loadUserIds();
-
-        long end = System.currentTimeMillis();
-        log.info("布隆过滤器初始化完成，加载 {} 条数据，耗时 {}ms", totalLoaded, end - start);
+        log.info("布隆过滤器初始化完成，加载 {} 条用户数据", count);
     }
 
     private int loadUserIds() {
         int count = 0;
-        int pageSize = 10000;
-        int current = 1;
+        long pageSize = 10000;
+        long current = 1;
 
         while (true) {
             Page<User> page = new Page<>(current, pageSize);
-
             LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
-                    .eq(User::getStatus, 1)
                     .select(User::getId);
 
             Page<User> result = userMapper.selectPage(page, wrapper);
 
-            List<Long> ids = result.getRecords().stream()
-                    .map(User::getId)
-                    .collect(Collectors.toList());
-
-            if (ids.isEmpty()) {
+            if (result.getRecords().isEmpty()) {
                 break;
             }
 
-            for (Long id : ids) {
-                bloomFilter.put("user:" + id);
+            for (User user : result.getRecords()) {
+                bloomFilter.put("user:" + user.getId());
                 count++;
             }
 
@@ -99,38 +83,25 @@ public class BloomFilterService {
             current++;
         }
 
-        log.info("加载用户: {} 条", count);
         return count;
     }
 
     /**
-     * 检查ID是否存在
-     *
-     * @param type 类型（user/pet/activity）
-     * @param id ID
+     * 只检查用户是否存在
      */
-    public boolean mightExist(String type, Long id) {
-        if (id == null || id <= 0) {
+    public boolean userExists(Long userId) {
+        if (userId == null || userId <= 0) {
             return false;
         }
-        return bloomFilter.mightContain(type + ":" + id);
+        return bloomFilter.mightContain("user:" + userId);
     }
 
     /**
-     * 添加ID到布隆过滤器
+     * 新增用户时更新
      */
-    public void add(String type, Long id) {
-        if (id != null && id > 0) {
-            bloomFilter.put(type + ":" + id);
-        }
-    }
-
-    /**
-     * 批量添加
-     */
-    public void batchAdd(String type, List<Long> ids) {
-        for (Long id : ids) {
-            add(type, id);
+    public void addUser(Long userId) {
+        if (userId != null && userId > 0) {
+            bloomFilter.put("user:" + userId);
         }
     }
 }

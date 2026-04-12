@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.hongjie.pms.common.annotation.DistributedCacheable;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
 import com.hongjie.pms.common.exception.BusinessException;
@@ -220,6 +221,12 @@ public class PetPostServiceImpl implements PetPostService {
     }
 
     @Override
+    @DistributedCacheable(
+            value = "pet",
+            key = "#petId",
+            ttl = 1800,
+            bloomFilter = false  // 不开启
+    )
     public PetDetailDto detail(Long id, Long currentUserId) {
         // 1. 查询宠物信息
         PetPost pet = petPostMapper.selectById(id);
