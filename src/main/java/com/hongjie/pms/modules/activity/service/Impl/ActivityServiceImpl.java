@@ -172,6 +172,7 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
+    @DistributedCacheable(value = "activityList", key = "#request.status")
     public IPage<ActivityListRespDto> getActivityList(ActivityListRequestDto request) {
         // 1. 构建查询条件
         LambdaQueryWrapper<Activity> wrapper = new LambdaQueryWrapper<>();
