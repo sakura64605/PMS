@@ -1,6 +1,7 @@
 package com.hongjie.pms.modules.message.mq;
 
 import com.alibaba.fastjson2.JSON;
+import com.hongjie.pms.common.annotation.CircuitBreaker;
 import com.hongjie.pms.common.utils.SpringContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

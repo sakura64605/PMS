@@ -3,6 +3,7 @@ package com.hongjie.pms.modules.activity.service.Impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.hongjie.pms.common.annotation.CircuitBreaker;
 import com.hongjie.pms.common.annotation.DistributedCacheable;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.ErrorCode;
@@ -34,9 +35,11 @@ import com.hongjie.pms.common.enums.CommentLikeTypes;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -58,6 +61,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final FollowMapper followMapper;
     private final MessageService messageService;
     private final CacheUpdateProducer cacheUpdateProducer;
+    private final RedisTemplate redisTemplate;
 
     @Override
     public ActivityPostRespDto postActivity(ActivityRequestDto request) {
@@ -171,6 +175,14 @@ public class ActivityServiceImpl implements ActivityService {
         }
     }
 
+    @CircuitBreaker(
+            value = "getActivityList",
+            windowSize = 10,
+            minRequestAmount = 5,
+            errorRateThreshold = 0.5,
+            openDurationSeconds = 10,
+            fallbackMethod = "fallbackGetActivityList"
+    )
     @Override
     @DistributedCacheable(value = "activityList", key = "#request.status")
     public IPage<ActivityListRespDto> getActivityList(ActivityListRequestDto request) {
@@ -331,10 +343,37 @@ public class ActivityServiceImpl implements ActivityService {
         return resultPage;
     }
 
+    /**
+     * 降级方法：返回空列表
+     */
+    public IPage<ActivityListRespDto> fallbackGetActivityList(ActivityListRequestDto request) {
+        log.warn("活动列表熔断降级: pageNum={}, pageSize={}", request.getPageNum(), request.getPageSize());
+
+        Page<ActivityListRespDto> emptyPage = new Page<>(request.getPageNum(), request.getPageSize(), 0);
+        emptyPage.setRecords(new ArrayList<>());
+        return emptyPage;
+    }
+
+    public IPage<ActivityListRespDto> fallbackGetActivityList(ActivityListRequestDto request, Exception e) {
+        log.error("活动列表熔断降级: error={}", e.getMessage());
+        return fallbackGetActivityList(request);
+    }
+
+    @CircuitBreaker(
+            value = "getActivityDetail",
+            windowSize = 5,
+            minRequestAmount = 3,
+            errorRateThreshold = 0.5,
+            openDurationSeconds = 10,
+            fallbackMethod = "fallbackGetActivityDetail"
+    )
     @Override
     @Transactional
     @DistributedCacheable(value = "activity", key = "#id", ttl = 1800)
     public ActivityDetailRespDto getActivityDetail(Long id) {
+        if (id == 999) {
+            throw new RuntimeException("模拟异常");
+        }
         Activity activity = activityMapper.selectById(id);
         Long currentUserId = UserContext.getUserId();
         if (currentUserId != activity.getUserId()) {
@@ -402,6 +441,44 @@ public class ActivityServiceImpl implements ActivityService {
         return activityDetailRespDto;
     }
 
+    /**
+     * 降级方法：从缓存读取或返回默认值
+     */
+    public ActivityDetailRespDto fallbackGetActivityDetail(Long id) {
+        return fallbackGetActivityDetail(id, null);
+    }
+
+    public ActivityDetailRespDto fallbackGetActivityDetail(Long id, Exception e) {
+        if (e != null) {
+            log.error("活动详情熔断降级: id={}, error={}", id, e.getMessage());
+        }
+
+        // 1. 从 Redis 缓存读取
+        String cacheKey = "activity:fallback:" + id;
+        ActivityDetailRespDto cached = (ActivityDetailRespDto) redisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        // 2. 返回默认值
+        ActivityDetailRespDto fallback = new ActivityDetailRespDto();
+        fallback.setId(id);
+        fallback.setTitle("活动信息暂时不可用");
+        fallback.setContent("系统繁忙，请稍后再试");
+        fallback.setStatus(0);
+        fallback.setCurrentPeople(0);
+        fallback.setMaxPeople(0);
+        return fallback;
+    }
+
+    @CircuitBreaker(
+            value = "signUp",
+            windowSize = 10,
+            minRequestAmount = 5,
+            errorRateThreshold = 0.5,
+            openDurationSeconds = 10,
+            fallbackMethod = "fallbackSignUp"
+    )
     @Override
     @Transactional
     public void signUp(SignUpInfoRequest request) {
@@ -457,6 +534,19 @@ public class ActivityServiceImpl implements ActivityService {
                 activity.getTitle(),
                 activity.getId()
         );
+    }
+
+    /**
+     * 降级方法：报名失败时的处理
+     */
+    public void fallbackSignUp(SignUpInfoRequest request) {
+        log.warn("报名熔断降级: activityId={}", request.getActivityId());
+        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "报名服务繁忙，请稍后再试");
+    }
+
+    public void fallbackSignUp(SignUpInfoRequest request, Exception e) {
+        log.error("报名熔断降级: activityId={}, error={}", request.getActivityId(), e.getMessage());
+        throw new BusinessException(ErrorCode.SYSTEM_ERROR, "报名服务繁忙，请稍后再试");
     }
 
     @Override

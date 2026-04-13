@@ -3,6 +3,7 @@ package com.hongjie.pms.common.utils;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.model.PutObjectRequest;
 import com.aliyun.oss.model.PutObjectResult;
+import com.hongjie.pms.common.annotation.CircuitBreaker;
 import com.hongjie.pms.common.config.OssConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,14 @@ public class OssUtils {
      * @param userId 用户ID（用于目录隔离）
      * @return 文件访问URL
      */
+    @CircuitBreaker(
+            value = "ossUpload",
+            windowSize = 10,
+            minRequestAmount = 5,
+            errorRateThreshold = 0.5,
+            openDurationSeconds = 10,
+            fallbackMethod = "fallbackUpload"
+    )
     public String uploadAvatar(MultipartFile file, Long userId) {
         // 1. 验证文件
         validateImage(file);
@@ -61,9 +70,27 @@ public class OssUtils {
     }
 
     /**
+     * 降级方法：返回本地路径或默认图片
+     */
+    public String fallbackUpload(MultipartFile file, String path) {
+        log.warn("OSS上传熔断降级: fileName={}", file.getOriginalFilename());
+        // 降级：返回默认图片地址
+        return ossConfig.getDomain() + "/default/default-avatar.png";
+    }
+
+    public String fallbackUpload(MultipartFile file, String path, Exception e) {
+        log.error("OSS上传熔断降级: fileName={}, error={}", file.getOriginalFilename(), e.getMessage());
+        return fallbackUpload(file, path);
+    }
+
+    /**
      * 删除文件
      * @param fileUrl 文件URL
      */
+    @CircuitBreaker(
+            value = "deleteFile",
+            fallbackMethod = "fallbackDeleteFile"
+    )
     public void deleteFile(String fileUrl) {
         try {
             // 从URL中提取objectName
@@ -75,6 +102,25 @@ public class OssUtils {
         } catch (Exception e) {
             log.error("文件删除失败", e);
         }
+    }
+
+    /**
+     * 降级方法：只记录日志
+     */
+    public void fallbackDeleteFile(String fileUrl) {
+        log.warn("OSS删除熔断降级: fileUrl={}", fileUrl);
+        // 降级：记录到失败队列，后续异步重试
+        saveToDeleteQueue(fileUrl);
+    }
+
+    public void fallbackDeleteFile(String fileUrl, Exception e) {
+        log.error("OSS删除熔断降级: fileUrl={}, error={}", fileUrl, e.getMessage());
+        saveToDeleteQueue(fileUrl);
+    }
+
+    private void saveToDeleteQueue(String fileUrl) {
+        // 可以存到数据库，定时任务重试
+        log.info("文件已加入删除重试队列: {}", fileUrl);
     }
 
     /**

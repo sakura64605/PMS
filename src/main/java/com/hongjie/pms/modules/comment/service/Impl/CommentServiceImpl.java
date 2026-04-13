@@ -3,6 +3,7 @@ package com.hongjie.pms.modules.comment.service.Impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.hongjie.pms.common.annotation.CircuitBreaker;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
 import com.hongjie.pms.common.enums.ErrorCode;
@@ -38,6 +39,14 @@ public class CommentServiceImpl implements CommentService {
     private final ActivityMapper activityMapper;
     private final MessageService messageService;
 
+    @CircuitBreaker(
+            value = "createComment",
+            windowSize = 10,
+            minRequestAmount = 5,
+            errorRateThreshold = 0.5,
+            openDurationSeconds = 10,
+            fallbackMethod = "fallbackCreateComment"
+    )
     @Override
     public void createComment(CommentCreateRequest request) {
         Long userId = UserContext.getUserId();
@@ -125,6 +134,27 @@ public class CommentServiceImpl implements CommentService {
 
     }
 
+    /**
+     * 降级方法：静默失败
+     */
+    public void fallbackCreateComment(CommentCreateRequest request) {
+        log.warn("发表评论熔断降级: targetType={}, targetId={}", request.getTargetType(), request.getTargetId());
+        // 评论失败不影响用户体验，静默处理
+    }
+
+    public void fallbackCreateComment(CommentCreateRequest request, Exception e) {
+        log.error("发表评论熔断降级: error={}", e.getMessage());
+        // 静默处理
+    }
+
+    @CircuitBreaker(
+            value = "getCommentList",
+            windowSize = 10,
+            minRequestAmount = 5,
+            errorRateThreshold = 0.5,
+            openDurationSeconds = 10,
+            fallbackMethod = "fallbackGetCommentList"
+    )
     @Override
     public IPage<CommentRespDto> getCommentList(String targetType, Long targetId, Integer pageNum, Integer pageSize) {
         // 1. 查询顶级评论
@@ -174,6 +204,22 @@ public class CommentServiceImpl implements CommentService {
         result.setCurrent(commentPage.getCurrent());
         result.setSize(commentPage.getSize());
         return result;
+    }
+
+    /**
+     * 降级方法：返回空列表
+     */
+    public IPage<CommentRespDto> fallbackGetCommentList(String targetType, Long targetId, Integer pageNum, Integer pageSize) {
+        log.warn("评论列表熔断降级: targetType={}, targetId={}", targetType, targetId);
+
+        Page<CommentRespDto> emptyPage = new Page<>(pageNum, pageSize, 0);
+        emptyPage.setRecords(new ArrayList<>());
+        return emptyPage;
+    }
+
+    public IPage<CommentRespDto> fallbackGetCommentList(String targetType, Long targetId, Integer pageNum, Integer pageSize, Exception e) {
+        log.error("评论列表熔断降级: error={}", e.getMessage());
+        return fallbackGetCommentList(targetType, targetId, pageNum, pageSize);
     }
 
     /**

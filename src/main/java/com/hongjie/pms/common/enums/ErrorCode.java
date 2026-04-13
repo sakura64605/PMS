@@ -18,6 +18,10 @@ public enum ErrorCode {
     // 限流错误 1020-1029
     RATE_LIMIT(1020, "请求过于频繁，请稍后再试"),
 
+    // 熔断降级错误 1030-1039
+    CIRCUIT_BREAKER_OPEN(1030, "服务繁忙，请稍后再试"),
+    CIRCUIT_BREAKER_FALLBACK(1031, "系统繁忙，正在恢复中"),
+
     // 业务错误 (2000-2999)
     USER_NOT_FOUND(2001, "用户不存在"),
     USER_DISABLED(2002, "账号已被禁用"),
@@ -43,10 +47,19 @@ public enum ErrorCode {
     FILE_TOO_LARGE(5001, "文件过大"),
     FILE_TYPE_ERROR(5002, "文件类型不支持"),
     UPLOAD_FAIL(5003, "文件上传失败"),
+
+    // 消息队列错误 6000-6099
+    MQ_SEND_FAIL(6001, "消息发送失败，请稍后再试"),
+    MQ_CONSUME_FAIL(6002, "消息处理失败"),
+
+    // OSS错误 7000-7099
+    OSS_UPLOAD_FAIL(7001, "文件上传失败，请稍后再试"),
+    OSS_DELETE_FAIL(7002, "文件删除失败"),
     
     // 系统错误 (9000-9999)
     DB_ERROR(9001, "数据库异常"),
     NETWORK_ERROR(9002, "网络异常"),
+    SYSTEM_ERROR(9999, "系统繁忙，请稍后再试"),
     THIRD_PARTY_ERROR(9003, "第三方服务异常");
     
     private final Integer code;

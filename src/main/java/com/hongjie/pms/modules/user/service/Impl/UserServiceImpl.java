@@ -3,6 +3,7 @@ package com.hongjie.pms.modules.user.service.Impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.hongjie.pms.common.annotation.CircuitBreaker;
 import com.hongjie.pms.common.annotation.DistributedCacheable;
 import com.hongjie.pms.common.base.core.UpdateTimeContext;
 import com.hongjie.pms.common.base.core.UserContext;
@@ -38,6 +39,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -258,6 +260,14 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @CircuitBreaker(
+            value = "searchUsers",
+            windowSize = 10,
+            minRequestAmount = 5,
+            errorRateThreshold = 0.5,
+            openDurationSeconds = 10,
+            fallbackMethod = "fallbackSearchUsers"
+    )
     @Override
     public List<UserSimpleDto> searchUsers(String keyword) {
         // 1. 关键词不能为空
@@ -294,6 +304,27 @@ public class UserServiceImpl implements UserService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 降级方法：返回空列表
+     */
+    public List<UserSimpleDto> fallbackSearchUsers(String keyword) {
+        log.warn("搜索用户熔断降级: keyword={}", keyword);
+        return new ArrayList<>();
+    }
+
+    public List<UserSimpleDto> fallbackSearchUsers(String keyword, Exception e) {
+        log.error("搜索用户熔断降级: keyword={}, error={}", keyword, e.getMessage());
+        return new ArrayList<>();
+    }
+
+    @CircuitBreaker(
+            value = "getUserById",
+            windowSize = 10,
+            minRequestAmount = 5,
+            errorRateThreshold = 0.5,
+            openDurationSeconds = 10,
+            fallbackMethod = "fallbackGetUserById"
+    )
     @Override
     @DistributedCacheable(
             value = "user",
@@ -352,6 +383,25 @@ public class UserServiceImpl implements UserService {
         userProfileDto.setLastActiveTime(user.getLastActiveTime());
         userProfileDto.setGender(user.getGender());
         return userProfileDto;
+    }
+
+    /**
+     * 降级方法
+     */
+    public User fallbackGetUserById(Long userId) {
+        return fallbackGetUserById(userId, null);
+    }
+
+    public User fallbackGetUserById(Long userId, Exception e) {
+        log.error("用户查询熔断降级: userId={}, error={}", userId, e.getMessage());
+
+        // 返回一个特殊标记，让前端知道是系统繁忙
+        User fallback = new User();
+        fallback.setId(userId);
+        fallback.setUserName(null);
+        fallback.setNickName("系统繁忙，请稍后再试");
+        fallback.setStatus(-1);  // 特殊状态码，前端判断后显示提示
+        return fallback;
     }
 
     private User findUserByAccount(@NotBlank(message = "账号不能为空") String account) {

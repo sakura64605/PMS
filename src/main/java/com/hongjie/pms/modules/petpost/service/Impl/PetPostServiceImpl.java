@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.hongjie.pms.common.annotation.CircuitBreaker;
 import com.hongjie.pms.common.annotation.DistributedCacheable;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
@@ -34,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -55,6 +57,7 @@ public class PetPostServiceImpl implements PetPostService {
     private final FavoriteRecordMapper favoriteRecordMapper;
     private final FollowMapper followMapper;
     private final CacheUpdateProducer cacheUpdateProducer;
+    private final RedisTemplate redisTemplate;
 
     @Override
     public PetListResponseDto post(PetPostRequestDto request) {
@@ -95,6 +98,14 @@ public class PetPostServiceImpl implements PetPostService {
 
     }
 
+    @CircuitBreaker(
+            value = "getPetList",
+            windowSize = 10,
+            minRequestAmount = 5,
+            errorRateThreshold = 0.5,
+            openDurationSeconds = 10,
+            fallbackMethod = "fallbackGetPetList"
+    )
     @Override
     public IPage<PetListResponseDto> list(PetQueryRequestDto queryDto) {
         // 1. 构建查询条件
@@ -224,6 +235,30 @@ public class PetPostServiceImpl implements PetPostService {
         return resultPage;
     }
 
+    /**
+     * 降级方法：返回空列表
+     */
+    public IPage<PetListResponseDto> fallbackGetPetList(PetQueryRequestDto queryDto) {
+        log.warn("宠物列表熔断降级: pageNum={}, pageSize={}", queryDto.getPageNum(), queryDto.getPageSize());
+
+        Page<PetListResponseDto> emptyPage = new Page<>(queryDto.getPageNum(), queryDto.getPageSize(), 0);
+        emptyPage.setRecords(new ArrayList<>());
+        return emptyPage;
+    }
+
+    public IPage<PetListResponseDto> fallbackGetPetList(PetQueryRequestDto queryDto, Exception e) {
+        log.error("宠物列表熔断降级: error={}", e.getMessage());
+        return fallbackGetPetList(queryDto);
+    }
+
+    @CircuitBreaker(
+            value = "getPetDetail",
+            windowSize = 10,
+            minRequestAmount = 5,
+            errorRateThreshold = 0.5,
+            openDurationSeconds = 10,
+            fallbackMethod = "fallbackGetPetDetail"
+    )
     @Override
     @DistributedCacheable(
             value = "pet",
@@ -301,6 +336,34 @@ public class PetPostServiceImpl implements PetPostService {
         }
 
         return detailDto;
+    }
+
+    /**
+     * 降级方法
+     */
+    public PetDetailDto fallbackGetPetDetail(Long id, Long userId) {
+        return fallbackGetPetDetail(id, userId, null);
+    }
+
+    public PetDetailDto fallbackGetPetDetail(Long id, Long userId, Exception e) {
+        if (e != null) {
+            log.error("宠物详情熔断降级: id={}, error={}", id, e.getMessage());
+        }
+
+        // 从缓存读取
+        String cacheKey = "pet:fallback:" + id;
+        PetDetailDto cached = (PetDetailDto) redisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        // 返回默认值
+        return PetDetailDto.builder()
+                .id(id)
+                .title("宠物信息暂时不可用")
+                .content("系统繁忙，请稍后再试")
+                .status(0)
+                .build();
     }
 
     @Override
