@@ -114,7 +114,7 @@ public class CacheWarmer {
     private void warmUpPetCategories() {
         try {
             // 从数据库查询所有分类（假设有category表，或从枚举中获取）
-            List<String> categories = List.of("领养", "救助", "寻主", "寄养");
+            List<String> categories = List.of("领养", "救助");
             redisTemplate.opsForValue().set("pet:categories", categories, 24, TimeUnit.HOURS);
             log.info("预热宠物分类缓存: {}个", categories.size());
         } catch (Exception e) {

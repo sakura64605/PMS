@@ -3,9 +3,11 @@ package com.hongjie.pms.modules.notice.service.Impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.hongjie.pms.common.annotation.DistributedCacheable;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
+import com.hongjie.pms.common.mq.CacheUpdateProducer;
 import com.hongjie.pms.modules.notice.dto.request.NoticeRequestDto;
 import com.hongjie.pms.modules.notice.dto.response.NoticeDetailDto;
 import com.hongjie.pms.modules.notice.dto.response.NoticeListDto;
@@ -16,6 +18,8 @@ import com.hongjie.pms.modules.notice.mapper.NoticeReadRecordMapper;
 import com.hongjie.pms.modules.notice.service.NoticeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -32,6 +36,7 @@ public class NoticeServiceImpl implements NoticeService {
 
     private final NoticeMapper noticeMapper;
     private final NoticeReadRecordMapper noticeReadRecordMapper;
+    private final CacheUpdateProducer cacheUpdateProducer;
 
     @Override
     @Transactional
@@ -63,6 +68,9 @@ public class NoticeServiceImpl implements NoticeService {
         }
 
         noticeMapper.insert(notice);
+
+        cacheUpdateProducer.sendEvictAll("noticeList");
+
         return convertToDetailDto(notice, false);
     }
 
@@ -85,6 +93,10 @@ public class NoticeServiceImpl implements NoticeService {
         notice.setIsTop(request.getIsTop());
 
         noticeMapper.updateById(notice);
+
+        cacheUpdateProducer.sendEvict("notice", String.valueOf(notice.getId()));
+        cacheUpdateProducer.sendEvictAll("noticeList");
+
         log.info("管理员更新公告: {}", notice.getTitle());
         
         return convertToDetailDto(notice, false);
@@ -103,6 +115,10 @@ public class NoticeServiceImpl implements NoticeService {
         }
         
         noticeMapper.deleteById(id);
+
+        cacheUpdateProducer.sendEvict("notice", String.valueOf(notice.getId()));
+        cacheUpdateProducer.sendEvictAll("noticeList");
+
         log.info("管理员删除公告: {}", notice.getTitle());
     }
 
@@ -128,6 +144,8 @@ public class NoticeServiceImpl implements NoticeService {
         notice.setPublishTime(LocalDateTime.now());
         noticeMapper.updateById(notice);
 
+        cacheUpdateProducer.sendEvictAll("noticeList");
+
         log.info("管理员发布公告: {}", notice.getTitle());
     }
 
@@ -145,6 +163,9 @@ public class NoticeServiceImpl implements NoticeService {
         
         notice.setStatus(2);
         noticeMapper.updateById(notice);
+
+        cacheUpdateProducer.sendEvictAll("noticeList");
+
         log.info("管理员下架公告: {}", notice.getTitle());
     }
 
@@ -184,6 +205,7 @@ public class NoticeServiceImpl implements NoticeService {
     }
 
     @Override
+    @DistributedCacheable(value = "notice", key = "'latest'", ttl = 600)
     public IPage<NoticeListDto> listForUser(Integer pageNum, Integer pageSize) {
         Long userId = UserContext.getUserId();
         
@@ -218,6 +240,7 @@ public class NoticeServiceImpl implements NoticeService {
 
     @Override
     @Transactional
+    @DistributedCacheable(value = "notice", key = "#id", ttl = 1800)
     public NoticeDetailDto getByIdForUser(Long id) {
         Long userId = UserContext.getUserId();
         

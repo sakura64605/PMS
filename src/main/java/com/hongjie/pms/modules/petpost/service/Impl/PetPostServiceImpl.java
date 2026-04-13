@@ -9,6 +9,7 @@ import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.exception.SystemException;
+import com.hongjie.pms.common.mq.CacheUpdateProducer;
 import com.hongjie.pms.common.utils.OssUtils;
 import com.hongjie.pms.modules.following.entity.Follow;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
@@ -31,6 +32,8 @@ import com.hongjie.pms.modules.user.mapper.UserMapper;
 import com.hongjie.pms.common.enums.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -51,6 +54,7 @@ public class PetPostServiceImpl implements PetPostService {
     private final LikeRecordMapper likeRecordMapper;
     private final FavoriteRecordMapper favoriteRecordMapper;
     private final FollowMapper followMapper;
+    private final CacheUpdateProducer cacheUpdateProducer;
 
     @Override
     public PetListResponseDto post(PetPostRequestDto request) {
@@ -340,6 +344,9 @@ public class PetPostServiceImpl implements PetPostService {
         }
         pet.setStatus(0);
         petPostMapper.updateById(pet);
+
+        cacheUpdateProducer.sendEvict("pet", String.valueOf(pet.getId()));
+
         return PetListResponseDto.builder()
                 .id(pet.getId())
                 .type(pet.getType())
@@ -360,6 +367,7 @@ public class PetPostServiceImpl implements PetPostService {
         try{
             String newAvatarUrl = ossUtils.uploadAvatar(file, userId);
             log.info("图片上传成功: {}", newAvatarUrl);
+
             return AvatarUploadResponse.builder()
                     .avatarUrl(newAvatarUrl)
                     .message("图片上传成功")
@@ -381,6 +389,7 @@ public class PetPostServiceImpl implements PetPostService {
         }
         pet.setStatus(-1);
         petPostMapper.updateById(pet);
+        cacheUpdateProducer.sendEvict("pet", String.valueOf(pet.getId()));
     }
 
     @Override
@@ -405,6 +414,7 @@ public class PetPostServiceImpl implements PetPostService {
         }
         pet.setStatus(1);
         petPostMapper.updateById(pet);
+        cacheUpdateProducer.sendEvict("pet", String.valueOf(pet.getId()));
     }
 
     @Override

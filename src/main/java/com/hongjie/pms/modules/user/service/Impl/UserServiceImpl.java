@@ -33,6 +33,7 @@ import com.hongjie.pms.modules.user.service.UserService;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -180,6 +181,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @CacheEvict(value = "user", key = "#userId")
     public UserInfoDto updateUserInfo(Long userId, UserUpdateRequestDto updateDto) {
 
         User user = new User();

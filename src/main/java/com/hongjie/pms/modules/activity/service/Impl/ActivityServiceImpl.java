@@ -3,10 +3,13 @@ package com.hongjie.pms.modules.activity.service.Impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.hongjie.pms.common.annotation.DistributedCacheable;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.exception.SystemException;
+import com.hongjie.pms.common.mq.CacheUpdateConsumer;
+import com.hongjie.pms.common.mq.CacheUpdateProducer;
 import com.hongjie.pms.modules.activity.dto.request.ActivityListRequestDto;
 import com.hongjie.pms.modules.activity.dto.request.SignUpInfoRequest;
 import com.hongjie.pms.modules.activity.dto.response.ActivityDetailRespDto;
@@ -30,6 +33,7 @@ import com.hongjie.pms.modules.user.mapper.UserMapper;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -53,6 +57,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final LikeRecordMapper likeRecordMapper;
     private final FollowMapper followMapper;
     private final MessageService messageService;
+    private final CacheUpdateProducer cacheUpdateProducer;
 
     @Override
     public ActivityPostRespDto postActivity(ActivityRequestDto request) {
@@ -77,6 +82,9 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setEndTime(request.getEndTime());
         activity.setStatus(0);
         activityMapper.insert(activity);
+
+        // 2. 发送MQ消息清除缓存（异步，不阻塞）
+        cacheUpdateProducer.sendEvictAll("activityList");
 
         ActivityPostRespDto response = ActivityPostRespDto.builder()
                 .id(activity.getId())
@@ -131,6 +139,10 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setStartTime(activityRequestDto.getStartTime());
         activity.setEndTime(activityRequestDto.getEndTime());
         Integer result = activityMapper.updateById(activity);
+
+        cacheUpdateProducer.sendEvict("activity", String.valueOf(activityRequestDto.getId()));
+        cacheUpdateProducer.sendEvictAll("activityList");
+
         if (result <= 0) {
             throw new SystemException(ErrorCode.DB_ERROR);
         }
@@ -150,6 +162,10 @@ public class ActivityServiceImpl implements ActivityService {
         }
         activity.setDeleted(1);
         Integer result = activityMapper.updateById(activity);
+
+        cacheUpdateProducer.sendEvict("activity", String.valueOf(id));
+        cacheUpdateProducer.sendEvictAll("activityList");
+
         if (result <= 0) {
             throw new SystemException(ErrorCode.DB_ERROR);
         }
@@ -316,6 +332,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional
+    @DistributedCacheable(value = "activity", key = "#id", ttl = 1800)
     public ActivityDetailRespDto getActivityDetail(Long id) {
         Activity activity = activityMapper.selectById(id);
         Long currentUserId = UserContext.getUserId();
@@ -622,6 +639,10 @@ public class ActivityServiceImpl implements ActivityService {
         }
         activity.setDeleted(0);
         activityMapper.updateById(activity);
+
+        cacheUpdateProducer.sendEvict("activity", String.valueOf(id));
+        cacheUpdateProducer.sendEvictAll("activityList");
+
     }
 
     @Override
