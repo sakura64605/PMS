@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -178,29 +179,41 @@ public class ActivityServiceImpl implements ActivityService {
     @CircuitBreaker(
             value = "getActivityList",
             windowSize = 10,
-            minRequestAmount = 5,
+            minRequestAmount = 3,        // 改成3，方便测试
             errorRateThreshold = 0.5,
             openDurationSeconds = 10,
             fallbackMethod = "fallbackGetActivityList"
     )
     @Override
-    @DistributedCacheable(value = "activityList", key = "#request.status")
     public IPage<ActivityListRespDto> getActivityList(ActivityListRequestDto request) {
-        // 1. 构建查询条件
+        // 1. 生成缓存key
+        String cacheKey = "activityList:" + request.getPageNum() + "_" + request.getPageSize() + "_" + request.getStatus();
+
+        // 2. 查缓存
+        IPage<ActivityListRespDto> cached = (IPage<ActivityListRespDto>) redisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            log.info("从缓存获取活动列表: key={}", cacheKey);
+            return cached;
+        }
+
+        // 3. 模拟异常（测试熔断）
+        if (request.getPageNum() == 1 && request.getPageSize() == 10) {
+            throw new RuntimeException("模拟列表查询异常");
+        }
+
+        // 4. 构建查询条件
         LambdaQueryWrapper<Activity> wrapper = new LambdaQueryWrapper<>();
 
-        // 状态筛选
         if (request.getStatus() != null) {
             wrapper.eq(Activity::getStatus, request.getStatus());
         } else {
-            wrapper.in(Activity::getStatus, List.of(0, 1, 2));  // 默认报名中
+            wrapper.in(Activity::getStatus, List.of(0, 1, 2));
         }
 
         if (request.getUserId() != null) {
             wrapper.eq(Activity::getUserId, request.getUserId());
         }
 
-        // 时间筛选
         if (request.getStartDate() != null) {
             wrapper.ge(Activity::getStartTime, request.getStartDate());
         }
@@ -208,12 +221,10 @@ public class ActivityServiceImpl implements ActivityService {
             wrapper.le(Activity::getStartTime, request.getEndDate());
         }
 
-        // 地点筛选
         if (StringUtils.hasText(request.getLocation())) {
             wrapper.like(Activity::getLocation, request.getLocation());
         }
 
-        // 关键词搜索
         if (StringUtils.hasText(request.getKeyword())) {
             wrapper.and(w -> w
                     .like(Activity::getTitle, request.getKeyword())
@@ -222,7 +233,6 @@ public class ActivityServiceImpl implements ActivityService {
             );
         }
 
-        // 排序
         if ("startTime".equals(request.getOrderBy())) {
             if ("asc".equals(request.getOrder())) {
                 wrapper.orderByAsc(Activity::getStartTime);
@@ -237,14 +247,12 @@ public class ActivityServiceImpl implements ActivityService {
             }
         }
 
-        // 逻辑删除过滤
         wrapper.eq(Activity::getDeleted, 0);
 
-        // 2. 分页查询
+        // 5. 分页查询
         Page<Activity> page = new Page<>(request.getPageNum(), request.getPageSize());
         IPage<Activity> activityPage = activityMapper.selectPage(page, wrapper);
 
-        // 3. 如果没有数据，直接返回空分页
         if (activityPage.getRecords().isEmpty()) {
             Page<ActivityListRespDto> emptyPage = new Page<>(request.getPageNum(), request.getPageSize(), 0);
             emptyPage.setRecords(new ArrayList<>());
@@ -253,7 +261,7 @@ public class ActivityServiceImpl implements ActivityService {
 
         List<Activity> records = activityPage.getRecords();
 
-        // 4. 批量查询用户信息
+        // 批量查询用户信息
         List<Long> userIds = records.stream()
                 .map(Activity::getUserId)
                 .distinct()
@@ -275,7 +283,7 @@ public class ActivityServiceImpl implements ActivityService {
             userMap = new HashMap<>();
         }
 
-        // 5. 批量查询报名状态（可选，如果列表需要显示是否已报名）
+        // 批量查询报名状态
         Map<Long, Integer> signupMap;
         Long currentUserId = UserContext.getUserId();
         if (currentUserId != null && !records.isEmpty()) {
@@ -294,12 +302,9 @@ public class ActivityServiceImpl implements ActivityService {
             signupMap = new HashMap<>();
         }
 
-
-
-        // 6. 转换为列表 DTO（注意：用 ActivityListDto，不是 DetailDto）
+        // 转换为 DTO
         List<ActivityListRespDto> recordsDto = records.stream().map(activity -> {
             UserSimpleDto user = userMap.get(activity.getUserId());
-
             if (user == null) {
                 user = UserSimpleDto.builder()
                         .userId(activity.getUserId())
@@ -308,7 +313,6 @@ public class ActivityServiceImpl implements ActivityService {
                         .build();
             }
 
-            // 获取第一张图片作为封面
             String firstImage = null;
             if (activity.getImages() != null && !activity.getImages().isEmpty()) {
                 firstImage = activity.getImages().get(0);
@@ -317,7 +321,7 @@ public class ActivityServiceImpl implements ActivityService {
             return ActivityListRespDto.builder()
                     .id(activity.getId())
                     .title(activity.getTitle())
-                    .images(firstImage)      // 列表只取第一张
+                    .images(firstImage)
                     .location(activity.getLocation())
                     .maxPeople(activity.getMaxPeople())
                     .currentPeople(activity.getCurrentPeople())
@@ -333,13 +337,16 @@ public class ActivityServiceImpl implements ActivityService {
                     .build();
         }).collect(Collectors.toList());
 
-        // 7. 返回分页结果
         Page<ActivityListRespDto> resultPage = new Page<>(
                 activityPage.getCurrent(),
                 activityPage.getSize(),
                 activityPage.getTotal()
         );
         resultPage.setRecords(recordsDto);
+
+        // 6. 写入缓存（2分钟）
+        redisTemplate.opsForValue().set(cacheKey, resultPage, 120, TimeUnit.SECONDS);
+
         return resultPage;
     }
 
@@ -361,7 +368,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     @CircuitBreaker(
             value = "getActivityDetail",
-            windowSize = 5,
+            windowSize = 10,
             minRequestAmount = 3,
             errorRateThreshold = 0.5,
             openDurationSeconds = 10,
@@ -369,15 +376,19 @@ public class ActivityServiceImpl implements ActivityService {
     )
     @Override
     @Transactional
-    @DistributedCacheable(value = "activity", key = "#id", ttl = 1800)
     public ActivityDetailRespDto getActivityDetail(Long id) {
-        if (id == 999) {
-            throw new RuntimeException("模拟异常");
+        // 1. 先查缓存
+        String cacheKey = "activity:" + id;
+        ActivityDetailRespDto cached = (ActivityDetailRespDto) redisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            log.info("从缓存获取活动详情: id={}", id);
+            return cached;
         }
+
+        // 3. 查数据库
         Activity activity = activityMapper.selectById(id);
         Long currentUserId = UserContext.getUserId();
-        if (currentUserId != activity.getUserId()) {
-            // TODO: 并发处理 - 使用乐观锁或悲观锁确保并发安全
+        if (currentUserId != null && !currentUserId.equals(activity.getUserId())) {
             activity.setViewCount(activity.getViewCount() + 1);
             activityMapper.updateById(activity);
         }
@@ -405,6 +416,7 @@ public class ActivityServiceImpl implements ActivityService {
         } else {
             activityDetailRespDto.setIsLike(0);
         }
+
         User user = userMapper.selectById(activity.getUserId());
         UserSimpleDto userSimpleDto = UserSimpleDto.builder()
                 .userId(user.getId())
@@ -438,11 +450,15 @@ public class ActivityServiceImpl implements ActivityService {
         activityDetailRespDto.setCreateTime(activity.getCreateTime());
         activityDetailRespDto.setUpdateTime(activity.getUpdateTime());
         activityDetailRespDto.setDeleted(activity.getDeleted());
+
+        // 4. 写入缓存（30分钟）
+        redisTemplate.opsForValue().set(cacheKey, activityDetailRespDto, 1800, TimeUnit.SECONDS);
+
         return activityDetailRespDto;
     }
 
     /**
-     * 降级方法：从缓存读取或返回默认值
+     * 降级方法
      */
     public ActivityDetailRespDto fallbackGetActivityDetail(Long id) {
         return fallbackGetActivityDetail(id, null);
@@ -453,22 +469,38 @@ public class ActivityServiceImpl implements ActivityService {
             log.error("活动详情熔断降级: id={}, error={}", id, e.getMessage());
         }
 
-        // 1. 从 Redis 缓存读取
+        // 1. 从降级缓存读取
         String cacheKey = "activity:fallback:" + id;
         ActivityDetailRespDto cached = (ActivityDetailRespDto) redisTemplate.opsForValue().get(cacheKey);
         if (cached != null) {
+            log.info("从降级缓存读取活动详情: id={}", id);
             return cached;
         }
 
-        // 2. 返回默认值
-        ActivityDetailRespDto fallback = new ActivityDetailRespDto();
-        fallback.setId(id);
-        fallback.setTitle("活动信息暂时不可用");
-        fallback.setContent("系统繁忙，请稍后再试");
-        fallback.setStatus(0);
-        fallback.setCurrentPeople(0);
-        fallback.setMaxPeople(0);
-        return fallback;
+        // 2. 返回降级响应
+        ActivityDetailRespDto fallbackResp = new ActivityDetailRespDto();
+        fallbackResp.setId(id);
+        fallbackResp.setStatus(0);
+        fallbackResp.setTitle("服务繁忙，请稍后再试");
+        fallbackResp.setContent("系统繁忙，数据暂时无法获取");
+        fallbackResp.setViewCount(0);
+        fallbackResp.setLikeCount(0);
+        fallbackResp.setCommentCount(0);
+        fallbackResp.setShareCount(0);
+        fallbackResp.setIsSignUp(0);
+        fallbackResp.setIsLike(0);
+
+        UserSimpleDto emptyUser = UserSimpleDto.builder()
+                .userId(0L)
+                .username("system")
+                .nickname("系统")
+                .build();
+        fallbackResp.setUser(emptyUser);
+
+        // 缓存降级响应（60秒）
+        redisTemplate.opsForValue().set(cacheKey, fallbackResp, 60, TimeUnit.SECONDS);
+
+        return fallbackResp;
     }
 
     @CircuitBreaker(

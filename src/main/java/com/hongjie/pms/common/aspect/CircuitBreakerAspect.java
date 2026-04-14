@@ -3,12 +3,14 @@ package com.hongjie.pms.common.aspect;
 import com.hongjie.pms.common.annotation.CircuitBreaker;
 import com.hongjie.pms.common.circuitbreaker.CircuitBreakerConfig;
 import com.hongjie.pms.common.circuitbreaker.CircuitBreakerManager;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.InvocationTargetException;
@@ -17,18 +19,26 @@ import java.lang.reflect.Method;
 @Slf4j
 @Aspect
 @Component
+@Order(2)
 public class CircuitBreakerAspect {
 
     @Autowired
     private CircuitBreakerManager breakerManager;
 
+    @PostConstruct
+    public void init() {
+        log.info("========== CircuitBreakerAspect 已加载 ==========");
+    }
+
     @Around("@annotation(circuitBreaker)")
     public Object around(ProceedingJoinPoint point, CircuitBreaker circuitBreaker) throws Throwable {
+        log.info("CircuitBreakerAspect被触发");
         MethodSignature signature = (MethodSignature) point.getSignature();
         String resourceName = circuitBreaker.value();
         if (resourceName.isEmpty()) {
             resourceName = signature.getDeclaringTypeName() + "." + signature.getName();
         }
+        log.info("资源名称: {}", resourceName);
 
         // 1. 创建熔断器配置
         CircuitBreakerConfig config = new CircuitBreakerConfig();
@@ -55,7 +65,7 @@ public class CircuitBreakerAspect {
                     try {
                         return point.proceed();
                     } catch (Throwable ex) {
-                        throw new RuntimeException(ex);
+                        throw new Exception(ex);
                     }
                 },
                 Object.class
@@ -107,3 +117,19 @@ public class CircuitBreakerAspect {
         }
     }
 }
+//$token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoxLCJ1c2VyTmFtZSI6ImFkbWluIiwidXNlcklkIjoxLCJpYXQiOjE3NzYwNjg4NTMsImV4cCI6MTc3NjE1NTI1M30.xySvySHn-o7lvya19Y_oO6PpxGJlF5GXqQIu65c0w54"
+//
+//        for ($i=1; $i -le 10; $i++) {
+//Write-Host "=== 第 $i 次 ==="
+//        try {
+//$response = Invoke-RestMethod -Uri "http://localhost:8080/pet-system/activity/detail/999" `
+//        -Method Get `
+//        -Headers @{"Authorization" = "Bearer $token"}
+//Write-Host "code: $($response.code)"
+//Write-Host "message: $($response.message)"
+//        } catch {
+//Write-Host "错误: $($_.Exception.Message)"
+//        }
+//Write-Host ""
+//Start-Sleep -Milliseconds 200
+//        }

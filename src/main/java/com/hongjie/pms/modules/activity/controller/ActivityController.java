@@ -66,6 +66,13 @@ public class ActivityController {
     @GetMapping("/detail/{id}")
     public CommonResult<ActivityDetailRespDto> getActivityDetail(@PathVariable Long id) {
         ActivityDetailRespDto activityDetail = activityService.getActivityDetail(id);
+        if (activityDetail == null) {
+            return CommonResult.error(503, "服务繁忙，请稍后再试");
+        }
+        // 检查是否是降级后的默认对象
+        if ("活动信息暂时不可用".equals(activityDetail.getTitle()) && "系统繁忙，请稍后再试".equals(activityDetail.getContent())) {
+            return CommonResult.error(503, "服务繁忙，请稍后再试");
+        }
         return CommonResult.success(activityDetail);
     }
 

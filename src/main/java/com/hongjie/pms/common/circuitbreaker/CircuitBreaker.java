@@ -52,7 +52,12 @@ public class CircuitBreaker {
             exception = e;
             success = false;
             log.warn("熔断器 [{}] 调用失败: {}", resourceName, e.getMessage());
-            return executeFallback(exception, returnType);
+            try {
+                return executeFallback(exception, returnType);
+            } catch (Exception fallbackException) {
+                log.error("熔断器 [{}] 降级方法执行失败: {}", resourceName, fallbackException.getMessage());
+                return null;
+            }
         } finally {
             long responseTime = System.currentTimeMillis() - startTime;
             record(success, responseTime, exception);
@@ -126,7 +131,12 @@ public class CircuitBreaker {
     @SuppressWarnings("unchecked")
     private <T> T executeFallback(Exception e, Class<T> returnType) {
         if (fallbackFunction != null) {
-            return (T) fallbackFunction.apply(e);
+            try {
+                return (T) fallbackFunction.apply(e);
+            } catch (Exception fallbackException) {
+                log.error("熔断器 [{}] 降级方法执行失败: {}", resourceName, fallbackException.getMessage());
+                return null;
+            }
         }
         log.warn("熔断器 [{}] 未配置降级方法，返回 null", resourceName);
         return null;
