@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.annotation.CircuitBreaker;
 import com.hongjie.pms.common.annotation.DistributedCacheable;
 import com.hongjie.pms.common.base.core.UserContext;
-import com.hongjie.pms.common.delay.DelayQueueService;
+import com.hongjie.pms.common.delay.DelayTaskService;
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.exception.SystemException;
@@ -36,19 +36,13 @@ import com.hongjie.pms.modules.user.mapper.UserMapper;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.rocketmq.spring.core.RocketMQTemplate;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -66,7 +60,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final MessageService messageService;
     private final CacheUpdateProducer cacheUpdateProducer;
     private final RedisTemplate redisTemplate;
-    private final DelayQueueService delayQueueService;
+    private final DelayTaskService delayTaskService;
 
 
     @Override
@@ -94,20 +88,19 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setStatus(0);
         activityMapper.insert(activity);
 
-        // 2. 发送MQ消息清除缓存（异步，不阻塞）
+        // 活动开始前30分钟提醒
+        LocalDateTime remindTime = request.getStartTime().minusMinutes(30);
+        if (remindTime.isAfter(LocalDateTime.now())) {
+            delayTaskService.addTask("ACTIVITY_REMIND", activity.getId(), remindTime);
+        }
+
+        // 活动结束后1分钟统计
+        LocalDateTime statisticsTime = request.getEndTime().plusMinutes(1);
+        if (statisticsTime.isAfter(LocalDateTime.now())) {
+            delayTaskService.addTask("ACTIVITY_STATISTICS", activity.getId(), statisticsTime);
+        }
+
         cacheUpdateProducer.sendEvictAll("activityList");
-
-        // 计算活动开始前30分钟的延迟时间
-        long remindDelay = request.getStartTime().toEpochSecond(ZoneOffset.UTC) * 1000 - System.currentTimeMillis() - 30 * 60 * 1000;
-        if (remindDelay > 0) {
-            delayQueueService.addTask("ACTIVITY_REMIND", activity.getId(), remindDelay);
-        }
-
-        // 计算活动结束后1分钟的延迟时间
-        long statisticsDelay = request.getEndTime().toEpochSecond(ZoneOffset.UTC) * 1000 - System.currentTimeMillis() + 60 * 1000;
-        if (statisticsDelay > 0) {
-            delayQueueService.addTask("ACTIVITY_STATISTICS", activity.getId(), statisticsDelay);
-        }
 
         ActivityPostRespDto response = ActivityPostRespDto.builder()
                 .id(activity.getId())

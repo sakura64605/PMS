@@ -1,27 +1,16 @@
 package com.hongjie.pms.common.delay;
 
-import lombok.AllArgsConstructor;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.io.Serializable;
+import java.time.LocalDateTime;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class DelayTask implements Serializable {
-    
-    private static final long serialVersionUID = 1L;
-    
-    /** 任务类型 */
-    private String type;
-    
-    /** 业务ID */
+@TableName("delay_task")
+public class DelayTask {
+    private Long id;
+    private String taskType;
     private Long businessId;
-    
-    /** 执行时间戳 */
-    private Long executeTime;
-    
-    /** 额外参数 */
-    private String params;
+    private LocalDateTime executeTime;
+    private Integer status;
+    private LocalDateTime createTime;
 }
