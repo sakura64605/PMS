@@ -122,6 +122,7 @@ public class ActivityController {
     /**
      * 报名活动
      */
+    @PostMapping("/signUp")
     @RedisRateLimit(key = "signUp", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.SECONDS)
     public CommonResult<String> signUp(@RequestBody @Valid SignUpInfoRequest request) {
         log.info("用户报名活动");

@@ -58,19 +58,6 @@ public class UserServiceImpl implements UserService {
     public LoginResponseDto login(LoginRequestDto loginRequestDto) {
         User user = findUserByAccount(loginRequestDto.getAccount());
 
-        user.setLastActiveTime(LocalDateTime.now());
-
-        try {
-            UpdateTimeContext.skip();  // 设置跳过
-            userMapper.update(null,
-                    new LambdaUpdateWrapper<User>()
-                            .eq(User::getId, user.getId())
-                            .set(User::getLastActiveTime, LocalDateTime.now())
-            );
-        } finally {
-            UpdateTimeContext.clear();  // 确保清理
-        }
-
         // 1. 检查用户是否存在
         if (user == null) {
             throw new BusinessException(ErrorCode.PASSWORD_ERROR, "用户名或密码错误");  // 统一提示，避免枚举用户名
@@ -80,6 +67,8 @@ public class UserServiceImpl implements UserService {
         if (user.getStatus() != 1) {
             throw new BusinessException(ErrorCode.USER_DISABLED);
         }
+
+        user.setLastActiveTime(LocalDateTime.now());
 
         String password = loginRequestDto.getPassword();
         if(!PasswordUtils.matches(password, user.getPassword())){

@@ -16,17 +16,24 @@ import com.hongjie.pms.modules.notice.entity.NoticeReadRecord;
 import com.hongjie.pms.modules.notice.mapper.NoticeMapper;
 import com.hongjie.pms.modules.notice.mapper.NoticeReadRecordMapper;
 import com.hongjie.pms.modules.notice.service.NoticeService;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RBlockingQueue;
+import org.redisson.api.RDelayedQueue;
+import org.redisson.api.RedissonClient;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -37,6 +44,8 @@ public class NoticeServiceImpl implements NoticeService {
     private final NoticeMapper noticeMapper;
     private final NoticeReadRecordMapper noticeReadRecordMapper;
     private final CacheUpdateProducer cacheUpdateProducer;
+    private final RedisTemplate redisTemplate;
+    private final RedissonClient redissonClient;
 
     @Override
     @Transactional
@@ -53,11 +62,14 @@ public class NoticeServiceImpl implements NoticeService {
         notice.setIsTop(request.getIsTop());
         notice.setCreateBy(UserContext.getUserId());
 
+        noticeMapper.insert(notice);
+
         // 判断是立即发布还是定时发布
         if (request.getSchedulePublishTime() != null) {
             // 定时发布：状态为草稿，设置定时发布时间
             notice.setStatus(0);  // 草稿
             notice.setPublishTime(request.getSchedulePublishTime());
+            schedulePublish(notice.getId(), request.getSchedulePublishTime());
             log.info("管理员创建定时公告: {}, 定时时间: {}",
                     notice.getTitle(), request.getSchedulePublishTime());
         } else {
@@ -67,11 +79,66 @@ public class NoticeServiceImpl implements NoticeService {
             log.info("管理员创建并发布公告: {}", notice.getTitle());
         }
 
-        noticeMapper.insert(notice);
 
         cacheUpdateProducer.sendEvictAll("noticeList");
 
         return convertToDetailDto(notice, false);
+    }
+
+    /**
+     * 添加定时发布任务
+     */
+    public void schedulePublish(Long noticeId, LocalDateTime publishTime) {
+        long delay = publishTime.toEpochSecond(ZoneOffset.UTC) * 1000 - System.currentTimeMillis();
+
+        if (delay <= 0) {
+            // 已经过了发布时间，立即发布
+            publishNow(noticeId);
+            return;
+        }
+
+        RBlockingQueue<Long> blockingQueue = redissonClient.getBlockingQueue("notice:delay:queue");
+        RDelayedQueue<Long> delayedQueue = redissonClient.getDelayedQueue(blockingQueue);
+
+        delayedQueue.offer(noticeId, delay, TimeUnit.MILLISECONDS);
+
+        log.info("定时发布任务已添加: noticeId={}, 将在{}ms后发布", noticeId, delay);
+    }
+
+    /**
+     * 启动消费者
+     */
+    @PostConstruct
+    public void startConsumer() {
+        new Thread(() -> {
+            RBlockingQueue<Long> blockingQueue = redissonClient.getBlockingQueue("notice:delay:queue");
+            while (true) {
+                try {
+                    Long noticeId = blockingQueue.take();
+                    log.info("定时发布任务触发: noticeId={}", noticeId);
+                    publishNow(noticeId);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }).start();
+    }
+
+    private void publishNow(Long noticeId) {
+        Notice notice = noticeMapper.selectById(noticeId);
+        if (notice == null || notice.getStatus() == 1) {
+            return;
+        }
+
+        notice.setStatus(1);
+        notice.setPublishTime(LocalDateTime.now());
+        noticeMapper.updateById(notice);
+
+        // 清除缓存
+        cacheUpdateProducer.sendEvictAll("notice:List");
+
+        log.info("公告已定时发布: noticeId={}, title={}", noticeId, notice.getTitle());
     }
 
     @Override
@@ -91,6 +158,12 @@ public class NoticeServiceImpl implements NoticeService {
         notice.setType(request.getType());
         notice.setPriority(request.getPriority());
         notice.setIsTop(request.getIsTop());
+
+        if (request.getSchedulePublishTime() != null) {
+            notice.setStatus(0);
+            notice.setPublishTime(request.getSchedulePublishTime());
+            schedulePublish(notice.getId(), request.getSchedulePublishTime());
+        }
 
         noticeMapper.updateById(notice);
 
@@ -205,66 +278,90 @@ public class NoticeServiceImpl implements NoticeService {
     }
 
     @Override
-    @DistributedCacheable(value = "notice", key = "'latest'", ttl = 600)
     public IPage<NoticeListDto> listForUser(Integer pageNum, Integer pageSize) {
+        // 1. 生成缓存key
+        String cacheKey = "notice:list:" + pageNum + "_" + pageSize;
+
+        // 2. 查缓存
+        IPage<NoticeListDto> cached = (IPage<NoticeListDto>) redisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            log.info("从缓存获取公告列表: key={}", cacheKey);
+            return cached;
+        }
+
+        // 3. 查数据库
         Long userId = UserContext.getUserId();
-        
+
         Page<Notice> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<Notice> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Notice::getStatus, 1)  // 已发布
-               .le(Notice::getPublishTime, LocalDateTime.now())
-               .and(w -> w.isNull(Notice::getExpireTime)
-                      .or()
-                      .gt(Notice::getExpireTime, LocalDateTime.now()))
-               .orderByDesc(Notice::getIsTop)
-               .orderByDesc(Notice::getPriority)
-               .orderByDesc(Notice::getPublishTime);
-        
+        wrapper.eq(Notice::getStatus, 1)
+                .le(Notice::getPublishTime, LocalDateTime.now())
+                .and(w -> w.isNull(Notice::getExpireTime)
+                        .or()
+                        .gt(Notice::getExpireTime, LocalDateTime.now()))
+                .orderByDesc(Notice::getIsTop)
+                .orderByDesc(Notice::getPriority)
+                .orderByDesc(Notice::getPublishTime);
+
         IPage<Notice> noticePage = noticeMapper.selectPage(page, wrapper);
-        
+
         // 批量查询已读状态
         List<Long> noticeIds = noticePage.getRecords().stream()
                 .map(Notice::getId)
                 .collect(Collectors.toList());
-        
+
         Map<Long, Boolean> readStatusMap = getReadStatusMap(userId, noticeIds);
-        
+
         List<NoticeListDto> records = noticePage.getRecords().stream()
                 .map(notice -> convertToListDto(notice, readStatusMap.get(notice.getId())))
                 .collect(Collectors.toList());
-        
+
         Page<NoticeListDto> resultPage = new Page<>(pageNum, pageSize, noticePage.getTotal());
         resultPage.setRecords(records);
+
+        // 4. 写入缓存（10分钟）
+        redisTemplate.opsForValue().set(cacheKey, resultPage, 600, TimeUnit.SECONDS);
+
         return resultPage;
     }
 
     @Override
     @Transactional
-    @DistributedCacheable(value = "notice", key = "#id", ttl = 1800)
     public NoticeDetailDto getByIdForUser(Long id) {
+        // 1. 查缓存
+        String cacheKey = "notice:" + id;
+        NoticeDetailDto cached = (NoticeDetailDto) redisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            log.info("从缓存获取公告详情: id={}", id);
+            return cached;
+        }
+
+        // 2. 查数据库
         Long userId = UserContext.getUserId();
-        
+
         Notice notice = noticeMapper.selectById(id);
         if (notice == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "公告不存在");
         }
-        
-        // 检查是否已发布
+
         if (notice.getStatus() != 1) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "公告不存在");
         }
-        
-        // 检查是否已过期
+
         if (notice.getExpireTime() != null && notice.getExpireTime().isBefore(LocalDateTime.now())) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "公告已过期");
         }
-        
-        // 标记为已读
+
         markAsRead(id, userId);
-        
+
         boolean isRead = noticeReadRecordMapper.exists(id, userId);
-        
-        return convertToDetailDto(notice, isRead);
+
+        NoticeDetailDto dto = convertToDetailDto(notice, isRead);
+
+        // 3. 写入缓存（30分钟）
+        redisTemplate.opsForValue().set(cacheKey, dto, 1800, TimeUnit.SECONDS);
+
+        return dto;
     }
 
     @Override

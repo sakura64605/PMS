@@ -43,7 +43,7 @@ public class ActivitySignup {
     private String remark;
 
     /**
-     * 状态
+     * 状态 1：已报名 2：已取消 3：已签到 4：爽约
      */
     private Integer status;
 

@@ -6,11 +6,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.annotation.CircuitBreaker;
 import com.hongjie.pms.common.annotation.DistributedCacheable;
 import com.hongjie.pms.common.base.core.UserContext;
+import com.hongjie.pms.common.delay.DelayQueueService;
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.exception.SystemException;
 import com.hongjie.pms.common.mq.CacheUpdateConsumer;
 import com.hongjie.pms.common.mq.CacheUpdateProducer;
+import com.hongjie.pms.common.mq.DelayMessageDto;
 import com.hongjie.pms.modules.activity.dto.request.ActivityListRequestDto;
 import com.hongjie.pms.modules.activity.dto.request.SignUpInfoRequest;
 import com.hongjie.pms.modules.activity.dto.response.ActivityDetailRespDto;
@@ -34,8 +36,11 @@ import com.hongjie.pms.modules.user.mapper.UserMapper;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -43,10 +48,8 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.ZoneOffset;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -63,11 +66,14 @@ public class ActivityServiceImpl implements ActivityService {
     private final MessageService messageService;
     private final CacheUpdateProducer cacheUpdateProducer;
     private final RedisTemplate redisTemplate;
+    private final DelayQueueService delayQueueService;
+
 
     @Override
     public ActivityPostRespDto postActivity(ActivityRequestDto request) {
 
         // 校验时间
+        log.info("开始时间: {}", request.getStartTime(), "结束时间: {}", request.getEndTime(), "当前时间：{}", LocalDateTime.now());
         if (request.getStartTime().isBefore(LocalDateTime.now())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "开始时间不能早于当前时间");
         }
@@ -90,6 +96,18 @@ public class ActivityServiceImpl implements ActivityService {
 
         // 2. 发送MQ消息清除缓存（异步，不阻塞）
         cacheUpdateProducer.sendEvictAll("activityList");
+
+        // 计算活动开始前30分钟的延迟时间
+        long remindDelay = request.getStartTime().toEpochSecond(ZoneOffset.UTC) * 1000 - System.currentTimeMillis() - 30 * 60 * 1000;
+        if (remindDelay > 0) {
+            delayQueueService.addTask("ACTIVITY_REMIND", activity.getId(), remindDelay);
+        }
+
+        // 计算活动结束后1分钟的延迟时间
+        long statisticsDelay = request.getEndTime().toEpochSecond(ZoneOffset.UTC) * 1000 - System.currentTimeMillis() + 60 * 1000;
+        if (statisticsDelay > 0) {
+            delayQueueService.addTask("ACTIVITY_STATISTICS", activity.getId(), statisticsDelay);
+        }
 
         ActivityPostRespDto response = ActivityPostRespDto.builder()
                 .id(activity.getId())
@@ -186,22 +204,16 @@ public class ActivityServiceImpl implements ActivityService {
     )
     @Override
     public IPage<ActivityListRespDto> getActivityList(ActivityListRequestDto request) {
-        // 1. 生成缓存key
         String cacheKey = "activityList:" + request.getPageNum() + "_" + request.getPageSize() + "_" + request.getStatus();
 
-        // 2. 查缓存
-        IPage<ActivityListRespDto> cached = (IPage<ActivityListRespDto>) redisTemplate.opsForValue().get(cacheKey);
-        if (cached != null) {
+        List<ActivityListRespDto> cachedList = (List<ActivityListRespDto>) redisTemplate.opsForValue().get(cacheKey);
+        if (cachedList != null) {
             log.info("从缓存获取活动列表: key={}", cacheKey);
-            return cached;
+            Page<ActivityListRespDto> page = new Page<>(request.getPageNum(), request.getPageSize(), cachedList.size());
+            page.setRecords(cachedList);
+            return page;
         }
 
-        // 3. 模拟异常（测试熔断）
-        if (request.getPageNum() == 1 && request.getPageSize() == 10) {
-            throw new RuntimeException("模拟列表查询异常");
-        }
-
-        // 4. 构建查询条件
         LambdaQueryWrapper<Activity> wrapper = new LambdaQueryWrapper<>();
 
         if (request.getStatus() != null) {
@@ -249,7 +261,6 @@ public class ActivityServiceImpl implements ActivityService {
 
         wrapper.eq(Activity::getDeleted, 0);
 
-        // 5. 分页查询
         Page<Activity> page = new Page<>(request.getPageNum(), request.getPageSize());
         IPage<Activity> activityPage = activityMapper.selectPage(page, wrapper);
 
@@ -344,8 +355,7 @@ public class ActivityServiceImpl implements ActivityService {
         );
         resultPage.setRecords(recordsDto);
 
-        // 6. 写入缓存（2分钟）
-        redisTemplate.opsForValue().set(cacheKey, resultPage, 120, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set(cacheKey, recordsDto, 120, TimeUnit.SECONDS);
 
         return resultPage;
     }
@@ -503,14 +513,6 @@ public class ActivityServiceImpl implements ActivityService {
         return fallbackResp;
     }
 
-    @CircuitBreaker(
-            value = "signUp",
-            windowSize = 10,
-            minRequestAmount = 5,
-            errorRateThreshold = 0.5,
-            openDurationSeconds = 10,
-            fallbackMethod = "fallbackSignUp"
-    )
     @Override
     @Transactional
     public void signUp(SignUpInfoRequest request) {
@@ -543,6 +545,22 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setCurrentPeople(activity.getCurrentPeople() + 1);
         activityMapper.updateById(activity);
 
+        // ==================== 更新缓存 ====================
+
+        // 1. 更新活动详情缓存
+        String activityCacheKey = "activity:" + request.getActivityId();
+        redisTemplate.delete(activityCacheKey);
+
+        // 2. 更新活动列表缓存（清空所有活动列表缓存）
+        Set<String> activityListKeys = redisTemplate.keys("activityList:*");
+        if (activityListKeys != null && !activityListKeys.isEmpty()) {
+            redisTemplate.delete(activityListKeys);
+        }
+
+        // 3. 更新用户报名的活动列表缓存
+        String userActivityKey = "userActivity:" + currentUserId;
+        redisTemplate.delete(userActivityKey);
+
         if (activity.getCurrentPeople() == activity.getMaxPeople()){
             messageService.sendActivityFullNotification(
                     activity.getUserId(),
@@ -550,7 +568,7 @@ public class ActivityServiceImpl implements ActivityService {
                     activity.getId()
             );
         }
-        
+
         // 向活动发布者发送有人报名的通知
         messageService.sendSomeoneSignUpNotification(
                 activity.getUserId(),

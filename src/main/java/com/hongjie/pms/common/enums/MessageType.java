@@ -27,7 +27,9 @@ public enum MessageType {
 
     // 系统类
     NOTICE("NOTICE", "系统公告"),
-    SYSTEM("SYSTEM", "系统消息");
+    SYSTEM("SYSTEM", "系统消息"),
+
+    ACTIVITY_STATISTICS("ACTIVITY_STATISTICS", "活动统计报告");   // 活动统计报告
 
     private final String code;
     private final String name;

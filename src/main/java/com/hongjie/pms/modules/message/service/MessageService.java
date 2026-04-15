@@ -393,4 +393,30 @@ public class MessageService {
         update.setReadTime(LocalDateTime.now());
         messageMapper.update(update, wrapper);
     }
+
+    /**
+     * 发送活动统计报告通知
+     *
+     * @param userId 活动发布者ID
+     * @param activityTitle 活动标题
+     * @param activityId 活动ID
+     * @param totalSignups 总报名人数
+     * @param signedCount 签到人数
+     * @param noShowCount 爽约人数
+     */
+    public void sendActivityStatisticsNotification(Long userId, String activityTitle,
+                                                   Long activityId, long totalSignups,
+                                                   long signedCount, long noShowCount) {
+        UserMessage message = new UserMessage();
+        message.setUserId(userId);
+        message.setSenderId(null);  // 系统消息
+        message.setType("ACTIVITY_STATISTICS");
+        message.setTitle("活动统计报告");
+        message.setContent(String.format("您的活动《%s》已结束。报名人数：%d，签到人数：%d，爽约人数：%d",
+                activityTitle, totalSignups, signedCount, noShowCount));
+        message.setBusinessId(activityId);
+        message.setLink("/activity/" + activityId + "/statistics");
+
+        sendAndPush(message);
+    }
 }

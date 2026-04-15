@@ -184,10 +184,14 @@ const disabledDate = (time: Date) => {
   return time.getTime() < Date.now() - 8.64e7; // 8.64e7是一天的毫秒数
 };
 
-// 禁用结束日期（只能选择开始时间之后的日期）
+// 禁用结束日期（只能选择开始时间之后的日期，允许同一天）
 const disabledEndDate = (time: Date, startTime: string) => {
   if (!startTime) return false;
-  return time.getTime() < new Date(startTime).getTime();
+  // 只比较日期部分，不比较时间部分
+  const startDate = new Date(startTime);
+  const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const timeDateOnly = new Date(time.getFullYear(), time.getMonth(), time.getDate());
+  return timeDateOnly.getTime() < startDateOnly.getTime();
 };
 
 // 方法
@@ -262,14 +266,29 @@ const handleSubmit = async () => {
     await formRef.value.validate();
     loading.value = true;
     
+    // 处理时间数据，确保以本地时间格式发送
+    const startTime = new Date(form.startTime);
+    const endTime = new Date(form.endTime);
+    
+    // 转换为ISO 8601格式，不带时区信息
+    const formatDateTime = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+    };
+    
     const response = await createActivity({
       title: form.title,
       content: form.content,
       images: form.images,
       location: form.location,
       maxPeople: form.maxPeople,
-      startTime: form.startTime,
-      endTime: form.endTime
+      startTime: formatDateTime(startTime),
+      endTime: formatDateTime(endTime)
     });
     
     ElMessage.success('活动发布成功');

@@ -146,7 +146,29 @@ const submitForm = async () => {
   
   try {
     await formRef.value.validate()
-    await updateActivity(formData.id, formData)
+    
+    // 处理时间数据，确保以本地时间格式发送
+    const startTime = new Date(formData.startTime);
+    const endTime = new Date(formData.endTime);
+    
+    // 转换为ISO 8601格式，不带时区信息
+    const formatDateTime = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+    };
+    
+    const formDataWithFormattedTime = {
+      ...formData,
+      startTime: formatDateTime(startTime),
+      endTime: formatDateTime(endTime)
+    };
+    
+    await updateActivity(formData.id, formDataWithFormattedTime)
     ElMessage.success('活动更新成功')
     const from = route.query.from as string
     console.log('submitForm - from:', from)
