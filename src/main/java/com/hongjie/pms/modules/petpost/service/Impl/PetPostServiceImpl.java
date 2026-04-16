@@ -8,10 +8,13 @@ import com.hongjie.pms.common.annotation.CircuitBreaker;
 import com.hongjie.pms.common.annotation.DistributedCacheable;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
+import com.hongjie.pms.common.enums.PostType;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.exception.SystemException;
 import com.hongjie.pms.common.mq.CacheUpdateProducer;
 import com.hongjie.pms.common.utils.OssUtils;
+import com.hongjie.pms.modules.audit.service.AuditService;
+import com.hongjie.pms.modules.feed.service.FeedService;
 import com.hongjie.pms.modules.following.entity.Follow;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
 import com.hongjie.pms.modules.petpost.dto.PetDetailDto;
@@ -33,8 +36,6 @@ import com.hongjie.pms.modules.user.mapper.UserMapper;
 import com.hongjie.pms.common.enums.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,6 +59,8 @@ public class PetPostServiceImpl implements PetPostService {
     private final FollowMapper followMapper;
     private final CacheUpdateProducer cacheUpdateProducer;
     private final RedisTemplate redisTemplate;
+    private final FeedService feedService;
+    private final AuditService auditService;
 
     @Override
     public PetListResponseDto post(PetPostRequestDto request) {
@@ -78,10 +81,28 @@ public class PetPostServiceImpl implements PetPostService {
                 .contactWechat(request.getContactWechat())
                 .address(request.getAddress())
                 .status(0)
+                .auditStatus(0)
                 .viewCount(0)
                 .build();
 
         petPostMapper.insert(petPost);
+
+        auditService.submit(PostType.PET.getCode(), petPost.getId());
+
+        // 获取用户信息
+        User user = userMapper.selectById(userId);
+
+        // 推送 Feed
+        feedService.pushToFans(
+                userId,
+                petPost.getId(),
+                PostType.PET.getCode(),
+                petPost.getTitle(),
+                petPost.getImages(),
+                user.getUserName(),
+                user.getAvatar(),
+                petPost.getCreateTime()
+        );
 
         return PetListResponseDto.builder()
                 .id(petPost.getId())
@@ -168,6 +189,8 @@ public class PetPostServiceImpl implements PetPostService {
                 }
             }
         }
+
+        wrapper.eq(PetPost::getAuditStatus, 1);
 
         // 2. 分页查询
         Page<PetPost> page = new Page<>(queryDto.getPageNum(), queryDto.getPageSize());
@@ -269,6 +292,13 @@ public class PetPostServiceImpl implements PetPostService {
     public PetDetailDto detail(Long id, Long currentUserId) {
         // 1. 查询宠物信息
         PetPost pet = petPostMapper.selectById(id);
+
+        if (pet.getAuditStatus() == 2){
+            throw new BusinessException(ErrorCode.AUDIT_REJECT);
+        } else if (pet.getAuditStatus() == 0){
+            throw new BusinessException(ErrorCode.AUDIT_WAITING);
+        }
+
         if (pet == null) {
             throw new BusinessException(ErrorCode.PET_NOT_FOUND);
         }
@@ -405,7 +435,7 @@ public class PetPostServiceImpl implements PetPostService {
         if(request.getAddress() != null){
             pet.setAddress(request.getAddress());
         }
-        pet.setStatus(0);
+        pet.setAuditStatus(0);
         petPostMapper.updateById(pet);
 
         cacheUpdateProducer.sendEvict("pet", String.valueOf(pet.getId()));

@@ -20,4 +20,13 @@ public enum AuditStatus {
     public String getDesc() {
         return desc;
     }
+
+    public static String getDescByCode(Integer code) {
+        for (AuditStatus status : values()) {
+            if (status.code.equals(code)) {
+                return status.desc;
+            }
+        }
+        return "未知";
+    }
 }

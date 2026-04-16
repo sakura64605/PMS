@@ -64,9 +64,14 @@ public class Activity {
     private LocalDateTime endTime;
 
     /**
-     * 状态
+     * 活动状态：0-报名中 1-进行中 2-已结束 3-已下架
      */
     private Integer status;
+
+    /**
+     * 审核状态：0-待审核 1-审核通过 2-审核拒绝
+     */
+    private Integer auditStatus;
 
     /**
      * 浏览量

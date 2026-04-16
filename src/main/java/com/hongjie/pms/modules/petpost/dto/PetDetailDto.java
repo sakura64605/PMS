@@ -1,14 +1,18 @@
 package com.hongjie.pms.modules.petpost.dto;
 
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PetDetailDto {
 
     private Long id;

@@ -8,6 +8,7 @@ import com.hongjie.pms.common.annotation.DistributedCacheable;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.delay.DelayTaskService;
 import com.hongjie.pms.common.enums.ErrorCode;
+import com.hongjie.pms.common.enums.PostType;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.exception.SystemException;
 import com.hongjie.pms.common.mq.CacheUpdateConsumer;
@@ -25,6 +26,8 @@ import com.hongjie.pms.modules.activity.entity.ActivitySignup;
 import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
 import com.hongjie.pms.modules.activity.mapper.ActivitySignupMapper;
 import com.hongjie.pms.modules.activity.service.ActivityService;
+import com.hongjie.pms.modules.audit.service.AuditService;
+import com.hongjie.pms.modules.feed.service.FeedService;
 import com.hongjie.pms.modules.following.entity.Follow;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
 import com.hongjie.pms.modules.like.entity.LikeRecord;
@@ -40,6 +43,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import com.hongjie.pms.common.enums.AuditStatus;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -61,6 +65,8 @@ public class ActivityServiceImpl implements ActivityService {
     private final CacheUpdateProducer cacheUpdateProducer;
     private final RedisTemplate redisTemplate;
     private final DelayTaskService delayTaskService;
+    private final FeedService feedService;
+    private final AuditService auditService;
 
 
     @Override
@@ -86,6 +92,7 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setStartTime(request.getStartTime());
         activity.setEndTime(request.getEndTime());
         activity.setStatus(0);
+        activity.setAuditStatus(0);
         activityMapper.insert(activity);
 
         // 活动开始前30分钟提醒
@@ -114,6 +121,24 @@ public class ActivityServiceImpl implements ActivityService {
                 .endTime(activity.getEndTime())
                 .status(activity.getStatus())
                 .build();
+
+        auditService.submit(PostType.ACTIVITY.getCode(), activity.getId());
+
+        // 获取用户信息
+        User user = userMapper.selectById(userId);
+
+        // 推送 Feed
+        feedService.pushToFans(
+                userId,
+                activity.getId(),
+                PostType.ACTIVITY.getCode(),
+                activity.getTitle(),
+                activity.getImages(),
+                user.getUserName(),
+                user.getAvatar(),
+                activity.getCreateTime()
+        );
+
         return response;
     }
 
@@ -154,6 +179,7 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setMaxPeople(activityRequestDto.getMaxPeople());
         activity.setStartTime(activityRequestDto.getStartTime());
         activity.setEndTime(activityRequestDto.getEndTime());
+        activity.setAuditStatus(hasMajorChange ? 0 : activity.getAuditStatus());
         Integer result = activityMapper.updateById(activity);
 
         cacheUpdateProducer.sendEvict("activity", String.valueOf(activityRequestDto.getId()));
@@ -190,14 +216,14 @@ public class ActivityServiceImpl implements ActivityService {
     @CircuitBreaker(
             value = "getActivityList",
             windowSize = 10,
-            minRequestAmount = 3,        // 改成3，方便测试
+            minRequestAmount = 3,
             errorRateThreshold = 0.5,
             openDurationSeconds = 10,
             fallbackMethod = "fallbackGetActivityList"
     )
     @Override
     public IPage<ActivityListRespDto> getActivityList(ActivityListRequestDto request) {
-        String cacheKey = "activityList:" + request.getPageNum() + "_" + request.getPageSize() + "_" + request.getStatus();
+        String cacheKey = "activityList:" + request.getPageNum() + "_" + request.getPageSize() + "_" + request.getStatus() + "_" + request.getUserId() + "_" + request.getKeyword() + "_" + request.getLocation() + "_" + request.getOrderBy() + "_" + request.getOrder();
 
         List<ActivityListRespDto> cachedList = (List<ActivityListRespDto>) redisTemplate.opsForValue().get(cacheKey);
         if (cachedList != null) {
@@ -253,6 +279,7 @@ public class ActivityServiceImpl implements ActivityService {
         }
 
         wrapper.eq(Activity::getDeleted, 0);
+        wrapper.eq(Activity::getAuditStatus, 1);
 
         Page<Activity> page = new Page<>(request.getPageNum(), request.getPageSize());
         IPage<Activity> activityPage = activityMapper.selectPage(page, wrapper);
@@ -390,6 +417,11 @@ public class ActivityServiceImpl implements ActivityService {
 
         // 3. 查数据库
         Activity activity = activityMapper.selectById(id);
+
+        if (activity.getAuditStatus() != 1){
+            throw new BusinessException(ErrorCode.NOT_FOUND);
+        }
+
         Long currentUserId = UserContext.getUserId();
         if (currentUserId != null && !currentUserId.equals(activity.getUserId())) {
             activity.setViewCount(activity.getViewCount() + 1);
@@ -511,6 +543,13 @@ public class ActivityServiceImpl implements ActivityService {
     public void signUp(SignUpInfoRequest request) {
         Long currentUserId = UserContext.getUserId();
         Activity activity = activityMapper.selectById(request.getActivityId());
+
+        if (activity.getAuditStatus() == 2){
+            throw new BusinessException(ErrorCode.AUDIT_REJECT);
+        } else if (activity.getAuditStatus() == 0){
+            throw new BusinessException(ErrorCode.AUDIT_WAITING);
+        }
+
         if (activity.getUserId().equals(currentUserId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "不能报名自己的活动");
         }

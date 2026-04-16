@@ -22,6 +22,23 @@ public enum ErrorCode {
     CIRCUIT_BREAKER_OPEN(1030, "服务繁忙，请稍后再试"),
     CIRCUIT_BREAKER_FALLBACK(1031, "系统繁忙，正在恢复中"),
 
+    // 权限错误 1040-1049
+    NO_PERMISSION(1040, "无权限"),
+
+    // 验证码错误 1050-1059
+    CAPTCHA_ERROR(1050, "验证码错误"),
+    CAPTCHA_EXPIRED(1051, "验证码已过期"),
+
+    // 邮件错误 1060-1069
+    EMAIL_SEND_FAIL(1060, "邮件发送失败"),
+    EMAIL_NOT_FOUND(1061, "邮箱不存在"),
+
+    // 审核错误 1070-1079
+    AUDIT_NOT_FOUND(1070, "审核信息不存在"),
+    AUDIT_REJECT(1071, "未通过审核"),
+    AUDIT_WAITING(1072, "待审核"),
+    AUDIT_APPROVE(1073, "已通过审核"),
+
     // 业务错误 (2000-2999)
     USER_NOT_FOUND(2001, "用户不存在"),
     USER_DISABLED(2002, "账号已被禁用"),

@@ -85,10 +85,15 @@ public class PetPost {
     private String address;
 
     /**
-     * 状态：0-待审核 1-已发布 2-已领养/已完成 3-已下架
+     * 状态：1-已发布 2-已领养/已完成 3-已下架
      */
     @Builder.Default
     private Integer status = 0;
+
+    /**
+     * 审核状态：0-待审核 1-审核通过 2-审核拒绝
+     */
+    private Integer auditStatus;
 
     /**
      * 浏览次数

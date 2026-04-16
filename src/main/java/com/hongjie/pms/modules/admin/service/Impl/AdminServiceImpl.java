@@ -56,7 +56,7 @@ public class AdminServiceImpl implements AdminService {
         if (petPost == null) {
             throw new BusinessException(ErrorCode.PET_NOT_FOUND);
         }
-        petPost.setStatus(4);
+        petPost.setStatus(5);
         petPostMapper.updateById(petPost);
         messageService.sendAuditRejectNotification(
                 petPost.getUserId(),

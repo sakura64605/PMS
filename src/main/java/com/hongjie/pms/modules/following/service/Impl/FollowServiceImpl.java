@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
+import com.hongjie.pms.modules.feed.service.FeedService;
 import com.hongjie.pms.modules.following.entity.Follow;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
 import com.hongjie.pms.modules.following.service.FollowService;
@@ -28,6 +29,7 @@ public class FollowServiceImpl implements FollowService {
     private final FollowMapper followMapper;
     private final UserMapper userMapper;
     private final MessageService messageService;
+    private final FeedService feedService;
 
     @Override
     public void followUser(Long currentUserId, Long userId) {
@@ -49,6 +51,7 @@ public class FollowServiceImpl implements FollowService {
             followMapper.deleteById(existFollow);
             userMapper.decreaseFollowerCount(userId);
             userMapper.decreaseFollowingCount(currentUserId);
+            feedService.onUnfollow(currentUserId, userId);
         } else {
             log.info("用户{}关注用户{}", currentUserId, userId);
             followMapper.insert(follow);

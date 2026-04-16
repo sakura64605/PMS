@@ -65,7 +65,7 @@
           </el-menu-item>
           <el-menu-item index="/pets">
             <el-icon><Collection /></el-icon>
-            <template #title>领养/救助</template>
+            <template #title>宠友圈</template>
           </el-menu-item>
           <el-menu-item index="/pets/my-posts">
             <el-icon><Postcard /></el-icon>
@@ -82,10 +82,6 @@
           <el-menu-item index="/audit" v-if="userInfo?.role === 1">
             <el-icon><Check /></el-icon>
             <template #title>管理员后台</template>
-          </el-menu-item>
-          <el-menu-item index="/activities">
-            <el-icon><Ticket /></el-icon>
-            <template #title>活动管理</template>
           </el-menu-item>
           <el-menu-item index="/message">
             <el-icon><BellFilled /></el-icon>
