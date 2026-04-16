@@ -48,9 +48,6 @@ public class LikeServiceImpl implements LikeService {
 
         boolean isNewLike = (likeRecord == null);
         Integer likeCount = 0;
-        if (!isNewLike) {
-            likeRecordMapper.deleteById(likeRecord);
-        }
 
         switch (request.getTargetType()) {
             case CommentLikeTypes.PET_POST:

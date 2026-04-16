@@ -120,6 +120,32 @@
               <el-icon><Search /></el-icon>
               搜索
             </el-button>
+            <div class="batch-operations">
+              <el-button
+                size="small"
+                type="danger"
+                @click="handleBatchDisable"
+                :disabled="selectedUsers.length === 0"
+              >
+                批量禁用
+              </el-button>
+              <el-button
+                size="small"
+                type="success"
+                @click="handleBatchEnable"
+                :disabled="selectedUsers.length === 0"
+              >
+                批量启用
+              </el-button>
+              <el-button
+                size="small"
+                type="warning"
+                @click="handleBatchResetPassword"
+                :disabled="selectedUsers.length === 0"
+              >
+                批量重置密码
+              </el-button>
+            </div>
           </div>
           
           <!-- 用户列表 -->
@@ -127,7 +153,12 @@
             <el-skeleton :rows="10" animated />
           </div>
           <div v-else-if="userList.length > 0" class="user-list">
-            <el-table :data="userList" style="width: 100%">
+            <el-table 
+              :data="userList" 
+              style="width: 100%"
+              @selection-change="handleSelectionChange"
+            >
+              <el-table-column type="selection" width="55" />
               <el-table-column prop="userId" label="用户ID" width="100" />
               <el-table-column label="用户信息" min-width="200">
                 <template #default="scope">
@@ -339,7 +370,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, ElDialog, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElRadioGroup, ElRadio, ElCheckbox, ElDatePicker, ElButton } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { getPendingList } from '../../api/pet'
-import { getAdminUserList, disableUser, enableUser } from '../../api/user'
+import { getAdminUserList, disableUser, enableUser, batchDisableUsers, batchEnableUsers, batchResetPassword } from '../../api/user'
 import { getAdminNoticeList, createNotice, updateNotice, deleteNotice, publishNotice, unpublishNotice } from '../../api/notice'
 import { Search, Plus } from '@element-plus/icons-vue'
 
@@ -369,6 +400,7 @@ const userPageSize = ref(10)
 const userTotal = ref(0)
 const userSearchKeyword = ref('')
 const userStatusFilter = ref('-1')
+const selectedUsers = ref<any[]>([])
 
 // 公告管理相关数据
 const noticeList = ref<any[]>([])
@@ -508,6 +540,79 @@ const handleToggleUserStatus = async (userId: number, isDisable: boolean) => {
   } catch (error) {
     ElMessage.error('操作失败，请重试')
     console.error('切换用户状态失败:', error)
+  }
+}
+
+// 处理选择变化
+const handleSelectionChange = (val: any[]) => {
+  selectedUsers.value = val
+}
+
+// 批量禁用用户
+const handleBatchDisable = async () => {
+  if (selectedUsers.value.length === 0) {
+    ElMessage.warning('请选择要禁用的用户')
+    return
+  }
+  
+  try {
+    const userIds = selectedUsers.value.map(user => user.userId)
+    const response = await batchDisableUsers(userIds)
+    if (response.code === 200) {
+      ElMessage.success('批量禁用成功')
+      fetchUserList()
+      selectedUsers.value = []
+    } else {
+      ElMessage.error(response.message || '操作失败')
+    }
+  } catch (error) {
+    ElMessage.error('操作失败，请重试')
+    console.error('批量禁用用户失败:', error)
+  }
+}
+
+// 批量启用用户
+const handleBatchEnable = async () => {
+  if (selectedUsers.value.length === 0) {
+    ElMessage.warning('请选择要启用的用户')
+    return
+  }
+  
+  try {
+    const userIds = selectedUsers.value.map(user => user.userId)
+    const response = await batchEnableUsers(userIds)
+    if (response.code === 200) {
+      ElMessage.success('批量启用成功')
+      fetchUserList()
+      selectedUsers.value = []
+    } else {
+      ElMessage.error(response.message || '操作失败')
+    }
+  } catch (error) {
+    ElMessage.error('操作失败，请重试')
+    console.error('批量启用用户失败:', error)
+  }
+}
+
+// 批量重置密码
+const handleBatchResetPassword = async () => {
+  if (selectedUsers.value.length === 0) {
+    ElMessage.warning('请选择要重置密码的用户')
+    return
+  }
+  
+  try {
+    const userIds = selectedUsers.value.map(user => user.userId)
+    const response = await batchResetPassword(userIds)
+    if (response.code === 200) {
+      ElMessage.success('批量重置密码成功')
+      selectedUsers.value = []
+    } else {
+      ElMessage.error(response.message || '操作失败')
+    }
+  } catch (error) {
+    ElMessage.error('操作失败，请重试')
+    console.error('批量重置密码失败:', error)
   }
 }
 

@@ -249,3 +249,30 @@ export const getFollowerList = (pageNum: number, pageSize: number) => {
     params: { pageNum, pageSize }
   })
 };
+
+// 批量禁用用户接口
+export const batchDisableUsers = (userIds: number[]) => {
+  return request({
+    url: '/admin/users/batch-disable',
+    method: 'post',
+    data: { userIds }
+  })
+};
+
+// 批量启用用户接口
+export const batchEnableUsers = (userIds: number[]) => {
+  return request({
+    url: '/admin/users/batch-enable',
+    method: 'post',
+    data: { userIds }
+  })
+};
+
+// 批量重置密码接口
+export const batchResetPassword = (userIds: number[]) => {
+  return request({
+    url: '/admin/users/batch-reset-password',
+    method: 'post',
+    data: { userIds }
+  })
+};
