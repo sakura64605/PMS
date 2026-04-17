@@ -73,11 +73,11 @@ public class AuditServiceImpl implements AuditService {
     @Override
     @Transactional
     public void approve(Long id, String targetType) {
-        AuditRecord record = getPendingRecord(targetType, id);
+        AuditRecord record = new AuditRecord();
+        record.setTargetId(id);
         record.setAuditStatus(AuditStatus.APPROVED.getCode());
-        record.setAuditorId(UserContext.getUserId());
-        record.setAuditTime(LocalDateTime.now());
-        auditRecordMapper.updateById(record);
+        record.setTargetType(targetType);
+        auditRecordMapper.insert(record);
 
         updateTargetAuditStatus(targetType, id, AuditStatus.APPROVED.getCode(), null);
         clearCache(targetType, id);

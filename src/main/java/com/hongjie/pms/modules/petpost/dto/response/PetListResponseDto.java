@@ -62,6 +62,11 @@ public class PetListResponseDto {
     private Integer status;
 
     /**
+     * 审核状态
+     */
+    private Integer auditStatus;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;

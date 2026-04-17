@@ -115,6 +115,7 @@ public class ActivityController {
     @GetMapping("/list")
     public CommonResult<IPage<ActivityListRespDto>> getActivityList(ActivityListRequestDto request) {
         log.info("获取活动列表");
+        request.setAuditStatus(1);
         IPage<ActivityListRespDto> activityList = activityService.getActivityList(request);
         return CommonResult.success(activityList);
     }

@@ -1,5 +1,5 @@
 <template>
-  <div class="pet-detail-container">
+  <div class="activity-detail-container">
     <el-button
       class="back-button"
       @click="handleBack"
@@ -11,95 +11,73 @@
     <div v-if="loading" class="loading-container">
       <el-skeleton :rows="10" animated />
     </div>
-    <div v-else-if="pet" class="detail-content">
+    <div v-else-if="activity" class="detail-content">
       <!-- 顶部标题栏 -->
       <div class="top-header">
         <!-- 发布者信息 -->
         <div class="publisher-card">
-          <img :src="pet.user.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="发布者头像" class="publisher-avatar" @click="navigateToUserInfo(pet.user.userId)" style="cursor: pointer;" />
-          <div class="publisher-info" @click="navigateToUserInfo(pet.user.userId)" style="cursor: pointer;">
-            <h3 class="nickname">{{ pet.user.nickname }}</h3>
-            <p class="username">@{{ pet.user.username }}</p>
+          <img :src="activity.user?.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="发布者头像" class="publisher-avatar" @click="navigateToUserInfo(activity.user?.userId)" style="cursor: pointer;" />
+          <div class="publisher-info" @click="navigateToUserInfo(activity.user?.userId)" style="cursor: pointer;">
+            <h3 class="nickname">{{ activity.user?.nickname || '未知用户' }}</h3>
+            <p class="username">@{{ activity.user?.username || 'unknown' }}</p>
           </div>
-          <el-button type="primary" size="small" :type="isFollowing ? 'info' : 'primary'" @click="handleFollow(pet.user.userId)">{{ isFollowing ? '已关注' : '关注' }}</el-button>
+          <el-button v-if="activity.user?.userId" type="primary" size="small" :type="isFollowing ? 'info' : 'primary'" @click="handleFollow(activity.user.userId)">{{ isFollowing ? '已关注' : '关注' }}</el-button>
         </div>
         
         <!-- 标题和标签部分 -->
         <div class="title-and-tags">
           <div class="title-section">
-            <h1 class="main-title">{{ pet.title }}</h1>
-            <div class="pet-name" v-if="pet.type !== 2">宠物名：{{ pet.petName || '未知' }}</div>
+            <h1 class="main-title">{{ activity.title }}</h1>
           </div>
-          <div class="type-tag" :class="pet.type === 0 ? 'adopt' : pet.type === 1 ? 'rescue' : 'activity'">
-            {{ pet.type === 0 ? '领养' : pet.type === 1 ? '救助' : '活动' }}
+          <div class="type-tag activity">
+            活动
           </div>
         </div>
         <div class="time-section">
-          <div class="time-item">发布：{{ formatDate(pet.createTime) }}</div>
-          <div class="time-item">编辑：{{ formatDate(pet.updateTime) }}</div>
+          <div v-if="activity.createTime" class="time-item">发布：{{ formatDate(activity.createTime) }}</div>
+          <div v-if="activity.updateTime" class="time-item">编辑：{{ formatDate(activity.updateTime) }}</div>
         </div>
       </div>
 
-      <!-- 宠物图片区 -->
-      <div v-if="pet.images && pet.images.length > 0" class="image-section">
+      <!-- 活动图片区 -->
+      <div v-if="activity.images && activity.images.length > 0" class="image-section">
         <el-carousel
           :interval="5000"
           type="card"
           height="300px"
           @click="handleImageClick"
         >
-          <el-carousel-item v-for="(image, index) in pet.images" :key="index">
-            <img :src="image" alt="宠物图片" class="pet-image" />
+          <el-carousel-item v-for="(image, index) in activity.images" :key="index">
+            <img :src="image" alt="活动图片" class="activity-image" />
           </el-carousel-item>
         </el-carousel>
       </div>
 
       <!-- 基本信息卡片 -->
       <div class="info-card">
-        <!-- 宠物信息 -->
-        <div v-if="pet.type !== 2" class="info-grid">
-          <div class="info-item">
-            <span class="info-label">品种：</span>
-            <span class="info-value">{{ pet.petType || '未知' }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">性别：</span>
-            <span class="info-value">
-              <el-icon v-if="pet.petGender === 1"><Male /></el-icon>
-              <el-icon v-else-if="pet.petGender === 2"><Female /></el-icon>
-              <el-icon v-else><QuestionFilled /></el-icon>
-              {{ getGenderText(pet.petGender) }}
-            </span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">年龄：</span>
-            <span class="info-value">{{ pet.petAge || '未知' }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">浏览：</span>
-            <span class="info-value">{{ pet.viewCount || 0 }}</span>
-          </div>
-        </div>
-        
-        <!-- 活动信息 -->
-        <div v-else class="info-grid">
+        <div class="info-grid">
           <div class="info-item">
             <span class="info-label">地点：</span>
-            <span class="info-value">{{ pet.location || pet.address || '未知' }}</span>
+            <span class="info-value">{{ activity.location || '未知' }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">时间：</span>
             <span class="info-value">
-              {{ pet.startTime ? formatDate(pet.startTime) : '未知' }} - {{ pet.endTime ? formatDate(pet.endTime) : '未知' }}
+              {{ activity.startTime ? formatDate(activity.startTime) : '未知' }} - {{ activity.endTime ? formatDate(activity.endTime) : '未知' }}
             </span>
           </div>
           <div class="info-item">
             <span class="info-label">人数：</span>
-            <span class="info-value">{{ pet.participantCount || pet.signUpCount || 0 }}/{{ pet.maxParticipants || pet.maxPeople || 0 }}</span>
+            <span class="info-value">
+              {{ activity.currentPeople || 0 }}/{{ activity.maxPeople || 0 }}
+              <span v-if="activity.maxPeople && activity.maxPeople > 0" class="progress-percentage">
+                ({{ ((activity.currentPeople || 0) / activity.maxPeople * 100).toFixed(2) }}%)
+              </span>
+            </span>
           </div>
           <div class="info-item">
             <span class="info-label">浏览：</span>
-            <span class="info-value">{{ pet.viewCount || 0 }}</span>
+            <span class="info-value">{{ activity.viewCount || 0 }}</span>
           </div>
         </div>
       </div>
@@ -108,43 +86,15 @@
       <div class="detail-section">
         <div class="content-part">
           <h3 class="section-title">详细描述</h3>
-          <div class="content">{{ pet.content }}</div>
+          <div class="content">{{ activity.content }}</div>
         </div>
         
-        <div class="contact-part">
-          <h3 class="section-title">联系方式</h3>
+        <div class="contact-part" v-if="activity.location">
+          <h3 class="section-title">活动地点</h3>
           <div class="contact-info">
             <div class="contact-item">
-              <span class="contact-label">电话：</span>
-              <div class="contact-value">
-                <span>{{ pet.contactPhone }}</span>
-                <el-button
-                  type="text"
-                  size="small"
-                  @click="copyToClipboard(pet.contactPhone)"
-                >
-                  <el-icon><DocumentCopy /></el-icon>
-                  复制
-                </el-button>
-              </div>
-            </div>
-            <div class="contact-item" v-if="pet.contactWechat">
-              <span class="contact-label">微信：</span>
-              <div class="contact-value">
-                <span>{{ pet.contactWechat }}</span>
-                <el-button
-                  type="text"
-                  size="small"
-                  @click="copyToClipboard(pet.contactWechat)"
-                >
-                  <el-icon><DocumentCopy /></el-icon>
-                  复制
-                </el-button>
-              </div>
-            </div>
-            <div class="contact-item">
               <span class="contact-label">地址：</span>
-              <span class="contact-value">{{ pet.address }}</span>
+              <span class="contact-value">{{ activity.location }}</span>
             </div>
           </div>
         </div>
@@ -170,81 +120,53 @@
           </el-button>
           
           <!-- 活动操作按钮 -->
-          <template v-if="pet.type === 2">
+          <el-button
+            v-if="isOwner"
+            type="primary"
+            @click="handleEdit"
+          >
+            编辑
+          </el-button>
+          <el-button
+            v-if="isOwner"
+            type="danger"
+            @click="handleDelete"
+          >
+            下架/删除
+          </el-button>
+          <div v-else>
             <el-button
-              v-if="isOwner"
-              type="primary"
-              @click="handleEdit"
-            >
-              编辑
-            </el-button>
-            <el-button
-              v-if="isOwner"
-              type="danger"
-              @click="handleDelete"
-            >
-              下架/删除
-            </el-button>
-            <el-button
-              v-if="!isOwner"
+              v-if="activity.isSignUp !== 1"
               type="primary"
               @click="handleJoinActivity"
             >
               报名参加
             </el-button>
             <el-button
-              v-if="!isOwner"
-              @click="handleLike"
-              :type="isLiked ? 'primary' : 'default'"
-            >
-              <el-icon><Top /></el-icon>
-              {{ isLiked ? '已点赞' : '点赞' }}({{ pet.likeCount || 0 }})
-            </el-button>
-          </template>
-          
-          <!-- 宠物操作按钮 -->
-          <template v-else>
-            <el-button
-              v-if="isOwner"
-              type="primary"
-              @click="handleEdit"
-            >
-              编辑
-            </el-button>
-            <el-button
-              v-if="isOwner"
-              type="danger"
-              @click="handleDelete"
-            >
-              下架/删除
-            </el-button>
-            <el-button
               v-else
+              type="info"
+              disabled
+            >
+              已报名
+            </el-button>
+            <el-button
               @click="handleLike"
               :type="isLiked ? 'primary' : 'default'"
             >
               <el-icon><Top /></el-icon>
-              {{ isLiked ? '已点赞' : '点赞' }}({{ pet.likeCount || 0 }})
+              {{ isLiked ? '已点赞' : '点赞' }}({{ activity.likeCount || 0 }})
             </el-button>
-            <el-button
-              v-if="!isOwner"
-              @click="handleCollect"
-              :type="isCollected ? 'primary' : 'default'"
-            >
-              <el-icon><Star /></el-icon>
-              {{ isCollected ? '已收藏' : '收藏' }}
-            </el-button>
-          </template>
+          </div>
         </div>
       </div>
 
       <!-- 评论区 -->
       <div class="comment-section">
-        <h3 class="section-title">网友评论（{{ pet.commentCount || 0 }}）</h3>
+        <h3 class="section-title">网友评论（{{ activity.commentCount || 0 }}）</h3>
         <div class="comment-input-area">
           <el-input
             type="textarea"
-            placeholder="想对小可爱说点什么…"
+            placeholder="想对活动说点什么…"
             :rows="3"
             v-model="commentContent"
           ></el-input>
@@ -397,7 +319,7 @@
       </div>
     </div>
     <div v-else class="empty-state">
-      <el-empty description="宠物信息不存在" />
+      <el-empty description="活动信息不存在" />
     </div>
   </div>
 </template>
@@ -407,7 +329,6 @@ import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowLeft, View, Male, Female, QuestionFilled, DocumentCopy, Star, ChatLineSquare, Share, Top } from '@element-plus/icons-vue';
-import { getPetDetail, likePet, collectPet } from '../../api/pet';
 import { getActivityDetail, signupActivity, getCommentList, createComment } from '../../api/activity';
 import { approveAudit, rejectAudit } from '../../api/audit';
 import request from '../../utils/request';
@@ -418,7 +339,7 @@ const router = useRouter();
 
 // 状态
 const loading = ref(false);
-const pet = ref<any>(null);
+const activity = ref<any>(null);
 const isLiked = ref(false);
 const isCollected = ref(false);
 const isFollowing = ref(false);
@@ -430,7 +351,7 @@ const isOwner = computed(() => {
   if (!userInfo) return false;
   try {
     const user = JSON.parse(userInfo);
-    return pet.value && user.userId === pet.value.user.userId;
+    return activity.value && user.userId === activity.value.user?.userId;
   } catch (e) {
     return false;
   }
@@ -450,7 +371,7 @@ const isAdmin = computed(() => {
 
 // 是否需要审核
 const needAudit = computed(() => {
-  return isAdmin.value && pet.value && pet.value.auditStatus === 0;
+  return isAdmin.value && activity.value && activity.value.auditStatus === 0;
 });
 
 // 方法
@@ -463,7 +384,7 @@ const handleBack = () => {
   } else if (from === 'collections') {
     router.push('/pets/collections');
   } else if (from === 'pets-index') {
-    // 从领养或救助标签页进入，返回时保持原标签页
+    // 从活动标签页进入，返回时保持原标签页
     router.push({ path: '/pets', query: { type } });
   } else {
     router.push('/pets');
@@ -472,7 +393,7 @@ const handleBack = () => {
 
 const handleEdit = () => {
   ElMessage.info('功能开发中');
-  // router.push(`/pets/${pet.value.id}/edit`);
+  // router.push(`/activities/${activity.value.id}/edit`);
 };
 
 const handleDelete = () => {
@@ -481,14 +402,14 @@ const handleDelete = () => {
 
 // 处理审核通过
 const handleApprove = async () => {
-  if (!pet.value) return;
+  if (!activity.value) return;
   
   try {
-    const response = await approveAudit(pet.value.type === 2 ? 'activity' : 'adopt', pet.value.id);
+    const response = await approveAudit('activity', activity.value.id);
     if (response.code === 200) {
       ElMessage.success('审核通过');
-      // 重新获取宠物详情
-      await fetchPetDetail();
+      // 重新获取活动详情
+      await fetchActivityDetail();
     } else {
       ElMessage.error(response.message || '审核通过失败');
     }
@@ -500,7 +421,7 @@ const handleApprove = async () => {
 
 // 处理审核拒绝
 const handleReject = async () => {
-  if (!pet.value) return;
+  if (!activity.value) return;
   
   // 弹出输入框，让审核人员输入拒绝原因
   const { value: reason } = await ElMessageBox.prompt('请输入拒绝原因', '审核拒绝', {
@@ -517,11 +438,11 @@ const handleReject = async () => {
   
   if (reason) {
     try {
-      const response = await rejectAudit(pet.value.type === 2 ? 'activity' : 'adopt', pet.value.id, reason);
+      const response = await rejectAudit('activity', activity.value.id, reason);
       if (response.code === 200) {
         ElMessage.success('审核拒绝');
-        // 重新获取宠物详情
-        await fetchPetDetail();
+        // 重新获取活动详情
+        await fetchActivityDetail();
       } else {
         ElMessage.error(response.message || '审核拒绝失败');
       }
@@ -534,7 +455,7 @@ const handleReject = async () => {
 
 // 处理活动报名
 const handleJoinActivity = async () => {
-  if (!pet.value) return;
+  if (!activity.value) return;
   
   // 弹出确认对话框
   const { value: confirmed } = await ElMessageBox.confirm(
@@ -565,14 +486,14 @@ const handleJoinActivity = async () => {
       }
       
       const response = await signupActivity({
-        activityId: pet.value.id,
+        activityId: activity.value.id,
         realName: realName,
         phone: phone
       });
       if (response.code === 200) {
         ElMessage.success('报名成功');
         // 重新获取活动详情
-        await fetchPetDetail();
+        await fetchActivityDetail();
       } else {
         ElMessage.error(response.message || '报名失败');
       }
@@ -584,15 +505,22 @@ const handleJoinActivity = async () => {
 };
 
 const handleLike = async () => {
-  if (!pet.value) return;
+  if (!activity.value) return;
   
   try {
-    const response = await likePet(pet.value.id);
+    const response = await request({
+      url: '/like',
+      method: 'post',
+      data: {
+        targetId: activity.value.id,
+        targetType: 'pet_activity'
+      }
+    });
     if (response.code === 200 && response.data) {
       isLiked.value = response.data.isLiked;
       // 更新点赞数
       if (response.data.likeCount !== undefined) {
-        pet.value.likeCount = response.data.likeCount;
+        activity.value.likeCount = response.data.likeCount;
       }
       ElMessage.success(isLiked.value ? '点赞成功' : '取消点赞成功');
     } else {
@@ -604,39 +532,16 @@ const handleLike = async () => {
   }
 };
 
-const handleCollect = async () => {
-  if (!pet.value) return;
-  
-  // 先切换本地状态，提高用户体验
-  const newState = !isCollected.value;
-  isCollected.value = newState;
-  pet.value.isFavorite = newState;
-  
-  try {
-    const response = await collectPet(pet.value.id);
-    if (response.code === 200) {
-      ElMessage.success(newState ? '收藏成功' : '取消收藏成功');
-    } else {
-      // 操作失败，恢复原状态
-      isCollected.value = !newState;
-      pet.value.isFavorite = !newState;
-      ElMessage.error(response.message || '操作失败');
-    }
-  } catch (error) {
-    // 操作失败，恢复原状态
-    isCollected.value = !newState;
-    pet.value.isFavorite = !newState;
-    ElMessage.error('操作失败，请重试');
-    console.error('收藏操作失败:', error);
+const navigateToUserInfo = (userId: number | undefined) => {
+  if (userId) {
+    router.push(`/user/${userId}`);
   }
-};
-
-const navigateToUserInfo = (userId: number) => {
-  router.push(`/user/${userId}`);
 };
 
 // 关注用户
 const handleFollow = async (userId: number) => {
+  if (!userId) return;
+  
   try {
     const response = await request({
       url: '/follow',
@@ -658,39 +563,17 @@ const handleFollow = async (userId: number) => {
   }
 };
 
-const getStatusClass = (status: number) => {
-  switch (status) {
-    case 0: return 'pending';
-    case 1: return 'published';
-    case 2: return 'completed';
-    default: return '';
-  }
-};
-
-const getStatusText = (status: number) => {
-  switch (status) {
-    case 0: return '待审核';
-    case 1: return '已发布';
-    case 2: return '已完成';
-    default: return '未知';
-  }
-};
-
-const getGenderText = (gender: number) => {
-  switch (gender) {
-    case 1: return '公';
-    case 2: return '母';
-    default: return '未知';
-  }
-};
-
-const formatDate = (dateStr: string) => {
+const formatDate = (dateStr: string | undefined) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
   return date.toLocaleString('zh-CN');
 };
 
-const copyToClipboard = (text: string) => {
+const copyToClipboard = (text: string | undefined) => {
+  if (!text) {
+    ElMessage.warning('没有可复制的内容');
+    return;
+  }
   navigator.clipboard.writeText(text).then(() => {
     ElMessage.success('复制成功');
   }).catch(() => {
@@ -745,8 +628,8 @@ const handleSubmitReply = async (id: number, nickname: string, content: string) 
     return;
   }
   
-  const petId = Number(route.params.id);
-  if (!petId) return;
+  const activityId = Number(route.params.id);
+  if (!activityId) return;
   
   try {
     // 查找评论对象，获取replyToId
@@ -768,8 +651,8 @@ const handleSubmitReply = async (id: number, nickname: string, content: string) 
     findReplyToId(comments.value);
     
     const response = await createComment({
-      targetType: 'pet_post',
-      targetId: petId,
+      targetType: 'activity',
+      targetId: activityId,
       content: content.trim(),
       parentId: id, // 回复给的评论的id
       replyTo: replyToId // 回复给的人的ID
@@ -795,16 +678,16 @@ const handleSubmitComment = async () => {
   
   const id = route.params.id;
   if (!id) {
-    ElMessage.error('宠物ID不存在');
+    ElMessage.error('活动ID不存在');
     return;
   }
   
-  const petId = Number(id);
+  const activityId = Number(id);
   
   try {
     const response = await createComment({
-      targetType: 'pet_post',
-      targetId: petId,
+      targetType: 'activity',
+      targetId: activityId,
       content: commentContent.value.trim(),
       parentId: 0 // 顶级评论的parentId为0
     });
@@ -815,8 +698,8 @@ const handleSubmitComment = async () => {
       replyToName.value = '';
       // 刷新评论列表
       await fetchComments();
-      // 刷新宠物详情，更新评论数
-      await fetchPetDetail();
+      // 刷新活动详情，更新评论数
+      await fetchActivityDetail();
     } else {
       ElMessage.error(response.message || '评论发布失败');
     }
@@ -835,58 +718,31 @@ const handleImageClick = (event: any) => {
 // 评论列表
 const comments = ref<any[]>([]);
 
-const fetchPetDetail = async () => {
+const fetchActivityDetail = async () => {
   const id = route.params.id;
   if (!id) {
-    ElMessage.error('ID不存在');
+    ElMessage.error('活动ID不存在');
     return;
   }
 
   loading.value = true;
   try {
-    // 先尝试获取宠物详情
-    try {
-      const petResponse = await getPetDetail(Number(id));
-      if (petResponse.code === 200 && petResponse.data) {
-        pet.value = petResponse.data;
-        // 初始化点赞和收藏状态，使用后端返回的字段
-        isLiked.value = pet.value.isLiked || false;
-        isCollected.value = pet.value.isFavorite || false;
-        // 初始化关注状态
-        isFollowing.value = pet.value.user.isFollow || false;
-        // 获取评论列表
-        await fetchComments();
-        return;
-      }
-    } catch (petError) {
-      // 宠物详情获取失败，尝试获取活动详情
-      console.log('宠物详情获取失败，尝试获取活动详情:', petError);
+    const response = await getActivityDetail(Number(id));
+    if (response.code === 200 && response.data) {
+      activity.value = response.data;
+      // 初始化点赞和收藏状态，使用后端返回的字段
+      isLiked.value = activity.value.isLike === 1 || false;
+      isCollected.value = false; // 活动没有收藏功能
+      // 初始化关注状态
+      isFollowing.value = activity.value.user?.isFollow || false;
+      // 获取评论列表
+      await fetchComments();
+    } else {
+      ElMessage.error(response.message || '获取活动详情失败');
     }
-    
-    // 尝试获取活动详情
-    try {
-      const activityResponse = await getActivityDetail(Number(id));
-      if (activityResponse.code === 200 && activityResponse.data) {
-        pet.value = activityResponse.data;
-        // 初始化点赞和收藏状态，使用后端返回的字段
-        isLiked.value = pet.value.isLiked || false;
-        isCollected.value = pet.value.isFavorite || false;
-        // 初始化关注状态
-        isFollowing.value = pet.value.user.isFollow || false;
-        // 获取评论列表
-        await fetchComments();
-        return;
-      }
-    } catch (activityError) {
-      // 活动详情获取失败
-      console.log('活动详情获取失败:', activityError);
-    }
-    
-    // 两种详情都获取失败
-    ElMessage.error('获取详情失败');
   } catch (error) {
-    ElMessage.error('获取详情失败，请重试');
-    console.error('获取详情失败:', error);
+    ElMessage.error('获取活动详情失败，请重试');
+    console.error('获取活动详情失败:', error);
   } finally {
     loading.value = false;
   }
@@ -899,7 +755,7 @@ const fetchComments = async () => {
   
   try {
     const response = await getCommentList({
-      targetType: 'pet_post',
+      targetType: 'activity',
       targetId: Number(id),
       pageNum: 1,
       pageSize: 100
@@ -995,12 +851,12 @@ const fetchComments = async () => {
 
 // 生命周期
 onMounted(() => {
-  fetchPetDetail();
+  fetchActivityDetail();
 });
 </script>
 
 <style scoped>
-.pet-detail-container {
+.activity-detail-container {
   padding: 24px;
   background-color: #f5f7fa;
   min-height: 100vh;
@@ -1090,11 +946,6 @@ onMounted(() => {
   margin: 0 0 8px 0;
 }
 
-.pet-name {
-  font-size: 14px;
-  color: #909399;
-}
-
 .type-tag {
   padding: 4px 12px;
   border-radius: 16px;
@@ -1119,33 +970,11 @@ onMounted(() => {
   z-index: 0;
 }
 
-
-
-.type-tag.adopt {
-  background-color: #67c23a;
-}
-
-.type-tag.rescue {
-  background-color: #e6a23c;
-}
-
 .type-tag.activity {
   background-color: #409eff;
 }
 
-.status-tag.pending {
-  background-color: #909399;
-}
-
-.status-tag.published {
-  background-color: #409eff;
-}
-
-.status-tag.completed {
-  background-color: #67c23a;
-}
-
-/* 宠物图片区 */
+/* 活动图片区 */
 .image-section {
   background-color: white;
   border-radius: 12px;
@@ -1153,7 +982,7 @@ onMounted(() => {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
 
-.pet-image {
+.activity-image {
   width: 100%;
   height: 400px;
   object-fit: cover;
@@ -1190,7 +1019,16 @@ onMounted(() => {
   color: #333;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+}
+
+.progress-percentage {
+  font-size: 12px;
+  color: #409eff;
+  font-weight: 500;
+  background-color: #ecf5ff;
+  padding: 2px 8px;
+  border-radius: 10px;
 }
 
 /* 详细描述 + 联系方式 */
@@ -1252,11 +1090,6 @@ onMounted(() => {
   gap: 12px;
 }
 
-.contact-value.privacy {
-  color: #909399;
-  font-style: italic;
-}
-
 /* 底部互动栏 */
 .interaction-bar {
   display: flex;
@@ -1271,11 +1104,6 @@ onMounted(() => {
 .action-buttons {
   display: flex;
   gap: 12px;
-}
-
-.publish-time {
-  font-size: 14px;
-  color: #909399;
 }
 
 /* 评论区 */
@@ -1302,12 +1130,6 @@ onMounted(() => {
 
 .comment-list {
   margin-top: 24px;
-}
-
-.comment-item {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
 .comment-item {
@@ -1523,13 +1345,9 @@ onMounted(() => {
   line-height: 28px;
 }
 
-
-
-
-
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .pet-detail-container {
+  .activity-detail-container {
     padding: 16px;
   }
 
@@ -1540,11 +1358,7 @@ onMounted(() => {
     padding: 16px;
   }
 
-  .status-section {
-    align-self: flex-start;
-  }
-
-  .pet-image {
+  .activity-image {
     height: 200px;
   }
 
@@ -1568,10 +1382,6 @@ onMounted(() => {
   .action-buttons {
     width: 100%;
     justify-content: space-between;
-  }
-
-  .publish-time {
-    align-self: flex-end;
   }
 
   .contact-item {

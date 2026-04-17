@@ -17,6 +17,8 @@ public class ActivityListRequestDto {
 
     private Integer status;
 
+    private Integer auditStatus;
+
     private LocalDateTime startDate;
 
     private LocalDateTime endDate;

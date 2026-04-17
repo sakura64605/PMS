@@ -38,6 +38,16 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/pets/index.vue')
       },
       {
+        path: 'feed',
+        name: 'Feed',
+        component: () => import('../views/feed/index.vue')
+      },
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: () => import('../views/settings/index.vue')
+      },
+      {
         path: 'pets/create',
         name: 'PetCreate',
         component: () => import('../views/pets/create.vue'),
@@ -47,6 +57,11 @@ const routes: RouteRecordRaw[] = [
         path: 'pets/:id',
         name: 'PetDetail',
         component: () => import('../views/pets/detail.vue')
+      },
+      {
+        path: 'pets/activity/:id',
+        name: 'ActivityDetail',
+        component: () => import('../views/pets/activity-detail.vue')
       },
       {
         path: 'pets/:id/edit',

@@ -359,6 +359,7 @@ public class ActivityServiceImpl implements ActivityService {
                     .startTime(activity.getStartTime())
                     .endTime(activity.getEndTime())
                     .status(activity.getStatus())
+                    .auditStatus(activity.getAuditStatus())
                     .viewCount(activity.getViewCount())
                     .likeCount(activity.getLikeCount())
                     .commentCount(activity.getCommentCount())

@@ -275,7 +275,7 @@
             
             <!-- 报名进度 -->
             <div class="progress-section">
-              <div class="progress-label">👥 报名进度：{{ activity.currentPeople }} / {{ activity.maxPeople }} 人</div>
+              <div class="progress-label">👥 报名进度：{{ activity.currentPeople }} / {{ activity.maxPeople }} 人 ({{ ((activity.currentPeople / activity.maxPeople) * 100).toFixed(2) }}%)</div>
               <el-progress
                 :percentage="(activity.currentPeople / activity.maxPeople) * 100"
                 :stroke-width="8"
@@ -458,7 +458,7 @@ const isLoggedIn = computed(() => {
 // 方法
 const handleCreate = () => {
   if (activeType.value === '2') {
-    router.push('/activities/create');
+    router.push({ path: '/pets/create', query: { type: '2' } });
   } else {
     router.push('/pets/create');
   }
@@ -466,7 +466,7 @@ const handleCreate = () => {
 
 const handleCardClick = (id: number) => {
   if (activeType.value === '2') {
-    router.push({ path: `/activities/${id}`, query: { from: 'pets-index' } });
+    router.push({ path: `/pets/activity/${id}`, query: { from: 'pets-index', type: activeType.value } });
   } else {
     router.push({ path: `/pets/${id}`, query: { from: 'pets-index', type: activeType.value } });
   }
@@ -521,7 +521,7 @@ const getStatusType = (status: number) => {
 };
 
 const navigateToDetail = (id: number) => {
-  router.push({ path: `/activities/${id}`, query: { from: 'pets-index' } });
+  router.push({ path: `/pets/activity/${id}`, query: { from: 'pets-index', type: '2' } });
 };
 
 const handleStatusChange = (tab: any) => {

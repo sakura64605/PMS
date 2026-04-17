@@ -1,11 +1,19 @@
 <template>
   <div class="my-posts-container">
-    <h2 class="page-title">我的发布</h2>
-
-    <el-tabs v-model="activeTab" @tab-click="handleTabChange">
-      <el-tab-pane label="领养/救助" name="adoption"></el-tab-pane>
-      <el-tab-pane label="我的活动" name="activities"></el-tab-pane>
-    </el-tabs>
+    <!-- 类型切换和发布按钮 -->
+    <div class="type-tabs-container">
+      <el-tabs v-model="activeTab" class="type-tabs" @tab-click="handleTabChange">
+        <el-tab-pane label="领养/救助" name="adoption"></el-tab-pane>
+        <el-tab-pane label="我的活动" name="activities"></el-tab-pane>
+      </el-tabs>
+      <el-button
+        type="primary"
+        class="create-button"
+        @click="handleCreate"
+      >
+        {{ activeTab === 'adoption' ? '发布信息' : '发布活动' }}
+      </el-button>
+    </div>
 
     <div v-if="loading" class="loading-container">
       <el-skeleton :rows="8" animated />
@@ -23,8 +31,8 @@
         <div class="card-content">
           <div class="card-header">
             <h3 class="card-title">{{ pet.title || '' }}</h3>
-            <div class="status-tag" :class="getStatusClass(pet.status)">
-              {{ getStatusText(pet.status) }}
+            <div class="status-tag" :class="getAuditStatusClass(pet.auditStatus, pet.status)">
+              {{ getAuditStatusText(pet.auditStatus, pet.status) }}
             </div>
           </div>
           <div class="pet-info">
@@ -122,8 +130,8 @@
         <div class="card-content">
           <div class="card-header">
             <h3 class="card-title">{{ activity.title || '' }}</h3>
-            <div class="status-tag" :class="getActivityStatusClass(activity.status)">
-              {{ getActivityStatusText(activity.status) }}
+            <div class="status-tag" :class="getActivityAuditStatusClass(activity.auditStatus, activity.status)">
+              {{ getActivityAuditStatusText(activity.auditStatus, activity.status) }}
             </div>
           </div>
           <div class="pet-info">
@@ -345,6 +353,15 @@ import { getMyActivityList, deleteActivity, getActivitySignUpList, signInActivit
 const router = useRouter();
 const route = useRoute();
 
+// 处理发布按钮点击
+const handleCreate = () => {
+  if (activeTab.value === 'adoption') {
+    router.push('/pets/create');
+  } else {
+    router.push({ path: '/pets/create', query: { type: '2' } });
+  }
+};
+
 // 状态
 const loading = ref(false);
 const activeTab = ref(route.query.tab as string || 'adoption');
@@ -394,11 +411,11 @@ const handleTabChange = (tab: any) => {
 
 // 活动相关方法
 const handleActivityView = (id: number) => {
-  router.push({ path: `/activities/${id}`, query: { from: 'my-posts-activities' } });
+  router.push({ path: `/pets/activity/${id}`, query: { from: 'my-posts-activities' } });
 };
 
 const handleActivityEdit = (id: number) => {
-  router.push(`/activities/${id}/edit`);
+  router.push({ path: `/pets/create`, query: { type: '2', id: id.toString() } });
 };
 
 
@@ -625,6 +642,35 @@ const getStatusText = (status: number) => {
   }
 };
 
+// 审核状态相关函数
+const getAuditStatusClass = (auditStatus: number, status: number) => {
+  // 如果审核通过，显示帖子状态
+  if (auditStatus === 1) {
+    return getStatusClass(status);
+  }
+  // 否则显示审核状态
+  switch (auditStatus) {
+    case 0: return 'pending';
+    case 1: return 'published';
+    case 2: return 'rejected';
+    default: return '';
+  }
+};
+
+const getAuditStatusText = (auditStatus: number, status: number) => {
+  // 如果审核通过，显示帖子状态
+  if (auditStatus === 1) {
+    return getStatusText(status);
+  }
+  // 否则显示审核状态
+  switch (auditStatus) {
+    case 0: return '待审核';
+    case 1: return '审核通过';
+    case 2: return '审核未通过';
+    default: return '未知';
+  }
+};
+
 // 活动状态相关函数
 const getActivityStatusClass = (status: number) => {
   switch (status) {
@@ -642,6 +688,35 @@ const getActivityStatusText = (status: number) => {
     case 1: return '进行中';
     case 2: return '已结束';
     case 3: return '已取消';
+    default: return '未知';
+  }
+};
+
+// 活动审核状态相关函数
+const getActivityAuditStatusClass = (auditStatus: number, status: number) => {
+  // 如果审核通过，显示活动状态
+  if (auditStatus === 1) {
+    return getActivityStatusClass(status);
+  }
+  // 否则显示审核状态
+  switch (auditStatus) {
+    case 0: return 'pending';
+    case 1: return 'published';
+    case 2: return 'rejected';
+    default: return '';
+  }
+};
+
+const getActivityAuditStatusText = (auditStatus: number, status: number) => {
+  // 如果审核通过，显示活动状态
+  if (auditStatus === 1) {
+    return getActivityStatusText(status);
+  }
+  // 否则显示审核状态
+  switch (auditStatus) {
+    case 0: return '待审核';
+    case 1: return '审核通过';
+    case 2: return '审核未通过';
     default: return '未知';
   }
 };
@@ -687,16 +762,12 @@ const handleCurrentChange = (current: number) => {
 };
 
 const fetchMyPosts = async () => {
-  console.log('===== 我的发布页面开始请求 =====');
-  console.log('token:', localStorage.getItem('token'));
-  
   loading.value = true;
   try {
     const response = await getMyPosts({
       pageNum: pageNum.value,
       pageSize: pageSize.value
     });
-    console.log('===== 响应 =====', response);
     if (response.code === 200 && response.data) {
       pets.value = response.data.records || [];
       total.value = response.data.total || 0;
@@ -705,28 +776,26 @@ const fetchMyPosts = async () => {
     }
   } catch (error) {
     ElMessage.error('获取我的发布失败，请重试');
-    console.error('获取我的发布失败:', error);
   } finally {
     loading.value = false;
   }
 };
 
 const fetchMyActivities = async () => {
-  console.log('===== 获取我的活动开始请求 =====');
-  console.log('token:', localStorage.getItem('token'));
-  
   loading.value = true;
   try {
     const response = await getMyActivityList({
       pageNum: pageNum.value,
       pageSize: pageSize.value
     });
-    console.log('===== 响应 =====', response);
-    activities.value = response.data.records || [];
-    activitiesTotal.value = response.data.total || 0;
+    if (response.code === 200 && response.data) {
+      activities.value = response.data.records || [];
+      activitiesTotal.value = response.data.total || 0;
+    } else {
+      ElMessage.error(response.message || '获取我的活动失败');
+    }
   } catch (error) {
     ElMessage.error('获取我的活动失败，请重试');
-    console.error('获取我的活动失败:', error);
   } finally {
     loading.value = false;
   }
@@ -754,19 +823,32 @@ onMounted(() => {
   min-height: 100vh;
 }
 
-.page-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 24px 0;
-}
-
 .loading-container {
   background-color: white;
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 24px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.type-tabs-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  background-color: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.type-tabs {
+  flex: 1;
+}
+
+.create-button {
+  margin-left: 16px;
+  white-space: nowrap;
 }
 
 .pets-grid {

@@ -655,13 +655,14 @@ const fetchAuditHistory = async () => {
 
 // 处理查看详情
 const handleViewDetail = (id: number, targetType: string) => {
-  // 根据类型跳转到对应的详情页面
   if (targetType === 'activity') {
+    // 活动类型跳转到活动详情页面
     router.push(`/pets/activity/${id}`)
   } else {
-    router.push(`/pets/detail/${id}`)
+    // 其他类型跳转到宠物详情页面
+    router.push(`/pets/${id}`)
   }
-}
+};
 
 // 快速审核通过
 const handleQuickApprove = async (id: number, targetType: string) => {

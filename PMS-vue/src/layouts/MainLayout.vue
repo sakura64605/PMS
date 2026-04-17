@@ -75,6 +75,10 @@
             <el-icon><Star /></el-icon>
             <template #title>我的收藏</template>
           </el-menu-item>
+          <el-menu-item index="/feed">
+            <el-icon><Link /></el-icon>
+            <template #title>我的关注</template>
+          </el-menu-item>
           <el-menu-item index="/recycle">
             <el-icon><Delete /></el-icon>
             <template #title>回收站</template>
@@ -110,7 +114,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Menu, ArrowDown, User, House, Collection, Ticket, Setting, SwitchButton, Postcard, Check, Delete, Star, BellFilled } from '@element-plus/icons-vue'
+import { Menu, ArrowDown, User, House, Collection, Ticket, Setting, SwitchButton, Postcard, Check, Delete, Star, BellFilled, Link } from '@element-plus/icons-vue'
 import emitter from '../utils/eventBus'
 import { getUnreadCount, markAllMessagesAsRead } from '../api/message'
 import websocketService from '../utils/websocket'

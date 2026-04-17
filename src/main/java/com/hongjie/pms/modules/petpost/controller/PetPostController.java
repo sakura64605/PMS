@@ -81,6 +81,7 @@ public class PetPostController {
 
         log.info("宠物救助/领养信息查询: request={}", request);
         request.setStatus(1);
+        request.setAuditStatus(1);
         IPage<PetListResponseDto> response = petPostService.list(request);
 
         return CommonResult.success(response);
@@ -92,14 +93,10 @@ public class PetPostController {
     @RedisRateLimit(key = "getActivityDetail", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
     @GetMapping("/my-posts")
     public CommonResult<IPage<PetListResponseDto>> myPosts() {
-        log.info("我的发布列表");
         PetQueryRequestDto queryDto = new PetQueryRequestDto();
-        Long userId = UserContext.getUserId();
-        queryDto.setUserId(userId);
-        queryDto.setStatus(null);  // 显示所有状态
-        queryDto.setOrderBy("creat_time");
-        IPage<PetListResponseDto> page = petPostService.list(queryDto);
-        return CommonResult.success(page);
+        queryDto.setUserId(UserContext.getUserId());
+        IPage<PetListResponseDto> response = petPostService.list(queryDto);
+        return CommonResult.success(response);
     }
 
     /**

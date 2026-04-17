@@ -35,6 +35,8 @@ public class ActivityListRespDto {
 
     private Integer status;
 
+    private Integer auditStatus;
+
     private LocalDateTime startTime;
     private LocalDateTime createTime;
     private LocalDateTime endTime;

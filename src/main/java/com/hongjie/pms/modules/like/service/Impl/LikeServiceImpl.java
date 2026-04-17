@@ -19,9 +19,11 @@ import com.hongjie.pms.modules.petpost.entity.PetPost;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -32,7 +34,8 @@ public class LikeServiceImpl implements LikeService {
     private final LikeRecordMapper likeRecordMapper;
     private final CommentMapper commentMapper;
     private final ActivityMapper activityMapper;
-    private final MessageService messageService;  // 新增
+    private final MessageService messageService;
+    private final RedisTemplate redisTemplate;
 
     @Override
     public LikeResponseDto like(LikeRequest request) {
@@ -138,6 +141,19 @@ public class LikeServiceImpl implements LikeService {
                     activityMapper.decrementLikeCount(request.getTargetId());
                     likeCount = activity.getLikeCount() - 1;
                 }
+                // 1. 更新活动详情缓存
+                String activityCacheKey = "activity:" + request.getTargetId();
+                redisTemplate.delete(activityCacheKey);
+
+                // 2. 更新活动列表缓存（清空所有活动列表缓存）
+                Set<String> activityListKeys = redisTemplate.keys("activityList:*");
+                if (activityListKeys != null && !activityListKeys.isEmpty()) {
+                    redisTemplate.delete(activityListKeys);
+                }
+
+                // 3. 更新用户报名的活动列表缓存
+                String userActivityKey = "userActivity:" + currentUserId;
+                redisTemplate.delete(userActivityKey);
                 break;
 
             default:

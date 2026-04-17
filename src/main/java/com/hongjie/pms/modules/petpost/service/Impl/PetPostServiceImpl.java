@@ -80,7 +80,7 @@ public class PetPostServiceImpl implements PetPostService {
                 .contactPhone(request.getContactPhone())
                 .contactWechat(request.getContactWechat())
                 .address(request.getAddress())
-                .status(0)
+                .status(1)
                 .auditStatus(0)
                 .viewCount(0)
                 .build();
@@ -147,11 +147,15 @@ public class PetPostServiceImpl implements PetPostService {
             wrapper.like(PetPost::getPetType, queryDto.getPetType());
         }
 
-        // 状态筛选（默认只显示已发布的）
+        // 状态筛选
         if (queryDto.getStatus() != null) {
             wrapper.eq(PetPost::getStatus, queryDto.getStatus());
         } else {
-            wrapper.in(PetPost::getStatus, 0, 1, 2, 3, 4);
+            wrapper.in(PetPost::getStatus, 1, 2, 3);
+        }
+
+        if (queryDto.getAuditStatus() != null) {
+            wrapper.eq(PetPost::getAuditStatus, queryDto.getAuditStatus());
         }
 
         // 用户筛选（我的发布）
@@ -190,7 +194,6 @@ public class PetPostServiceImpl implements PetPostService {
             }
         }
 
-        wrapper.eq(PetPost::getAuditStatus, 1);
 
         // 2. 分页查询
         Page<PetPost> page = new Page<>(queryDto.getPageNum(), queryDto.getPageSize());
@@ -242,6 +245,7 @@ public class PetPostServiceImpl implements PetPostService {
                             .images(pet.getImages())
                             .viewCount(pet.getViewCount())
                             .status(pet.getStatus())
+                            .auditStatus(pet.getAuditStatus())
                             .createTime(pet.getCreateTime())
                             .user(user)
                             .commentCount(pet.getCommentCount())
@@ -283,12 +287,12 @@ public class PetPostServiceImpl implements PetPostService {
             fallbackMethod = "fallbackGetPetDetail"
     )
     @Override
-    @DistributedCacheable(
-            value = "pet",
-            key = "#petId",
-            ttl = 1800,
-            bloomFilter = false  // 不开启
-    )
+//    @DistributedCacheable(
+//            value = "pet",
+//            key = "#petId",
+//            ttl = 1800,
+//            bloomFilter = false  // 不开启
+//    )
     public PetDetailDto detail(Long id, Long currentUserId) {
         // 1. 查询宠物信息
         PetPost pet = petPostMapper.selectById(id);

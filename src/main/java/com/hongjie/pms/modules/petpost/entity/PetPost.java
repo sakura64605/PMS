@@ -88,7 +88,7 @@ public class PetPost {
      * 状态：1-已发布 2-已领养/已完成 3-已下架
      */
     @Builder.Default
-    private Integer status = 0;
+    private Integer status = 1;
 
     /**
      * 审核状态：0-待审核 1-审核通过 2-审核拒绝
