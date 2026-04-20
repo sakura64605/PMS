@@ -17,4 +17,10 @@ public interface ActivityMapper extends BaseMapper<Activity> {
 
     @Update("UPDATE activity SET comment_count = comment_count + 1 WHERE id = #{activityId}")
     void incrementCommentCount(@Param("activityId") Long activityId);
+
+    @Update("UPDATE activity SET current_people = current_people + 1 WHERE id = #{activityId}")
+    int incrementCurrentPeople(Long activityId);
+
+    @Update("UPDATE activity SET current_people = current_people - 1 WHERE id = #{id}")
+    void decrementCurrentPeople(Long id);
 }

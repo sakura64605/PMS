@@ -39,6 +39,8 @@ import com.hongjie.pms.modules.user.mapper.UserMapper;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +50,7 @@ import com.hongjie.pms.common.enums.AuditStatus;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -67,6 +70,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final DelayTaskService delayTaskService;
     private final FeedService feedService;
     private final AuditService auditService;
+    private final RedissonClient redissonClient;
 
 
     @Override
@@ -543,80 +547,107 @@ public class ActivityServiceImpl implements ActivityService {
     @Transactional
     public void signUp(SignUpInfoRequest request) {
         Long currentUserId = UserContext.getUserId();
-        Activity activity = activityMapper.selectById(request.getActivityId());
+        Long activityId = request.getActivityId();
 
-        if (activity.getAuditStatus() == 2){
+        // 1. 先查询活动（不加锁）
+        Activity activity = activityMapper.selectById(activityId);
+
+        // 审核状态校验
+        if (activity.getAuditStatus() == 2) {
             throw new BusinessException(ErrorCode.AUDIT_REJECT);
-        } else if (activity.getAuditStatus() == 0){
+        } else if (activity.getAuditStatus() == 0) {
             throw new BusinessException(ErrorCode.AUDIT_WAITING);
         }
 
+        // 业务校验（不加锁）
         if (activity.getUserId().equals(currentUserId)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "不能报名自己的活动");
         }
         if (activity.getStatus() != 0) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "活动不在报名中");
         }
-        // TODO: 并发处理 - 使用乐观锁或悲观锁确保并发安全
-        if (activity.getCurrentPeople() >= activity.getMaxPeople()) {
-            throw new BusinessException(ErrorCode.ACTIVITY_FULL);
-        }
-        if (activitySignupMapper.exists(new LambdaQueryWrapper<ActivitySignup>()
-                .eq(ActivitySignup::getActivityId, request.getActivityId())
-                .eq(ActivitySignup::getUserId, currentUserId))) {
+
+        // 检查是否已报名（不加锁）
+        boolean alreadySignUp = activitySignupMapper.exists(new LambdaQueryWrapper<ActivitySignup>()
+                .eq(ActivitySignup::getActivityId, activityId)
+                .eq(ActivitySignup::getUserId, currentUserId));
+        if (alreadySignUp) {
             throw new BusinessException(ErrorCode.ACTIVITY_SIGNUP_EXISTS);
         }
-        ActivitySignup activitySignup = new ActivitySignup();
-        activitySignup.setActivityId(request.getActivityId());
-        activitySignup.setUserId(currentUserId);
-        activitySignup.setStatus(1);
-        activitySignup.setRealName(request.getRealName());
-        activitySignup.setPhone(request.getPhone());
-        activitySignup.setRemark(request.getRemark());
-        activitySignupMapper.insert(activitySignup);
-        // TODO: 并发处理 - 使用乐观锁或悲观锁确保并发安全
-        activity.setCurrentPeople(activity.getCurrentPeople() + 1);
-        activityMapper.updateById(activity);
 
-        // ==================== 更新缓存 ====================
+        // ==================== 只锁核心操作 ====================
+        String lockKey = "lock:activity:signup:" + activityId;
+        RLock lock = redissonClient.getLock(lockKey);
 
-        // 1. 更新活动详情缓存
-        String activityCacheKey = "activity:" + request.getActivityId();
-        redisTemplate.delete(activityCacheKey);
+        try {
+            // 锁等待时间缩短到 1 秒
+            boolean locked = lock.tryLock(1, 2, TimeUnit.SECONDS);
+            if (!locked) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统繁忙，请稍后再试");
+            }
 
-        // 2. 更新活动列表缓存（清空所有活动列表缓存）
-        Set<String> activityListKeys = redisTemplate.keys("activityList:*");
-        if (activityListKeys != null && !activityListKeys.isEmpty()) {
-            redisTemplate.delete(activityListKeys);
+            // 双重检查（防止锁等待期间被占满）
+            Activity latestActivity = activityMapper.selectById(activityId);
+            if (latestActivity.getCurrentPeople() >= latestActivity.getMaxPeople()) {
+                throw new BusinessException(ErrorCode.ACTIVITY_FULL);
+            }
+
+            if (activity.getCurrentPeople() >= activity.getMaxPeople()) {
+                throw new BusinessException(ErrorCode.ACTIVITY_FULL);
+            }
+
+            // 保存报名记录
+            ActivitySignup activitySignup = new ActivitySignup();
+            activitySignup.setActivityId(activityId);
+            activitySignup.setUserId(currentUserId);
+            activitySignup.setStatus(1);
+            activitySignup.setRealName(request.getRealName());
+            activitySignup.setPhone(request.getPhone());
+            activitySignup.setRemark(request.getRemark());
+            activitySignupMapper.insert(activitySignup);
+
+            // 更新报名人数（使用乐观锁）
+            int updateResult = activityMapper.incrementCurrentPeople(activityId);
+            if (updateResult == 0) {
+                throw new BusinessException(ErrorCode.ACTIVITY_FULL, "报名人数已满");
+            }
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统繁忙，请稍后再试");
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
         }
 
-        // 3. 更新用户报名的活动列表缓存
-        String userActivityKey = "userActivity:" + currentUserId;
-        redisTemplate.delete(userActivityKey);
+        // ==================== 锁外操作（不影响性能） ====================
 
-        if (activity.getCurrentPeople() == activity.getMaxPeople()){
-            messageService.sendActivityFullNotification(
-                    activity.getUserId(),
-                    activity.getTitle(),
-                    activity.getId()
-            );
-        }
+        // 更新缓存（异步）
+        CompletableFuture.runAsync(() -> {
+            redisTemplate.delete("activity:" + activityId);
+            Set<String> activityListKeys = redisTemplate.keys("activityList:*");
+            if (activityListKeys != null && !activityListKeys.isEmpty()) {
+                redisTemplate.delete(activityListKeys);
+            }
+            redisTemplate.delete("userActivity:" + currentUserId);
+        });
 
-        // 向活动发布者发送有人报名的通知
-        messageService.sendSomeoneSignUpNotification(
-                activity.getUserId(),
-                currentUserId,
-                request.getRealName(),
-                activity.getTitle(),
-                activity.getId()
-        );
-        
-        // 向报名者发送报名成功的通知
-        messageService.sendSignUpSuccessNotification(
-                currentUserId,
-                activity.getTitle(),
-                activity.getId()
-        );
+        // 发送通知（异步）
+        Activity finalActivity = activity;
+        CompletableFuture.runAsync(() -> {
+            if (finalActivity.getCurrentPeople() + 1 == finalActivity.getMaxPeople()) {
+                messageService.sendActivityFullNotification(
+                        finalActivity.getUserId(), finalActivity.getTitle(), activityId);
+            }
+            messageService.sendSomeoneSignUpNotification(
+                    finalActivity.getUserId(), currentUserId, request.getRealName(),
+                    finalActivity.getTitle(), activityId);
+            messageService.sendSignUpSuccessNotification(
+                    currentUserId, finalActivity.getTitle(), activityId);
+        });
+
+        log.info("用户{}报名活动{}成功", currentUserId, activityId);
     }
 
     /**
@@ -644,8 +675,7 @@ public class ActivityServiceImpl implements ActivityService {
             throw new BusinessException(ErrorCode.ACTIVITY_NOT_SIGNUP);
         }
         activitySignupMapper.deleteById(activitySignup);
-        // TODO: 并发处理 - 使用乐观锁或悲观锁确保并发安全
-        activity.setCurrentPeople(activity.getCurrentPeople() - 1);
+        activityMapper.decrementCurrentPeople(id);
         activityMapper.updateById(activity);
     }
 

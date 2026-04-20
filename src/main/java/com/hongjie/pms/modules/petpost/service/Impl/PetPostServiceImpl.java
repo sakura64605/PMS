@@ -325,12 +325,10 @@ public class PetPostServiceImpl implements PetPostService {
             userSimpleDto.setIsFollow(true);
         }
 
-        // TODO: 优化增加浏览次数，防止高并发导致浏览次数未增加
-        // 3. 增加浏览次数（异步或直接更新）
+        // 浏览次数增加（原子操作）
         if (pet.getStatus() == 1 && pet.getUserId() != currentUserId) {
-            pet.setViewCount(pet.getViewCount() + 1);
+            petPostMapper.incrementViewCount(id);
         }
-        petPostMapper.updateById(pet);
 
         // 4. 构建详情DTO
         PetDetailDto detailDto = PetDetailDto.builder()
