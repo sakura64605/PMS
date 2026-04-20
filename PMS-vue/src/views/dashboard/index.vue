@@ -27,6 +27,9 @@
               <el-badge v-if="unreadCount > 0" :value="unreadCount" type="danger" />
             </div>
           </template>
+          
+
+          
           <div class="notice-list">
             <div v-for="notice in noticeList" :key="notice.id" class="notice-item" @click="handleNoticeClick(notice.id)">
               <div class="notice-header">
@@ -49,6 +52,18 @@
               <p>暂无公告</p>
             </div>
           </div>
+          
+          <!-- 分页组件 -->
+          <div class="pagination" v-if="total > 0">
+            <el-pagination
+              :current-page="pageNum"
+              :page-size="pageSize"
+              :total="total"
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+              layout="total, sizes, prev, pager, next, jumper"
+            />
+          </div>
         </el-card>
       </el-main>
     </el-container>
@@ -65,6 +80,11 @@ const username = ref('')
 const role = ref(0)
 const noticeList = ref<any[]>([])
 const unreadCount = ref(0)
+
+// 分页参数
+const pageNum = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 onMounted(() => {
   // 从localStorage获取用户信息
@@ -91,9 +111,13 @@ const logout = () => {
 // 获取公告列表
 const fetchNoticeList = async () => {
   try {
-    const response = await getNoticeList({ pageNum: 1, pageSize: 5 })
+    const response = await getNoticeList({ 
+      pageNum: pageNum.value, 
+      pageSize: pageSize.value 
+    })
     if (response.code === 200) {
       noticeList.value = response.data.records
+      total.value = response.data.total
     }
   } catch (error) {
     console.error('获取公告列表失败:', error)
@@ -116,6 +140,19 @@ const fetchUnreadCount = async () => {
 const handleNoticeClick = (id: number) => {
   // 跳转到公告详情页面
   router.push(`/notice/${id}`)
+}
+
+// 处理分页大小变化
+const handleSizeChange = (size: number) => {
+  pageSize.value = size
+  pageNum.value = 1
+  fetchNoticeList()
+}
+
+// 处理页码变化
+const handleCurrentChange = (current: number) => {
+  pageNum.value = current
+  fetchNoticeList()
 }
 
 // 获取公告类型样式
@@ -197,8 +234,11 @@ const getPriorityText = (priority: number) => {
   margin-top: 20px;
 }
 
+
+
 .notice-list {
   padding: 10px 0;
+  min-height: 200px;
 }
 
 .notice-item {
@@ -291,5 +331,11 @@ const getPriorityText = (priority: number) => {
   padding: 40px 0;
   text-align: center;
   color: #909399;
+}
+
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
 }
 </style>

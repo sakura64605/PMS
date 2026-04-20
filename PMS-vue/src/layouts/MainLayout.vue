@@ -3,20 +3,46 @@
     <!-- 顶部导航栏 -->
     <el-header height="60px" class="header">
       <div class="header-left">
-        <el-button
-          type="text"
-          class="menu-toggle"
-          @click="toggleMenu"
-        >
-          <el-icon><Menu /></el-icon>
-        </el-button>
         <div class="logo">
           <span class="logo-text">PetCircle -宠友社</span>
         </div>
+        <el-menu
+          mode="horizontal"
+          :default-active="activeMenu"
+          class="top-menu"
+          @select="handleMenuSelect"
+        >
+          <el-menu-item index="/dashboard">
+            <el-icon><House /></el-icon>
+            <template #title>首页</template>
+          </el-menu-item>
+          <el-menu-item index="/pets">
+            <el-icon><Collection /></el-icon>
+            <template #title>宠友圈</template>
+          </el-menu-item>
+          <el-sub-menu index="/my">
+            <template #title>
+              <el-icon><User /></el-icon>
+              <span>我的</span>
+            </template>
+            <el-menu-item index="/pets/my-posts">我的发布</el-menu-item>
+            <el-menu-item index="/pets/collections">我的收藏</el-menu-item>
+            <el-menu-item index="/recycle">回收站</el-menu-item>
+          </el-sub-menu>
+          <el-menu-item index="/feed">
+            <el-icon><Link /></el-icon>
+            <template #title>关注</template>
+          </el-menu-item>
+          <el-menu-item index="/audit" v-if="userInfo?.role === 1">
+            <el-icon><Check /></el-icon>
+            <template #title>管理员后台</template>
+          </el-menu-item>
+
+        </el-menu>
       </div>
       <div class="header-right">
         <el-dropdown @command="handleMessageCommand" class="message-dropdown">
-          <span class="message-icon">
+          <span class="message-icon" @click="goToMessage">
             <el-icon><BellFilled /></el-icon>
             <el-badge v-if="unreadCount > 0" :value="unreadCount" type="danger" class="message-badge"></el-badge>
           </span>
@@ -27,6 +53,11 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
+        <span class="message-dropdown" @click="goToPrivateMessage">
+          <span class="message-icon">
+            <el-icon><ChatDotRound /></el-icon>
+          </span>
+        </span>
         <el-dropdown>
           <span class="user-dropdown">
             <el-avatar :size="32" :src="userInfo?.avatar || 'https://via.placeholder.com/32'">
@@ -50,63 +81,9 @@
     </el-header>
 
     <!-- 主体内容 -->
-    <div class="main-content">
-      <!-- 左侧菜单栏 -->
-      <el-aside :width="isCollapsed ? '64px' : '200px'" class="sidebar">
-        <el-menu
-          :collapse="isCollapsed"
-          :default-active="activeMenu"
-          class="menu"
-          @select="handleMenuSelect"
-        >
-          <el-menu-item index="/dashboard">
-            <el-icon><House /></el-icon>
-            <template #title>首页</template>
-          </el-menu-item>
-          <el-menu-item index="/pets">
-            <el-icon><Collection /></el-icon>
-            <template #title>宠友圈</template>
-          </el-menu-item>
-          <el-menu-item index="/pets/my-posts">
-            <el-icon><Postcard /></el-icon>
-            <template #title>我的发布</template>
-          </el-menu-item>
-          <el-menu-item index="/pets/collections">
-            <el-icon><Star /></el-icon>
-            <template #title>我的收藏</template>
-          </el-menu-item>
-          <el-menu-item index="/feed">
-            <el-icon><Link /></el-icon>
-            <template #title>我的关注</template>
-          </el-menu-item>
-          <el-menu-item index="/recycle">
-            <el-icon><Delete /></el-icon>
-            <template #title>回收站</template>
-          </el-menu-item>
-          <el-menu-item index="/audit" v-if="userInfo?.role === 1">
-            <el-icon><Check /></el-icon>
-            <template #title>管理员后台</template>
-          </el-menu-item>
-          <el-menu-item index="/message">
-            <el-icon><BellFilled /></el-icon>
-            <template #title>消息中心</template>
-          </el-menu-item>
-          <el-menu-item index="/profile">
-            <el-icon><User /></el-icon>
-            <template #title>个人中心</template>
-          </el-menu-item>
-          <el-menu-item index="/settings" v-if="userInfo?.role === 1">
-            <el-icon><Setting /></el-icon>
-            <template #title>系统设置</template>
-          </el-menu-item>
-        </el-menu>
-      </el-aside>
-
-      <!-- 右侧内容区 -->
-      <el-main class="content">
-        <router-view />
-      </el-main>
-    </div>
+    <el-main class="content">
+      <router-view />
+    </el-main>
   </div>
 </template>
 
@@ -114,16 +91,13 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Menu, ArrowDown, User, House, Collection, Ticket, Setting, SwitchButton, Postcard, Check, Delete, Star, BellFilled, Link } from '@element-plus/icons-vue'
+import { Menu, ArrowDown, User, House, Collection, Ticket, Setting, SwitchButton, Postcard, Check, Delete, Star, BellFilled, Link, ChatDotRound } from '@element-plus/icons-vue'
 import emitter from '../utils/eventBus'
 import { getUnreadCount, markAllMessagesAsRead } from '../api/message'
 import websocketService from '../utils/websocket'
 
 const router = useRouter()
 const route = useRoute()
-
-// 菜单折叠状态
-const isCollapsed = ref(false)
 
 // 当前活跃菜单
 const activeMenu = computed(() => {
@@ -135,11 +109,6 @@ const userInfo = ref<any>(null)
 // 未读消息数量
 const unreadCount = ref(0)
 
-// 切换菜单折叠状态
-const toggleMenu = () => {
-  isCollapsed.value = !isCollapsed.value
-}
-
 // 处理菜单选择
 const handleMenuSelect = (key: string) => {
   router.push(key)
@@ -148,6 +117,16 @@ const handleMenuSelect = (key: string) => {
 // 跳转到个人中心
 const goToProfile = () => {
   router.push('/profile')
+}
+
+// 跳转到消息中心
+const goToMessage = () => {
+  router.push('/message')
+}
+
+// 跳转到私信页面
+const goToPrivateMessage = () => {
+  router.push('/private-message')
 }
 
 // 退出登录
@@ -192,12 +171,15 @@ const loadUnreadCount = async () => {
 
 // 处理WebSocket消息
 const handleWebSocketMessage = (message: any) => {
+  console.log('收到WebSocket消息:', message)
   // 显示系统通知
-  ElMessage({
-    message: message.title,
-    type: 'info',
-    duration: 3000
-  })
+  if (message.title) {
+    ElMessage({
+      message: message.title,
+      type: 'info',
+      duration: 3000
+    })
+  }
   // 更新未读消息数量
   loadUnreadCount()
   // 通过EventBus发射新消息事件
@@ -308,17 +290,14 @@ onMounted(() => {
 .header-left {
   display: flex;
   align-items: center;
-}
-
-.menu-toggle {
-  font-size: 20px;
-  margin-right: 20px;
-  color: #606266;
+  gap: 30px;
+  flex: 1;
 }
 
 .logo {
   display: flex;
   align-items: center;
+  white-space: nowrap;
 }
 
 .logo-img {
@@ -333,10 +312,24 @@ onMounted(() => {
   color: #409eff;
 }
 
+.top-menu {
+  flex: 1;
+  border-bottom: none;
+}
+
+.top-menu .el-menu-item {
+  margin: 0;
+  height: 60px;
+  line-height: 60px;
+  min-width: 90px;
+  text-align: center;
+}
+
 .header-right {
   display: flex;
   align-items: center;
   gap: 20px;
+  white-space: nowrap;
 }
 
 .message-dropdown {
@@ -383,24 +376,6 @@ onMounted(() => {
   color: #606266;
 }
 
-.main-content {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-.sidebar {
-  background-color: #ffffff;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
-  transition: width 0.3s;
-  overflow: hidden;
-}
-
-.menu {
-  height: 100%;
-  border-right: none;
-}
-
 .content {
   flex: 1;
   background-color: #f5f7fa;
@@ -410,19 +385,19 @@ onMounted(() => {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 60px;
-    height: calc(100vh - 60px);
-    z-index: 99;
-    transform: translateX(-100%);
+  .top-menu-header {
+    padding: 0 10px;
   }
-
-  .sidebar.el-aside {
-    transform: translateX(0);
+  
+  .top-menu .el-menu-item {
+    min-width: 80px;
+    font-size: 12px;
   }
-
+  
+  .top-menu .el-menu-item .el-icon {
+    font-size: 14px;
+  }
+  
   .content {
     padding: 10px;
   }

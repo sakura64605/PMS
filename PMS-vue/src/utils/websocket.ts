@@ -23,24 +23,31 @@ class WebSocketService {
 
   // 初始化WebSocket连接
   init(token: string) {
+    console.log('开始初始化WebSocket连接，token:', token)
     if (this.socket) {
+      console.log('关闭现有WebSocket连接')
       this.socket.close()
     }
 
-    this.socket = new SockJS(`/pet-system/ws?token=${token}`)
+    const url = `/pet-system/ws?token=${token}`
+    console.log('WebSocket连接URL:', url)
+    this.socket = new SockJS(url)
     this.socket.onopen = () => {
       console.log('WebSocket连接成功')
       this.reconnectAttempts = 0
     }
 
     this.socket.onmessage = (event: any) => {
+      console.log('收到WebSocket消息:', event.data)
       try {
         const message = JSON.parse(event.data)
+        console.log('解析后的消息:', message)
         if (this.messageCallback) {
           this.messageCallback(message)
         }
       } catch (error) {
         console.error('WebSocket消息解析失败:', error)
+        console.error('原始消息:', event.data)
       }
     }
 

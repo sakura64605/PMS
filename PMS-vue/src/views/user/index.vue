@@ -39,6 +39,9 @@
             <el-button type="primary" @click="handleFollow">
               {{ isFollowing ? '已关注' : '关注' }}
             </el-button>
+            <el-button type="info" @click="handleSendMessage">
+              发私信
+            </el-button>
           </div>
         </div>
       </div>
@@ -86,6 +89,7 @@ import { ElMessage } from 'element-plus';
 import { ArrowLeft } from '@element-plus/icons-vue';
 import { getUserInfoByUserId } from '../../api/user';
 import { formatDate, formatNumber, getGenderText } from '../../utils/format';
+import request from '../../utils/request';
 
 // 路由
 const route = useRoute();
@@ -103,6 +107,36 @@ const handleBack = () => router.back();
 const navigateToPetDetail = (petId: number) => router.push(`/pets/${petId}`);
 
 const handleFollow = () => ElMessage.info('功能开发中');
+
+const handleSendMessage = async () => {
+  if (userInfo.value) {
+    try {
+      // 调用后端接口创建或获取会话
+      const response = await request({
+        url: '/message/private/conversation',
+        method: 'get',
+        params: {
+          otherUserId: userInfo.value.user.userId
+        }
+      });
+      
+      if (response.code === 200 && response.data) {
+        // 跳转到私信页面并传递会话ID
+        router.push({
+          path: '/private-message',
+          query: {
+            conversationId: response.data.conversationId
+          }
+        });
+      } else {
+        ElMessage.error('创建会话失败，请重试');
+      }
+    } catch (error) {
+      console.error('创建会话失败:', error);
+      ElMessage.error('创建会话失败，请重试');
+    }
+  }
+};
 
 const fetchUserInfo = async () => {
   const userId = route.params.id;

@@ -1,6 +1,5 @@
 <template>
   <div class="collections-container">
-    <h2 class="page-title">我的收藏</h2>
 
     <div v-if="loading" class="loading-container">
       <el-skeleton :rows="8" animated />

@@ -107,6 +107,12 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true }
       },
       {
+        path: 'private-message',
+        name: 'PrivateMessage',
+        component: () => import('../views/private-message/index.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
         path: 'audit',
         name: 'Audit',
         component: () => import('../views/audit/index.vue'),

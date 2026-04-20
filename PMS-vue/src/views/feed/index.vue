@@ -1,6 +1,5 @@
 <template>
   <div class="feed-container">
-    <h1 class="page-title">我的关注</h1>
     
     <!-- 筛选和搜索 -->
     <div class="feed-filter">
