@@ -3,6 +3,7 @@ package com.hongjie.pms.modules.feed.service.Impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.PostType;
 import com.hongjie.pms.modules.activity.entity.Activity;
@@ -19,6 +20,8 @@ import com.hongjie.pms.modules.petpost.entity.PetPost;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
 import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,7 +34,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class FeedServiceImpl implements FeedService {
+public class FeedServiceImpl extends ServiceImpl<UserInboxMapper, UserInbox> implements FeedService{
 
     private final UserInboxMapper userInboxMapper;
     private final BigVConfigMapper bigVConfigMapper;
@@ -345,5 +348,96 @@ public class FeedServiceImpl implements FeedService {
                 .eq(UserInbox::getPosterId, followingId);
         userInboxMapper.delete(wrapper);
         log.info("取消关注，清理收件箱: followerId={}, followingId={}", followerId, followingId);
+    }
+
+    /**
+     * 拉取被关注人的历史帖子到收件箱
+     */
+    @Override
+    @Transactional
+    public void pullHistoryPosts(Long currentUserId, Long targetUserId, int limit) {
+        // 1. 查询被关注人的宠物帖子
+        LambdaQueryWrapper<PetPost> petWrapper = new LambdaQueryWrapper<PetPost>()
+                .eq(PetPost::getUserId, targetUserId)
+                .eq(PetPost::getAuditStatus, 1)
+                .eq(PetPost::getStatus, 1)
+                .orderByDesc(PetPost::getCreateTime)
+                .last("LIMIT " + limit);
+        List<PetPost> petList = petPostMapper.selectList(petWrapper);
+
+        // 2. 查询被关注人的活动帖子
+        LambdaQueryWrapper<Activity> activityWrapper = new LambdaQueryWrapper<Activity>()
+                .eq(Activity::getUserId, targetUserId)
+                .eq(Activity::getAuditStatus, 1)
+                .eq(Activity::getStatus, 1)
+                .orderByDesc(Activity::getCreateTime)
+                .last("LIMIT " + limit);
+        List<Activity> activityList = activityMapper.selectList(activityWrapper);
+
+        // 3. 合并并按时间排序
+        List<FeedItem> items = new ArrayList<>();
+        for (PetPost pet : petList) {
+            items.add(new FeedItem(pet.getId(), "pet", pet.getUserId(), pet.getCreateTime()));
+        }
+        for (Activity activity : activityList) {
+            items.add(new FeedItem(activity.getId(), "activity", activity.getUserId(), activity.getCreateTime()));
+        }
+        items.sort((a, b) -> b.getCreateTime().compareTo(a.getCreateTime()));
+
+        if (items.isEmpty()) {
+            return;
+        }
+
+        // 4. 限制数量
+        if (items.size() > limit) {
+            items = items.subList(0, limit);
+        }
+
+        // 5. 构建收件箱数据
+        User user = userMapper.selectById(targetUserId);
+        List<UserInbox> inboxList = new ArrayList<>();
+
+        for (FeedItem item : items) {
+            UserInbox inbox = new UserInbox();
+            inbox.setUserId(currentUserId);
+            inbox.setPostId(item.getPostId());
+            inbox.setPostType(item.getPostType());
+            inbox.setPosterId(targetUserId);
+            inbox.setPosterName(user.getUserName());
+            inbox.setPosterAvatar(user.getAvatar());
+            inbox.setCreateTime(item.getCreateTime());
+            inbox.setIsRead(0);
+
+            if ("pet".equals(item.getPostType())) {
+                PetPost pet = petPostMapper.selectById(item.getPostId());
+                if (pet != null) {
+                    inbox.setTitle(pet.getTitle());
+                    inbox.setCoverImage(pet.getImages() != null && !pet.getImages().isEmpty() ? pet.getImages().get(0) : null);
+                }
+            } else {
+                Activity activity = activityMapper.selectById(item.getPostId());
+                if (activity != null) {
+                    inbox.setTitle(activity.getTitle());
+                    inbox.setCoverImage(activity.getImages() != null && !activity.getImages().isEmpty() ? activity.getImages().get(0) : null);
+                }
+            }
+            inboxList.add(inbox);
+        }
+
+        // 6. 批量插入（使用 MyBatis-Plus 的 saveBatch）
+        if (!inboxList.isEmpty()) {
+            saveBatch(inboxList);
+            log.info("拉取历史帖子到收件箱: userId={}, posterId={}, count={}",
+                    currentUserId, targetUserId, inboxList.size());
+        }
+    }
+
+    @Data
+    @AllArgsConstructor
+    private static class FeedItem {
+        private Long postId;
+        private String postType;
+        private Long userId;
+        private LocalDateTime createTime;
     }
 }

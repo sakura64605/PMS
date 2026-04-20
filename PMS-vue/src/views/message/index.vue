@@ -150,6 +150,13 @@ const handleMessageClick = async (message: any) => {
     }
   }
 
+  // 添加调试日志
+  console.log('=== 消息跳转调试 ===')
+  console.log('消息原始数据:', message)
+  console.log('message.link:', message.link)
+  console.log('message.commentId:', message.commentId)
+  console.log('message.businessId:', message.businessId)
+
   // 跳转到对应页面
   try {
     let path = '/dashboard'
@@ -189,6 +196,9 @@ const handleMessageClick = async (message: any) => {
           // /pet_post/{id}
           const id = parts[2]
           path = `/pets/${id}`
+          if (message.commentId) {
+            query = { commentId: message.commentId }
+          }
         } else if (parts.length === 4 && parts[3] === 'edit') {
           // /pet_post/edit/{id}
           const id = parts[3]
@@ -204,11 +214,18 @@ const handleMessageClick = async (message: any) => {
         if (parts.length === 3) {
           // /activity/{id}
           const id = parts[2]
-          path = `/activities/${id}`
+          path = `/pets/activity/${id}`
         } else if (parts.length === 4 && parts[2] === 'signup-list') {
           // /activity/signup-list/{id}
           const id = parts[3]
-          path = `/activities/${id}`
+          path = `/pets/activity/${id}`
+        } else if (parts.length === 4 && parts[2] === 'comment') {
+          // /activity/comment/{id}
+          const id = parts[3]
+          path = `/pets/activity/${id}`
+          if (message.commentId) {
+            query = { commentId: message.commentId }
+          }
         }
       } else if (linkPath.startsWith('/pet_activity/')) {
         // 活动相关路径（审核通知）
@@ -216,15 +233,18 @@ const handleMessageClick = async (message: any) => {
         if (parts.length === 3) {
           // /pet_activity/{id}
           const id = parts[2]
-          path = `/activities/${id}`
+          path = `/pets/activity/${id}`
+          if (message.commentId) {
+            query = { commentId: message.commentId }
+          }
         } else if (parts.length === 4 && parts[3] === 'edit') {
           // /pet_activity/edit/{id}
           const id = parts[3]
-          path = `/activities/${id}/edit`
+          path = `/pets/create?type=2&id=${id}`
         } else if (parts.length === 4 && parts[2] === 'edit') {
           // /pet_activity/edit/{id}
           const id = parts[3]
-          path = `/activities/${id}/edit`
+          path = `/pets/create?type=2&id=${id}`
         }
       } else if (linkPath.startsWith('/user/')) {
         // 用户主页
@@ -237,13 +257,24 @@ const handleMessageClick = async (message: any) => {
     } else if (message.type === 'LIKE' || message.type === 'COMMENT') {
       // 点赞和评论的消息，尝试跳转到对应的宠物帖或活动详情页
       if (message.businessId && Number(message.businessId)) {
-        path = `/pets/${message.businessId}`
+        // 检查是否有评论ID，如有则跳转到评论位置
+        if (message.commentId) {
+          path = `/pets/${message.businessId}`
+          query = { commentId: message.commentId }
+        } else {
+          path = `/pets/${message.businessId}`
+        }
       }
     } else if (message.type && message.businessId) {
       // 处理其他类型的消息
       if (message.type === 'SIGN_UP' || message.type === 'SIGN_IN' || message.type === 'ACTIVITY_REMINDER' || message.type === 'ACTIVITY_FULL') {
         // 活动相关消息，跳转到活动详情页
-        path = `/activities/${message.businessId}`
+        if (message.commentId) {
+          path = `/pets/activity/${message.businessId}`
+          query = { commentId: message.commentId }
+        } else {
+          path = `/pets/activity/${message.businessId}`
+        }
       }
     }
     

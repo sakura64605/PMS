@@ -835,6 +835,129 @@ const handleImageClick = (event: any) => {
 // 评论列表
 const comments = ref<any[]>([]);
 
+// 是否已完成初始滚动
+const hasScrolled = ref(false);
+
+// 滚动到指定评论 - 增强版
+const scrollToComment = () => {
+  const commentId = route.query.commentId as string;
+  
+  if (!commentId) {
+    console.log('没有 commentId 参数，跳过滚动');
+    return;
+  }
+  
+  if (hasScrolled.value) {
+    console.log('已经执行过滚动，跳过');
+    return;
+  }
+  
+  console.log('准备滚动到评论:', commentId);
+  
+  // 滚动到目标元素的函数
+  const doScroll = (element: HTMLElement) => {
+    console.log('找到目标元素，执行滚动');
+    // 使用 setTimeout 确保在 DOM 完全稳定后滚动
+    setTimeout(() => {
+      element.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+      
+      // 高亮效果
+      element.style.backgroundColor = '#f0f9ff';
+      element.style.transition = 'background-color 0.5s';
+      setTimeout(() => {
+        element.style.backgroundColor = '';
+      }, 2000);
+      
+      hasScrolled.value = true;
+    }, 100);
+  };
+  
+  // 查找元素的函数
+  const findAndScroll = () => {
+    // 尝试多种选择器
+    const selectors = [
+      `#comment-${commentId}`,
+      `[id="comment-${commentId}"]`,
+      `.comment-item[id="comment-${commentId}"]`,
+      `.reply-item[id="comment-${commentId}"]`,
+      `#reply-${commentId}`,
+      `[id="reply-${commentId}"]`,
+      `.comment-item[data-id="${commentId}"]`,
+      `.reply-item[data-id="${commentId}"]`
+    ];
+    
+    for (const selector of selectors) {
+      const element = document.querySelector(selector) as HTMLElement;
+      if (element) {
+        console.log('通过选择器找到元素:', selector);
+        doScroll(element);
+        return true;
+      }
+    }
+    
+    // 尝试查找所有包含评论 ID 的元素
+    console.log('尝试查找所有包含评论 ID 的元素');
+    const allElements = document.querySelectorAll('*');
+    for (const element of allElements) {
+      if (element.id && element.id.includes(commentId)) {
+        console.log('找到包含评论 ID 的元素:', element.id);
+        doScroll(element);
+        return true;
+      }
+      if (element.dataset && element.dataset.id === commentId) {
+        console.log('找到包含评论 ID 的元素 (data-id):', element.dataset.id);
+        doScroll(element);
+        return true;
+      }
+    }
+    
+    return false;
+  };
+  
+  // 立即尝试查找
+  if (findAndScroll()) {
+    return;
+  }
+  
+  // 如果没找到，设置定时器重试
+  console.log('未立即找到元素，开始轮询查找');
+  let attempts = 0;
+  const maxAttempts = 30; // 最多尝试 30 次
+  const interval = 200; // 每 200ms 尝试一次
+  
+  const timer = setInterval(() => {
+    attempts++;
+    console.log(`第 ${attempts} 次尝试查找评论元素`);
+    
+    if (findAndScroll()) {
+      clearInterval(timer);
+      return;
+    }
+    
+    if (attempts >= maxAttempts) {
+      clearInterval(timer);
+      console.log('达到最大尝试次数，未找到评论元素');
+      
+      // 打印所有可能的评论 ID，帮助调试
+      const allCommentItems = document.querySelectorAll('.comment-item, .reply-item');
+      console.log('页面中所有评论元素的 ID:');
+      allCommentItems.forEach(el => {
+        console.log('  -', el.id, 'data-id:', el.dataset?.id);
+      });
+      
+      // 打印所有元素的 ID，看看是否有包含评论 ID 的元素
+      console.log('页面中所有元素的 ID (包含 comment 或 reply):');
+      const allElements = document.querySelectorAll('[id*="comment"], [id*="reply"]');
+      allElements.forEach(el => {
+        console.log('  -', el.id);
+      });
+    }
+  }, interval);
+};
+
 const fetchPetDetail = async () => {
   const id = route.params.id;
   if (!id) {
@@ -856,6 +979,8 @@ const fetchPetDetail = async () => {
         isFollowing.value = pet.value.user.isFollow || false;
         // 获取评论列表
         await fetchComments();
+        // 滚动到指定评论
+        scrollToComment();
         return;
       }
     } catch (petError) {
@@ -875,6 +1000,8 @@ const fetchPetDetail = async () => {
         isFollowing.value = pet.value.user.isFollow || false;
         // 获取评论列表
         await fetchComments();
+        // 滚动到指定评论
+        scrollToComment();
         return;
       }
     } catch (activityError) {
@@ -966,22 +1093,44 @@ const fetchComments = async () => {
         comments.value = [];
       }
       console.log('最终评论列表:', comments.value);
+      console.log('评论数据示例:', comments.value[0]);
+      console.log('评论 ID 列表:', comments.value.map(c => ({ id: c.id, replies: c.replies?.map(r => r.id) })));
       
-      // 检查是否需要滚动到指定评论
-      const commentId = route.query.commentId;
-      if (commentId) {
-        setTimeout(() => {
-          const commentElement = document.getElementById(`comment-${commentId}`);
-          if (commentElement) {
-            commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // 可以添加一个高亮效果
-            commentElement.style.backgroundColor = '#f0f9ff';
-            setTimeout(() => {
-              commentElement.style.backgroundColor = '';
-            }, 2000);
+      // 自动展开包含目标评论的回复列表
+      const targetCommentId = route.query.commentId as string;
+      if (targetCommentId) {
+        console.log('尝试展开包含评论', targetCommentId, '的回复列表');
+        const expandReplies = (comments: any[]) => {
+          for (const comment of comments) {
+            // 检查当前评论是否是目标评论
+            if (comment.id === Number(targetCommentId)) {
+              console.log('找到目标评论，展开其父评论的回复');
+              return true;
+            }
+            // 检查当前评论的回复中是否有目标评论
+            if (comment.replies && comment.replies.length > 0) {
+              const found = comment.replies.some((reply: any) => reply.id === Number(targetCommentId));
+              if (found) {
+                console.log('在评论', comment.id, '的回复中找到目标评论，展开回复列表');
+                comment.showAllReplies = true;
+                return true;
+              }
+              // 递归检查嵌套回复
+              const foundInNested = expandReplies(comment.replies);
+              if (foundInNested) {
+                comment.showAllReplies = true;
+                return true;
+              }
+            }
           }
-        }, 300);
+          return false;
+        };
+        expandReplies(comments.value);
       }
+      
+      // 等待 DOM 更新后滚动
+      await import('vue').then(({ nextTick }) => nextTick());
+      scrollToComment();
     } else {
       ElMessage.error(response.message || '获取评论列表失败');
       comments.value = [];
@@ -995,6 +1144,9 @@ const fetchComments = async () => {
 
 // 生命周期
 onMounted(() => {
+  console.log('=== 详情页 mounted ===');
+  console.log('路由参数:', route.params);
+  console.log('路由查询:', route.query);
   fetchPetDetail();
 });
 </script>

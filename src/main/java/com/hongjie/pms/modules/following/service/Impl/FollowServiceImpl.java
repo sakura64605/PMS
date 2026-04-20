@@ -57,10 +57,9 @@ public class FollowServiceImpl implements FollowService {
             followMapper.insert(follow);
             userMapper.increaseFollowerCount(userId);
             userMapper.increaseFollowingCount(currentUserId);
-        }
+            feedService.pullHistoryPosts(currentUserId, userId, 20);
 
-        if (existFollow == null) {
-            // 新增关注
+            // 发送通知
             messageService.sendFollowNotification(
                     userId,
                     currentUserId,

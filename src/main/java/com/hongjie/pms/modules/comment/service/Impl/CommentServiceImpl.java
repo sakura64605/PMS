@@ -124,7 +124,7 @@ public class CommentServiceImpl implements CommentService {
                         null,
                         "回复了你的评论：" + request.getContent(),
                         request.getParentId(),
-                        "/pet/" + request.getTargetId() + "?commentId=" + request.getParentId()  // 带评论锚点
+                        request.getTargetType().equals(CommentLikeTypes.PET_ACTIVITY) ? "/activity/" : "/pet/" + request.getTargetId() + "?commentId=" + comment.getId()  // 带评论锚点
                 );
             }
         }

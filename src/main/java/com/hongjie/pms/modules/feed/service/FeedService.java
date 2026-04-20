@@ -30,4 +30,6 @@ public interface FeedService {
      * 取消关注时清理收件箱
      */
     void onUnfollow(Long followerId, Long followingId);
+
+    void pullHistoryPosts(Long currentUserId, Long userId, int i);
 }
