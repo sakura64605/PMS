@@ -20,11 +20,14 @@ import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,6 +38,7 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
     private final PrivateConversationMapper conversationMapper;
     private final PrivateMessageMapper messageMapper;
     private final UserMapper userMapper;
+    private final RedissonClient redissonClient;
 
     @Override
     @Transactional
@@ -64,11 +68,10 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
 
         // 增加接收者的未读数
         if (conversation.getUserA().equals(toUserId)) {
-            conversation.setUnreadCountA(conversation.getUnreadCountA() + 1);
+            conversationMapper.incrementUnreadA(conversation.getId(), toUserId);
         } else {
-            conversation.setUnreadCountB(conversation.getUnreadCountB() + 1);
+            conversationMapper.incrementUnreadB(conversation.getId(), toUserId);
         }
-        conversationMapper.updateById(conversation);
 
         // 4. WebSocket 实时推送
         User fromUser = userMapper.selectById(fromUserId);
@@ -80,6 +83,7 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
     }
 
     @Override
+    // TODO: 缓存优化 - 添加缓存机制，提高会话列表查询性能
     public IPage<ConversationDto> getConversationList(Long userId, Integer pageNum, Integer pageSize) {
         Page<PrivateConversation> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<PrivateConversation> wrapper = new LambdaQueryWrapper<PrivateConversation>()
@@ -101,6 +105,7 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
      * 获取聊天记录（过滤已删除的）
      */
     @Override
+    // TODO: 缓存优化 - 添加缓存机制，提高聊天记录查询性能
     public IPage<MessageDto> getMessageList(Long userId, Long conversationId, Integer pageNum, Integer pageSize) {
         // 1. 验证权限
         PrivateConversation conversation = conversationMapper.selectById(conversationId);
@@ -194,22 +199,48 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
      * 仅获取或创建会话（不发送消息）
      */
     private PrivateConversation getOrCreateConversationOnly(Long userA, Long userB) {
-        LambdaQueryWrapper<PrivateConversation> wrapper = new LambdaQueryWrapper<PrivateConversation>()
-                .and(w -> w.eq(PrivateConversation::getUserA, userA).eq(PrivateConversation::getUserB, userB))
-                .or(w -> w.eq(PrivateConversation::getUserA, userB).eq(PrivateConversation::getUserB, userA));
-        PrivateConversation conversation = conversationMapper.selectOne(wrapper);
+        Long minUserId = Math.min(userA, userB);
+        Long maxUserId = Math.max(userA, userB);
 
-        if (conversation == null) {
+        String lockKey = "lock:conversation:" + minUserId + ":" + maxUserId;
+        RLock lock = redissonClient.getLock(lockKey);
+
+        try {
+            // 等待2秒，持有3秒
+            boolean locked = lock.tryLock(2, 3, TimeUnit.SECONDS);
+            if (!locked) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统繁忙，请稍后再试");
+            }
+
+            // 双重检查
+            LambdaQueryWrapper<PrivateConversation> wrapper = new LambdaQueryWrapper<PrivateConversation>()
+                    .eq(PrivateConversation::getUserA, minUserId)
+                    .eq(PrivateConversation::getUserB, maxUserId);
+            PrivateConversation conversation = conversationMapper.selectOne(wrapper);
+
+            if (conversation != null) {
+                return conversation;
+            }
+
+            // 创建会话
             conversation = new PrivateConversation();
-            conversation.setUserA(userA);
-            conversation.setUserB(userB);
+            conversation.setUserA(minUserId);
+            conversation.setUserB(maxUserId);
             conversation.setUnreadCountA(0);
             conversation.setUnreadCountB(0);
             conversationMapper.insert(conversation);
-            log.info("创建新会话: userA={}, userB={}", userA, userB);
-        }
 
-        return conversation;
+            log.info("创建新会话: userA={}, userB={}", minUserId, maxUserId);
+            return conversation;
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统繁忙");
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
     }
 
     @Override
