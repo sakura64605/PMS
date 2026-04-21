@@ -87,11 +87,30 @@ public class FeedServiceImpl extends ServiceImpl<UserInboxMapper, UserInbox> imp
             );
 
             // 标记为已读
-            for (UserInbox inbox : inboxPage.getRecords()) {
-                if (inbox.getIsRead() == 0) {
-                    inbox.setIsRead(1);
-                    inbox.setReadTime(LocalDateTime.now());
-                    userInboxMapper.updateById(inbox);
+            List<Long> unreadIds = inboxPage.getRecords().stream()
+                    .filter(inbox -> inbox.getIsRead() == 0)
+                    .map(UserInbox::getId)
+                    .collect(Collectors.toList());
+
+            if (!unreadIds.isEmpty()) {
+                try {
+                    int updated = userInboxMapper.batchMarkAsReadList(unreadIds, LocalDateTime.now());
+                    log.debug("批量标记已读: userId={}, 本页未读数={}, 实际更新={}",
+                            userId, unreadIds.size(), updated);
+                } catch (Exception e) {
+                    log.error("批量标记已读失败，将逐条重试: userId={}", userId, e);
+                    // 降级：逐条更新
+                    for (Long id : unreadIds) {
+                        try {
+                            UserInbox inbox = new UserInbox();
+                            inbox.setId(id);
+                            inbox.setIsRead(1);
+                            inbox.setReadTime(LocalDateTime.now());
+                            userInboxMapper.updateById(inbox);
+                        } catch (Exception ex) {
+                            log.error("单条标记已读失败: id={}", id, ex);
+                        }
+                    }
                 }
             }
 

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hongjie.pms.modules.feed.mapper.UserInboxMapper">
+
+    <!-- 方式一：使用 IN 查询（简单直观） -->
+    <update id="batchMarkAsReadList">
+        UPDATE user_inbox
+        SET is_read = 1,
+        read_time = #{readTime}
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND is_read = 0
+    </update>
+
+    <!-- 方式二：使用 CASE WHEN（推荐，可分别设置不同的 readTime） -->
+    <update id="batchMarkAsReadWithCase">
+        UPDATE user_inbox
+        SET is_read = 1,
+        read_time = CASE id
+        <foreach collection="list" item="item">
+            WHEN #{item.id} THEN #{item.readTime}
+        </foreach>
+        ELSE read_time
+        END
+        WHERE id IN
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item.id}
+        </foreach>
+        AND is_read = 0
+    </update>
+
+    <!-- 方式三：批量删除已读消息 -->
+    <delete id="batchDeleteOldReadMessages">
+        DELETE FROM user_inbox
+        WHERE user_id = #{userId}
+          AND is_read = 1
+          AND create_time <![CDATA[ < ]]> #{expireTime}
+    </delete>
+
+</mapper>
