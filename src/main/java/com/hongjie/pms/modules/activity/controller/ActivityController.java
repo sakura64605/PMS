@@ -1,6 +1,7 @@
 package com.hongjie.pms.modules.activity.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.hongjie.pms.common.annotation.Idempotent;
 import com.hongjie.pms.common.annotation.RedisRateLimit;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.pojo.CommonResult;
@@ -35,6 +36,7 @@ public class ActivityController {
      * 创建活动
      */
     @RedisRateLimit(key = "postActivity", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.HOURS, message = "1小时只能发布5条活动")
+    @Idempotent(key = "#request.title", expire = 300, message = "创建活动操作正在处理中，请稍后再试")
     @PostMapping("/post")
     public CommonResult<ActivityPostRespDto> postActivity(@RequestBody @Valid ActivityRequestDto request) {
         ActivityPostRespDto activityListDto = activityService.postActivity(request);
@@ -44,6 +46,7 @@ public class ActivityController {
     /**
      * 修改活动
      */
+    @Idempotent(key = "#activityRequestDto.id", expire = 300, message = "更新活动操作正在处理中，请稍后再试")
     @PostMapping("/update/{id}")
     public CommonResult<String> updateActivity(@RequestBody @Valid ActivityRequestDto activityRequestDto) {
         activityService.updateActivity(activityRequestDto);
@@ -53,6 +56,7 @@ public class ActivityController {
     /**
      * 删除活动
      */
+    @Idempotent(key = "#id", expire = 300, message = "删除活动操作正在处理中，请稍后再试")
     @PostMapping("/delete/{id}")
     public CommonResult<String> deleteActivity(@PathVariable Long id) {
         activityService.deleteActivity(id);
@@ -90,6 +94,7 @@ public class ActivityController {
     /**
      * 恢复活动
      */
+    @Idempotent(key = "#id", expire = 300, message = "恢复活动操作正在处理中，请稍后再试")
     @PostMapping("/recover/{id}")
     public CommonResult<String> recoverActivity(@PathVariable Long id) {
         activityService.recoverActivity(id);
@@ -123,8 +128,9 @@ public class ActivityController {
     /**
      * 报名活动
      */
-    @PostMapping("/signUp")
     @RedisRateLimit(key = "signUp", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @Idempotent(key = "#request.activityId", expire = 300, message = "报名操作正在处理中，请稍后再试")
+    @PostMapping("/signUp")
     public CommonResult<String> signUp(@RequestBody @Valid SignUpInfoRequest request) {
         log.info("用户报名活动");
         activityService.signUp(request);
@@ -134,6 +140,7 @@ public class ActivityController {
     /**
      * 活动签到
      */
+    @Idempotent(key = "#activityId + '-' + #userId", expire = 300, message = "签到操作正在处理中，请稍后再试")
     @PostMapping("/signIn")
     public CommonResult<String> signIn(@RequestParam Long activityId, @RequestParam Long userId) {
         log.info("用户签到");
@@ -145,6 +152,7 @@ public class ActivityController {
      * 取消报名
      */
     @RedisRateLimit(key = "cancelSignUp", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @Idempotent(key = "#id", expire = 300, message = "取消报名操作正在处理中，请稍后再试")
     @PostMapping("/cancelSignUp/{id}")
     public CommonResult<String> cancelSignUp(@PathVariable Long id) {
         log.info("用户取消报名");

@@ -1,6 +1,7 @@
 package com.hongjie.pms.modules.petpost.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.hongjie.pms.common.annotation.Idempotent;
 import com.hongjie.pms.common.annotation.RedisRateLimit;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.exception.BusinessException;
@@ -41,6 +42,7 @@ public class PetPostController {
      * @return
      */
     @RedisRateLimit(key = "postPet", capacity = 10, refillRate = 10, duration = 1, timeUnit = TimeUnit.HOURS, message = "1小时只能发布10条信息")
+    @Idempotent(key = "#request.title", expire = 300, message = "发布操作正在处理中，请稍后再试")
     @PostMapping("/post")
     public CommonResult<PetListResponseDto> post(@RequestBody PetPostRequestDto request) {
 
@@ -65,6 +67,7 @@ public class PetPostController {
      * @param request
      * @return
      */
+    @Idempotent(key = "#request.id", expire = 300, message = "更新操作正在处理中，请稍后再试")
     @PostMapping("/update")
     public CommonResult<PetListResponseDto> update(@RequestBody PetPostRequestDto request) {
         PetListResponseDto response = petPostService.update(request);
@@ -92,6 +95,7 @@ public class PetPostController {
      * @param id
      * @return
      */
+    @Idempotent(key = "#id", expire = 300, message = "完成操作正在处理中，请稍后再试")
     @PostMapping("complete")
     public CommonResult<String> complete(@RequestParam Long id) {
         log.info("完成: id={}", id);
@@ -114,6 +118,7 @@ public class PetPostController {
     /**
      * 删除宠物信息
      */
+    @Idempotent(key = "#id", expire = 300, message = "删除操作正在处理中，请稍后再试")
     @PostMapping("delete")
     public CommonResult<String> delete(@RequestParam Long id) {
         log.info("删除宠物信息: id={}", id);
@@ -124,6 +129,7 @@ public class PetPostController {
     /**
      * 恢复宠物信息
      */
+    @Idempotent(key = "#id", expire = 300, message = "恢复操作正在处理中，请稍后再试")
     @PostMapping("recover")
     public CommonResult<String> recover(@RequestParam Long id) {
         log.info("恢复宠物信息: id={}", id);
@@ -162,6 +168,7 @@ public class PetPostController {
     /**
      * 下架宠物信息
      */
+    @Idempotent(key = "#id", expire = 300, message = "下架操作正在处理中，请稍后再试")
     @PostMapping("offline")
     public CommonResult<String> offline(@RequestParam Long id) {
         log.info("下架宠物信息: id={}", id);
@@ -203,6 +210,7 @@ public class PetPostController {
     /**
      * 删除图片
      */
+    @Idempotent(key = "#id", expire = 300, message = "删除操作正在处理中，请稍后再试")
     @DeleteMapping("/delete-really")
     public CommonResult<String> deleteReally(@RequestParam Long id) {
         log.info("删除宠物信息: id={}", id);
