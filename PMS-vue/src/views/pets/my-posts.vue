@@ -77,6 +77,14 @@
               编辑
             </el-button>
             <el-button
+              v-if="pet.status === 1"
+              size="small"
+              type="success"
+              @click.stop="handleComplete(pet.id)"
+            >
+              完成
+            </el-button>
+            <el-button
               v-if="pet.status === 1 || pet.status === 0"
               size="small"
               type="danger"
@@ -346,7 +354,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { View, Male, Female, QuestionFilled } from '@element-plus/icons-vue';
-import { getMyPosts, offlinePet, deletePet, recoverPet, getPetDetail, updatePet } from '../../api/pet';
+import { getMyPosts, offlinePet, deletePet, recoverPet, getPetDetail, updatePet, completePet } from '../../api/pet';
 import { getMyActivityList, deleteActivity, getActivitySignUpList, signInActivity } from '../../api/activity';
 
 // 路由
@@ -576,6 +584,22 @@ const handleRepublish = async (id: number) => {
   } catch (error) {
     ElMessage.error('重新发布失败，请重试');
     console.error('重新发布失败:', error);
+  }
+};
+
+// 处理完成宠物贴
+const handleComplete = async (id: number) => {
+  try {
+    const response = await completePet(id);
+    if (response.code === 200) {
+      ElMessage.success('标记完成成功');
+      fetchMyPosts();
+    } else {
+      ElMessage.error(response.message || '标记完成失败');
+    }
+  } catch (error) {
+    ElMessage.error('标记完成失败，请重试');
+    console.error('标记完成失败:', error);
   }
 };
 

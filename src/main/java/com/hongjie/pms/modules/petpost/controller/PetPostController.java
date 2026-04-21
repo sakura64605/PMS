@@ -88,6 +88,18 @@ public class PetPostController {
     }
 
     /**
+     * 完成
+     * @param id
+     * @return
+     */
+    @PostMapping("complete")
+    public CommonResult<String> complete(@RequestParam Long id) {
+        log.info("完成: id={}", id);
+        petPostService.complete(id);
+        return CommonResult.success();
+    }
+
+    /**
      * 我的发布列表
      */
     @RedisRateLimit(key = "getActivityDetail", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)

@@ -168,3 +168,12 @@ export const getCollections = (params: {
     params
   })
 };
+
+// 完成宠物贴
+export const completePet = (id: number) => {
+  return request({
+    url: '/pet/complete',
+    method: 'post',
+    params: { id }
+  })
+};

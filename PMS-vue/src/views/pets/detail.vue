@@ -213,6 +213,13 @@
             </el-button>
             <el-button
               v-if="isOwner"
+              type="success"
+              @click="handleComplete"
+            >
+              完成
+            </el-button>
+            <el-button
+              v-if="isOwner"
               type="danger"
               @click="handleDelete"
             >
@@ -407,7 +414,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowLeft, View, Male, Female, QuestionFilled, DocumentCopy, Star, ChatLineSquare, Share, Top } from '@element-plus/icons-vue';
-import { getPetDetail, likePet, collectPet } from '../../api/pet';
+import { getPetDetail, likePet, collectPet, completePet } from '../../api/pet';
 import { getActivityDetail, signupActivity, getCommentList, createComment } from '../../api/activity';
 import { approveAudit, rejectAudit } from '../../api/audit';
 import request from '../../utils/request';
@@ -477,6 +484,38 @@ const handleEdit = () => {
 
 const handleDelete = () => {
   ElMessage.info('功能开发中');
+};
+
+// 处理完成宠物贴
+const handleComplete = async () => {
+  if (!pet.value) return;
+  
+  // 弹出确认对话框
+  const { value: confirmed } = await ElMessageBox.confirm(
+    '确定要标记此宠物贴为已完成吗？',
+    '完成宠物贴',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  );
+  
+  if (confirmed) {
+    try {
+      const response = await completePet(pet.value.id);
+      if (response.code === 200) {
+        ElMessage.success('标记完成成功');
+        // 重新获取宠物详情
+        await fetchPetDetail();
+      } else {
+        ElMessage.error(response.message || '标记完成失败');
+      }
+    } catch (error) {
+      ElMessage.error('标记完成失败，请重试');
+      console.error('标记完成失败:', error);
+    }
+  }
 };
 
 // 处理审核通过

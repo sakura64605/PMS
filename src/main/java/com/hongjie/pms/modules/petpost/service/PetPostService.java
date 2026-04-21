@@ -31,4 +31,6 @@ public interface PetPostService {
     FavoriteResponseDto favorite(Long id);
 
     IPage<PetListResponseDto> favoriteList(Integer pageNum, Integer pageSize);
+
+    void complete(Long id);
 }

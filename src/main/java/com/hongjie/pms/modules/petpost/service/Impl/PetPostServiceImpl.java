@@ -655,6 +655,24 @@ public class PetPostServiceImpl implements PetPostService {
         return resultPage;
     }
 
+    @Override
+    public void complete(Long id) {
+        Long userId = UserContext.getUserId();
+
+        PetPost pet = petPostMapper.selectOne(new QueryWrapper<PetPost>().eq("id", id));
+        if (pet == null) {
+            throw new BusinessException(ErrorCode.PET_NOT_FOUND);
+        }
+        if (!pet.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.NO_PERMISSION);
+        }
+
+        petPostMapper.update(PetPost.builder()
+                .status(2)
+                .build(), new QueryWrapper<PetPost>().eq("id", id));
+
+    }
+
     private void deleteFromOss(List<String> images) {
         if (images == null || images.isEmpty()) {
             return;
