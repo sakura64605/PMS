@@ -262,8 +262,8 @@
             <!-- 活动标题和状态标签 -->
             <div class="title-with-status">
               <h3 class="activity-title">📌 {{ activity.title }}</h3>
-              <el-tag :type="getStatusType(activity.status)" class="title-status-tag">
-                {{ getStatusText(activity.status) }}
+              <el-tag :type="getStatusType(activity.auditStatus || activity.status)" class="title-status-tag">
+                {{ getStatusText(activity.auditStatus || activity.status) }}
               </el-tag>
             </div>
             
@@ -512,9 +512,9 @@ const formatDateTime = (dateString: string) => {
 
 const getStatusType = (status: number) => {
   switch (status) {
-    case 0: return 'success'; // 报名中-绿
-    case 1: return 'primary'; // 进行中-蓝
-    case 2: return 'info'; // 已结束-灰
+    case 0: return 'success'; // 待审核-绿
+    case 1: return 'primary'; // 已发布-蓝
+    case 2: return 'info'; // 已完成-灰
     case 3: return 'danger'; // 已取消-红
     default: return 'default';
   }

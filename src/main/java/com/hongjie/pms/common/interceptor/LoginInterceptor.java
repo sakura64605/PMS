@@ -24,6 +24,9 @@ public class LoginInterceptor implements HandlerInterceptor {
     private static final List<String> WHITE_LIST = Arrays.asList(
             "/pet-system/user/login",
             "/pet-system/user/register",
+            "/pet-system/activity/list",
+            "/pet-system/pet/list",
+            "/pet-system/notice/list",
             "/error",
             "/swagger-ui/**",
             "/v3/api-docs/**"

@@ -371,7 +371,7 @@ const isAdmin = computed(() => {
 
 // 是否需要审核
 const needAudit = computed(() => {
-  return isAdmin.value && activity.value && activity.value.auditStatus === 0;
+  return isAdmin.value && activity.value && (activity.value.auditStatus === 0 || activity.value.auditStatus === undefined);
 });
 
 // 方法

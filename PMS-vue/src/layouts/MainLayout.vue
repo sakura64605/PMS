@@ -41,42 +41,49 @@
         </el-menu>
       </div>
       <div class="header-right">
-        <el-dropdown @command="handleMessageCommand" class="message-dropdown">
-          <span class="message-icon" @click="goToMessage">
-            <el-icon><BellFilled /></el-icon>
-            <el-badge v-if="unreadCount > 0" :value="unreadCount" type="danger" class="message-badge"></el-badge>
+        <!-- 登录状态下显示消息和用户信息 -->
+        <template v-if="userInfo">
+          <el-dropdown @command="handleMessageCommand" class="message-dropdown">
+            <span class="message-icon" @click="goToMessage">
+              <el-icon><BellFilled /></el-icon>
+              <el-badge v-if="unreadCount > 0" :value="unreadCount" type="danger" class="message-badge"></el-badge>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="message">查看消息</el-dropdown-item>
+                <el-dropdown-item command="markAllRead">全部标记已读</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <span class="message-dropdown" @click="goToPrivateMessage">
+            <span class="message-icon">
+              <el-icon><ChatDotRound /></el-icon>
+            </span>
           </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="message">查看消息</el-dropdown-item>
-              <el-dropdown-item command="markAllRead">全部标记已读</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-        <span class="message-dropdown" @click="goToPrivateMessage">
-          <span class="message-icon">
-            <el-icon><ChatDotRound /></el-icon>
-          </span>
-        </span>
-        <el-dropdown>
-          <span class="user-dropdown">
-            <el-avatar :size="32" :src="userInfo?.avatar || 'https://via.placeholder.com/32'">
-            </el-avatar>
-            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item @click="goToProfile">
-                <el-icon><User /></el-icon>
-                <span>个人中心</span>
-              </el-dropdown-item>
-              <el-dropdown-item @click="logout">
-                <el-icon><SwitchButton /></el-icon>
-                <span>退出登录</span>
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+          <el-dropdown>
+            <span class="user-dropdown">
+              <el-avatar :size="32" :src="userInfo?.avatar || 'https://via.placeholder.com/32'">
+              </el-avatar>
+              <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item @click="goToProfile">
+                  <el-icon><User /></el-icon>
+                  <span>个人中心</span>
+                </el-dropdown-item>
+                <el-dropdown-item @click="logout">
+                  <el-icon><SwitchButton /></el-icon>
+                  <span>退出登录</span>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </template>
+        <!-- 未登录状态下显示登录按钮 -->
+        <template v-else>
+          <el-button type="primary" @click="goToLogin">登录</el-button>
+        </template>
       </div>
     </el-header>
 
@@ -127,6 +134,11 @@ const goToMessage = () => {
 // 跳转到私信页面
 const goToPrivateMessage = () => {
   router.push('/private-message')
+}
+
+// 跳转到登录页面
+const goToLogin = () => {
+  router.push('/login')
 }
 
 // 退出登录

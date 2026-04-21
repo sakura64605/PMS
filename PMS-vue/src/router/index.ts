@@ -3,7 +3,7 @@ import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: '/login'
+    redirect: '/pets'
   },
   {
     path: '/login',
@@ -33,6 +33,68 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/profile/index.vue')
       },
       {
+        path: 'pets/create',
+        name: 'PetCreate',
+        component: () => import('../views/pets/create.vue')
+      },
+      {
+        path: 'pets/:id/edit',
+        name: 'PetEdit',
+        component: () => import('../views/pets/edit.vue')
+      },
+      {
+        path: 'pets/my-posts',
+        name: 'MyPosts',
+        component: () => import('../views/pets/my-posts.vue')
+      },
+      {
+        path: 'pets/collections',
+        name: 'Collections',
+        component: () => import('../views/pets/collections.vue')
+      },
+      {
+        path: 'recycle',
+        name: 'Recycle',
+        component: () => import('../views/recycle/index.vue')
+      },
+      {
+        path: 'user/:id',
+        name: 'UserInfo',
+        component: () => import('../views/user/index.vue')
+      },
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: () => import('../views/settings/index.vue'),
+        meta: { isAdminOnly: true }
+      },
+      {
+        path: 'message',
+        name: 'Message',
+        component: () => import('../views/message/index.vue')
+      },
+      {
+        path: 'private-message',
+        name: 'PrivateMessage',
+        component: () => import('../views/private-message/index.vue')
+      },
+      {
+        path: 'audit',
+        name: 'Audit',
+        component: () => import('../views/audit/index.vue')
+      },
+      {
+        path: 'audit/:id',
+        name: 'AuditDetail',
+        component: () => import('../views/audit/detail.vue')
+      }
+    ]
+  },
+  {
+    path: '/',
+    component: () => import('../layouts/MainLayout.vue'),
+    children: [
+      {
         path: 'pets',
         name: 'Pets',
         component: () => import('../views/pets/index.vue')
@@ -41,17 +103,6 @@ const routes: RouteRecordRaw[] = [
         path: 'feed',
         name: 'Feed',
         component: () => import('../views/feed/index.vue')
-      },
-      {
-        path: 'settings',
-        name: 'Settings',
-        component: () => import('../views/settings/index.vue')
-      },
-      {
-        path: 'pets/create',
-        name: 'PetCreate',
-        component: () => import('../views/pets/create.vue'),
-        meta: { requiresAuth: true }
       },
       {
         path: 'pets/:id',
@@ -63,72 +114,7 @@ const routes: RouteRecordRaw[] = [
         name: 'ActivityDetail',
         component: () => import('../views/pets/activity-detail.vue')
       },
-      {
-        path: 'pets/:id/edit',
-        name: 'PetEdit',
-        component: () => import('../views/pets/edit.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'pets/my-posts',
-        name: 'MyPosts',
-        component: () => import('../views/pets/my-posts.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'pets/collections',
-        name: 'Collections',
-        component: () => import('../views/pets/collections.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'recycle',
-        name: 'Recycle',
-        component: () => import('../views/recycle/index.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'user/:id',
-        name: 'UserInfo',
-        component: () => import('../views/user/index.vue'),
-        meta: { requiresAuth: true }
-      },
 
-      {
-        path: 'settings',
-        name: 'Settings',
-        component: () => import('../views/settings/index.vue'),
-        meta: { requiresAuth: true, isAdminOnly: true }
-      },
-      {
-        path: 'message',
-        name: 'Message',
-        component: () => import('../views/message/index.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'private-message',
-        name: 'PrivateMessage',
-        component: () => import('../views/private-message/index.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'audit',
-        name: 'Audit',
-        component: () => import('../views/audit/index.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'audit/:id',
-        name: 'AuditDetail',
-        component: () => import('../views/audit/detail.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'notice/:id',
-        name: 'NoticeDetail',
-        component: () => import('../views/notice/detail.vue')
-      }
     ]
   }
 ]
