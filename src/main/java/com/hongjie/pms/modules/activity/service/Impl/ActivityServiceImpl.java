@@ -3,7 +3,7 @@ package com.hongjie.pms.modules.activity.service.Impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.hongjie.pms.common.annotation.CircuitBreaker;
+import com.hongjie.pms.common.circuitbreaker.annotation.CircuitBreaker;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.cache.DistributedCache;
 import com.hongjie.pms.common.cache.toolkit.CacheUtil;

@@ -1,4 +1,4 @@
-package com.hongjie.pms.common.annotation;
+package com.hongjie.pms.common.circuitbreaker.annotation;
 
 import java.lang.annotation.*;
 

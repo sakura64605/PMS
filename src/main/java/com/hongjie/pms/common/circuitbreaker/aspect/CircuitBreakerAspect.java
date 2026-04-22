@@ -1,9 +1,11 @@
-package com.hongjie.pms.common.aspect;
+package com.hongjie.pms.common.circuitbreaker.aspect;
 
-import com.hongjie.pms.common.annotation.CircuitBreaker;
+import com.hongjie.pms.common.circuitbreaker.annotation.CircuitBreaker;
 import com.hongjie.pms.common.circuitbreaker.CircuitBreakerConfig;
 import com.hongjie.pms.common.circuitbreaker.CircuitBreakerManager;
 import jakarta.annotation.PostConstruct;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -18,8 +20,8 @@ import java.lang.reflect.Method;
 
 @Slf4j
 @Aspect
-@Component
 @Order(2)
+@NoArgsConstructor
 public class CircuitBreakerAspect {
 
     @Autowired
@@ -117,19 +119,3 @@ public class CircuitBreakerAspect {
         }
     }
 }
-//$token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoxLCJ1c2VyTmFtZSI6ImFkbWluIiwidXNlcklkIjoxLCJpYXQiOjE3NzYwNjg4NTMsImV4cCI6MTc3NjE1NTI1M30.xySvySHn-o7lvya19Y_oO6PpxGJlF5GXqQIu65c0w54"
-//
-//        for ($i=1; $i -le 10; $i++) {
-//Write-Host "=== 第 $i 次 ==="
-//        try {
-//$response = Invoke-RestMethod -Uri "http://localhost:8080/pet-system/activity/detail/999" `
-//        -Method Get `
-//        -Headers @{"Authorization" = "Bearer $token"}
-//Write-Host "code: $($response.code)"
-//Write-Host "message: $($response.message)"
-//        } catch {
-//Write-Host "错误: $($_.Exception.Message)"
-//        }
-//Write-Host ""
-//Start-Sleep -Milliseconds 200
-//        }

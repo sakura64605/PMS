@@ -1,7 +1,7 @@
 package com.hongjie.pms.modules.message.mq;
 
 import com.alibaba.fastjson2.JSON;
-import com.hongjie.pms.common.annotation.CircuitBreaker;
+import com.hongjie.pms.common.circuitbreaker.annotation.CircuitBreaker;
 import com.hongjie.pms.modules.message.entity.UserMessage;
 import com.hongjie.pms.modules.message.mapper.UserMessageMapper;
 import com.hongjie.pms.modules.message.websocket.WebSocketHandler;

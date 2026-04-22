@@ -3,7 +3,7 @@ package com.hongjie.pms.modules.user.service.Impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.hongjie.pms.common.annotation.CircuitBreaker;
+import com.hongjie.pms.common.circuitbreaker.annotation.CircuitBreaker;
 import com.hongjie.pms.common.base.core.UpdateTimeContext;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.cache.DistributedCache;
