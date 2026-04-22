@@ -3,6 +3,9 @@ package com.hongjie.pms.modules.user.config;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * 用户注册布隆过滤器属性配置
+ */
 @Data
 @ConfigurationProperties(prefix = UserRegisterBloomFilterProperties.PREFIX)
 public final class UserRegisterBloomFilterProperties {

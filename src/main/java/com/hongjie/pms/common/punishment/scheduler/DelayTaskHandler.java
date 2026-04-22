@@ -295,7 +295,7 @@ public class DelayTaskHandler {
     public void handleBannedEnd(Long businessId) {
         log.info("执行用户封禁结束: userId={}", businessId);
         User user = userMapper.selectById(businessId);
-        user.setStatus(0);
+        user.setStatus(1);
         userMapper.updateById(user);
     }
 }

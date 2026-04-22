@@ -6,8 +6,11 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * 布隆过滤器配置
+ */
 @Configuration
-@EnableConfigurationProperties(com.hongjie.pms.modules.user.config.UserRegisterBloomFilterProperties.class)
+@EnableConfigurationProperties(UserRegisterBloomFilterProperties.class)
 public class RBloomFilterConfiguration {
 
     /**

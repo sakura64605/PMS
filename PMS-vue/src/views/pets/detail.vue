@@ -7,6 +7,15 @@
       <el-icon><ArrowLeft /></el-icon>
       返回列表
     </el-button>
+    
+    <!-- 举报表单 -->
+    <ReportForm
+      v-model:visible="reportVisible"
+      :target-type="pet?.type === 2 ? 'activity' : 'pet'"
+      :target-id="pet?.id"
+      @success="handleReportSuccess"
+    />
+
 
     <div v-if="loading" class="loading-container">
       <el-skeleton :rows="10" animated />
@@ -200,6 +209,13 @@
               <el-icon><Top /></el-icon>
               {{ isLiked ? '已点赞' : '点赞' }}({{ pet.likeCount || 0 }})
             </el-button>
+            <el-button
+              v-if="!isOwner"
+              @click="reportVisible = true"
+            >
+              <el-icon><Warning /></el-icon>
+              举报
+            </el-button>
           </template>
           
           <!-- 宠物操作按钮 -->
@@ -240,6 +256,13 @@
             >
               <el-icon><Star /></el-icon>
               {{ isCollected ? '已收藏' : '收藏' }}
+            </el-button>
+            <el-button
+              v-if="!isOwner"
+              @click="reportVisible = true"
+            >
+              <el-icon><Warning /></el-icon>
+              举报
             </el-button>
           </template>
         </div>
@@ -296,6 +319,14 @@
                 >
                   <el-icon><Top /></el-icon>
                   {{ comment.likeCount || 0 }}
+                </el-button>
+                <el-button
+                  type="text"
+                  size="small"
+                  @click="handleReportComment(comment.id)"
+                >
+                  <el-icon><Warning /></el-icon>
+                  举报
                 </el-button>
               </div>
               
@@ -358,6 +389,14 @@
                         <el-icon><Top /></el-icon>
                         {{ reply.likeCount || 0 }}
                       </el-button>
+                      <el-button
+                        type="text"
+                        size="small"
+                        @click="handleReportComment(reply.id)"
+                      >
+                        <el-icon><Warning /></el-icon>
+                        举报
+                      </el-button>
                     </div>
                     
                     <!-- 回复输入框 -->
@@ -413,10 +452,11 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { ArrowLeft, View, Male, Female, QuestionFilled, DocumentCopy, Star, ChatLineSquare, Share, Top } from '@element-plus/icons-vue';
+import { ArrowLeft, View, Male, Female, QuestionFilled, DocumentCopy, Star, ChatLineSquare, Share, Top, Warning } from '@element-plus/icons-vue';
 import { getPetDetail, likePet, collectPet, completePet } from '../../api/pet';
 import { getActivityDetail, signupActivity, getCommentList, createComment } from '../../api/activity';
 import { approveAudit, rejectAudit } from '../../api/audit';
+import ReportForm from '../../components/ReportForm.vue';
 import request from '../../utils/request';
 
 // 路由
@@ -430,6 +470,7 @@ const isLiked = ref(false);
 const isCollected = ref(false);
 const isFollowing = ref(false);
 const commentContent = ref('');
+const reportVisible = ref(false);
 
 // 计算属性
 const isOwner = computed(() => {
@@ -869,6 +910,21 @@ const handleImageClick = (event: any) => {
   // 这里可以实现图片点击放大查看的功能
   // 例如使用Element Plus的Image组件或第三方库
   ElMessage.info('图片查看功能开发中');
+};
+
+// 处理举报成功
+const handleReportSuccess = () => {
+  // 举报成功后可以添加额外的逻辑，例如显示提示信息
+  ElMessage.success('举报成功，我们会尽快处理');
+};
+
+// 处理评论举报
+const handleReportComment = (commentId: number) => {
+  // 打开举报表单，设置目标类型为评论
+  reportVisible.value = true;
+  // 这里可以设置举报的目标ID和类型
+  // 注意：需要在ReportForm组件中添加props来接收这些值
+  // 或者通过其他方式传递
 };
 
 // 评论列表

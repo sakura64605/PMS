@@ -7,6 +7,15 @@
       <el-icon><ArrowLeft /></el-icon>
       返回
     </el-button>
+    
+    <!-- 举报表单 -->
+    <ReportForm
+      v-model:visible="reportVisible"
+      :target-type="'user'"
+      :target-id="userInfo?.user?.userId"
+      @success="handleReportSuccess"
+    />
+
 
     <div v-if="loading" class="loading-container">
       <el-skeleton :rows="10" animated />
@@ -41,6 +50,10 @@
             </el-button>
             <el-button type="info" @click="handleSendMessage">
               发私信
+            </el-button>
+            <el-button @click="reportVisible = true">
+              <el-icon><Warning /></el-icon>
+              举报
             </el-button>
           </div>
         </div>
@@ -86,9 +99,10 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { ArrowLeft } from '@element-plus/icons-vue';
+import { ArrowLeft, Warning } from '@element-plus/icons-vue';
 import { getUserInfoByUserId } from '../../api/user';
 import { formatDate, formatNumber, getGenderText } from '../../utils/format';
+import ReportForm from '../../components/ReportForm.vue';
 import request from '../../utils/request';
 
 // 路由
@@ -100,6 +114,7 @@ const loading = ref(false);
 const userInfo = ref<any>(null);
 const userPets = ref<any[]>([]);
 const isFollowing = ref(false);
+const reportVisible = ref(false);
 
 // 方法
 const handleBack = () => router.back();
@@ -136,6 +151,12 @@ const handleSendMessage = async () => {
       ElMessage.error('创建会话失败，请重试');
     }
   }
+};
+
+// 处理举报成功
+const handleReportSuccess = () => {
+  // 举报成功后可以添加额外的逻辑，例如显示提示信息
+  ElMessage.success('举报成功，我们会尽快处理');
 };
 
 const fetchUserInfo = async () => {

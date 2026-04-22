@@ -896,6 +896,9 @@ const handleTabChange = () => {
       fetchUserList()
     } else if (activeTab.value === 'announcement') {
       fetchNoticeList()
+    } else if (activeTab.value === 'report') {
+      // 跳转到举报管理页面
+      router.push('/report')
     }
   }, 0)
 }

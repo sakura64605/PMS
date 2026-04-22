@@ -3,6 +3,7 @@ package com.hongjie.pms.common.cache.toolkit;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -17,8 +18,10 @@ public final class CacheUtil {
      * @return
      */
     public static String buildKey(String... keys) {
-        Stream.of(keys).forEach(each -> Optional.ofNullable(Strings.emptyToNull(each)).orElseThrow(() -> new RuntimeException("构建缓存 key 不允许为空")));
-        return Joiner.on(SPLICING_OPERATOR).join(keys);
+        String[] processedKeys = Arrays.stream(keys)
+                .map(key -> (key == null || key.isEmpty()) ? "0" : key)
+                .toArray(String[]::new);
+        return Joiner.on(SPLICING_OPERATOR).join(processedKeys);
     }
 
     /**

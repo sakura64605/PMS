@@ -230,15 +230,15 @@ public class ActivityServiceImpl implements ActivityService {
     )
     @Override
     public IPage<ActivityListRespDto> getActivityList(ActivityListRequestDto request) {
-        String cacheKey = CacheUtil.buildKey("activityList", 
-            String.valueOf(request.getPageNum()), 
-            String.valueOf(request.getPageSize()), 
-            String.valueOf(request.getStatus()), 
-            String.valueOf(request.getUserId()), 
-            String.valueOf(request.getKeyword()), 
-            String.valueOf(request.getLocation()), 
-            String.valueOf(request.getOrderBy()), 
-            String.valueOf(request.getOrder())
+        String cacheKey = CacheUtil.buildKey("activityList",
+                request.getPageNum() != null ? request.getPageNum().toString() : "",
+                request.getPageSize() != null ? request.getPageSize().toString() : "",
+                request.getStatus() != null ? request.getStatus().toString() : "",
+                request.getUserId() != null ? request.getUserId().toString() : "",
+                request.getKeyword() != null ? request.getKeyword() : "",
+                request.getLocation() != null ? request.getLocation() : "",
+                request.getOrderBy() != null ? request.getOrderBy() : "",
+                request.getOrder() != null ? request.getOrder() : ""
         );
 
         Page<ActivityListRespDto> cachedPage = distributedCache.get(cacheKey, Page.class);
