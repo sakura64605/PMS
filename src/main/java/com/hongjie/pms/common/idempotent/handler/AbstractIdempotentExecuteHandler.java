@@ -1,6 +1,6 @@
-package com.hongjie.pms.common.handler;
+package com.hongjie.pms.common.idempotent.handler;
 
-import com.hongjie.pms.common.annotation.Idempotent;
+import com.hongjie.pms.common.idempotent.annotation.Idempotent;
 import org.aspectj.lang.ProceedingJoinPoint;
 
 public abstract class AbstractIdempotentExecuteHandler implements IdempotentExecuteHandler{

@@ -1,4 +1,4 @@
-package com.hongjie.pms.common.handler;
+package com.hongjie.pms.common.idempotent.handler;
 
 import cn.hutool.core.collection.CollUtil;
 
@@ -37,6 +37,10 @@ public final class IdempotentContext {
             return;
         }
         CONTEXT.set(context);
+    }
+
+    public static void clean() {
+        CONTEXT.remove();
     }
 
 }

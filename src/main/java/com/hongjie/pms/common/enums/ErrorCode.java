@@ -3,7 +3,7 @@ package com.hongjie.pms.common.enums;
 import lombok.Getter;
 
 @Getter
-public enum ErrorCode {
+public enum ErrorCode implements IErrorCode{
     
     // 通用错误 (1000-1999)
     SUCCESS(200, "操作成功"),
@@ -14,6 +14,9 @@ public enum ErrorCode {
     NOT_FOUND(404, "资源不存在"),
     METHOD_NOT_ALLOWED(405, "请求方法不支持"),
     MEDIA_TYPE_NOT_SUPPORTED(415, "不支持的媒体类型"),
+
+    IDEMPOTENT_TOKEN_NULL_ERROR(400, "幂等Token为空"),
+    IDEMPOTENT_TOKEN_DELETE_ERROR(400, "幂等Token已被使用或失效"),
 
     // 限流错误 1020-1029
     RATE_LIMIT(1020, "请求过于频繁，请稍后再试"),
@@ -85,5 +88,13 @@ public enum ErrorCode {
     ErrorCode(Integer code, String message) {
         this.code = code;
         this.message = message;
+    }
+
+    public int code() {
+        return code;
+    }
+
+    public String message() {
+        return message;
     }
 }

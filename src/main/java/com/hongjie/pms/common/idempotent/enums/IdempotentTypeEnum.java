@@ -1,4 +1,4 @@
-package com.hongjie.pms.common.enums;
+package com.hongjie.pms.common.idempotent.enums;
 
 public enum IdempotentTypeEnum {
 

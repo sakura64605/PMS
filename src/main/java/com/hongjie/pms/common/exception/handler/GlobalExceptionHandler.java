@@ -1,9 +1,7 @@
 package com.hongjie.pms.common.exception.handler;
 
 import com.hongjie.pms.common.enums.ErrorCode;
-import com.hongjie.pms.common.exception.BusinessException;
-import com.hongjie.pms.common.exception.RateLimitException;
-import com.hongjie.pms.common.exception.SystemException;
+import com.hongjie.pms.common.exception.*;
 import com.hongjie.pms.common.pojo.CommonResult;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -27,6 +25,30 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /**
+     * 客户端异常处理（包括幂等异常）
+     */
+    @ExceptionHandler(ClientException.class)
+    public CommonResult<Void> handleClientException(ClientException e) {
+        log.warn("客户端异常: code={}, message={}", e.getErrorCode(), e.getErrorMessage());
+        // 返回自定义的错误消息
+        return CommonResult.error(e.getErrorCode(), e.getErrorMessage());
+    }
+
+    /**
+     * 重复消费异常处理（MQ 幂等）
+     */
+    @ExceptionHandler(RepeatConsumptionException.class)
+    public CommonResult<Void> handleRepeatConsumptionException(RepeatConsumptionException e) {
+        if (e.getError()) {
+            log.warn("重复消费异常，需要重试: {}", e.getMessage());
+            return CommonResult.error(ErrorCode.FAIL.getCode(), "消息处理中，请稍后重试");
+        } else {
+            log.info("重复消费，消息已处理完成，直接返回成功");
+            return CommonResult.success();
+        }
+    }
 
     // ==================== 业务异常 ====================
 

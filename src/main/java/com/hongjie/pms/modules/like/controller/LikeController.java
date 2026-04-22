@@ -1,6 +1,6 @@
 package com.hongjie.pms.modules.like.controller;
 
-import com.hongjie.pms.common.annotation.Idempotent;
+import com.hongjie.pms.common.idempotent.annotation.Idempotent;
 import com.hongjie.pms.common.annotation.RedisRateLimit;
 import com.hongjie.pms.common.pojo.CommonResult;
 import com.hongjie.pms.modules.like.dto.request.LikeRequest;
@@ -27,7 +27,6 @@ public class LikeController {
      * 点赞
      */
     @RedisRateLimit(key = "likePet", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.SECONDS)
-    @Idempotent(key = "#request.targetId + '-' + #request.targetType", expire = 300, message = "点赞操作正在处理中，请稍后再试")
     @PostMapping()
     public CommonResult<LikeResponseDto> like(@RequestBody LikeRequest request) {
         log.info("点赞宠物信息: id={}", request.getTargetId());

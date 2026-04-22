@@ -1,9 +1,14 @@
-package com.hongjie.pms.common.aspect;
+package com.hongjie.pms.common.idempotent.aspect;
 
-import com.hongjie.pms.common.annotation.Idempotent;
-import com.hongjie.pms.common.exception.BusinessException;
+import com.hongjie.pms.common.idempotent.annotation.Idempotent;
+import com.hongjie.pms.common.exception.RepeatConsumptionException;
+import com.hongjie.pms.common.idempotent.handler.IdempotentExecuteHandler;
+import com.hongjie.pms.common.idempotent.handler.IdempotentExecuteHandlerFactory;
 import com.hongjie.pms.common.utils.SecurityUtils;
+import com.hongjie.pms.common.idempotent.handler.IdempotentContext;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -22,59 +27,62 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.lang.reflect.Method;
-import java.util.concurrent.TimeUnit;
 
-@Slf4j
 @Aspect
-@Component
-@Order(2)
+@Slf4j
 public class IdempotentAspect {
-    
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
-    
-    private final SpelExpressionParser spelParser = new SpelExpressionParser();
-    
-    @Around("@annotation(idempotent)")
-    public Object around(ProceedingJoinPoint point, Idempotent idempotent) throws Throwable {
 
-        // 构建幂等key
-        String key = buildKey(point, idempotent);
-        
-        // 尝试获取锁
-        Boolean acquired = redisTemplate.opsForValue().setIfAbsent(key, "1");
-        
-        if (acquired == null || !acquired) {
-            String requestUri = getRequestUri();
-            log.warn("幂等拦截 - key: {}, uri: {}", key, requestUri);
-            throw new BusinessException(409, idempotent.message());
-        }
-        
-        // 设置过期时间
-        redisTemplate.expire(key, idempotent.expire(), idempotent.timeUnit());
-        
+    private final SpelExpressionParser spelParser = new SpelExpressionParser();
+
+    @Around("@annotation(com.hongjie.pms.common.idempotent.annotation.Idempotent)")
+    public Object idempotentHandler(ProceedingJoinPoint joinPoint) throws Throwable {
+        Idempotent idempotent = getIdempotent(joinPoint);
+        // 添加日志，查看注解参数
+        log.info("幂等配置 - key: {}, type: {}, perUser: {}, scene: {}",
+                idempotent.key(), idempotent.type(), idempotent.perUser(), idempotent.scene());
+
+        // 构建 key
+        String key = buildKey(joinPoint, idempotent);
+        log.info("构建的幂等 key: {}", key);
+        IdempotentExecuteHandler instance = IdempotentExecuteHandlerFactory.getInstance(idempotent.scene(), idempotent.type());
+        Object resultObj;
         try {
-            log.debug("幂等放行 - key: {}", key);
-            return point.proceed();
+            instance.execute(joinPoint, idempotent);
+            resultObj = joinPoint.proceed();
+            instance.postProcessing();
+        } catch (RepeatConsumptionException ex) {
+            /**
+             * 触发幂等逻辑时可能有两种情况：
+             *    * 1. 消息还在处理，但是不确定是否执行成功，那么需要返回错误，方便 RocketMQ 再次通过重试队列投递
+             *    * 2. 消息处理成功了，该消息直接返回成功即可
+             */
+            if (!ex.getError()) {
+                return null;
+            }
+            throw ex;
+        } catch (Throwable ex) {
+            // 客户端消费存在异常，需要删除幂等标识方便下次 RocketMQ 再次通过重试队列投递
+            instance.exceptionProcessing();
+            throw ex;
         } finally {
-            // 操作完成后删除key
-            redisTemplate.delete(key);
+            IdempotentContext.clean();
         }
+        return resultObj;
     }
-    
+
     /**
      * 构建幂等key
      */
     private String buildKey(ProceedingJoinPoint point, Idempotent idempotent) {
         StringBuilder keyBuilder = new StringBuilder("idempotent:");
-        
+
         // 添加类名和方法名
         MethodSignature signature = (MethodSignature) point.getSignature();
         Method method = signature.getMethod();
         keyBuilder.append(method.getDeclaringClass().getSimpleName())
                   .append(":")
                   .append(method.getName());
-        
+
         // 解析SpEL表达式
         if (StringUtils.hasText(idempotent.key())) {
             String spelValue = parseSpelExpression(idempotent.key(), point, signature);
@@ -82,7 +90,7 @@ public class IdempotentAspect {
                 keyBuilder.append(":").append(spelValue);
             }
         }
-        
+
         // 添加用户标识
         if (idempotent.perUser()) {
             Long userId = getCurrentUserId();
@@ -92,10 +100,10 @@ public class IdempotentAspect {
                 keyBuilder.append(":ip:").append(getClientIp());
             }
         }
-        
+
         return keyBuilder.toString();
     }
-    
+
     /**
      * 解析SpEL表达式
      */
@@ -103,14 +111,14 @@ public class IdempotentAspect {
         try {
             Expression expression = spelParser.parseExpression(spelExpression);
             EvaluationContext context = new StandardEvaluationContext();
-            
+
             // 添加方法参数
             Object[] args = point.getArgs();
             String[] parameterNames = signature.getParameterNames();
             for (int i = 0; i < args.length; i++) {
                 context.setVariable(parameterNames[i], args[i]);
             }
-            
+
             Object value = expression.getValue(context);
             return value != null ? value.toString() : null;
         } catch (Exception e) {
@@ -118,7 +126,7 @@ public class IdempotentAspect {
             return null;
         }
     }
-    
+
     /**
      * 获取当前用户ID
      */
@@ -129,7 +137,7 @@ public class IdempotentAspect {
             return null;
         }
     }
-    
+
     /**
      * 获取客户端IP
      */
@@ -155,7 +163,7 @@ public class IdempotentAspect {
             return "unknown";
         }
     }
-    
+
     /**
      * 获取请求URI
      */
@@ -166,5 +174,11 @@ public class IdempotentAspect {
         } catch (Exception e) {
             return "unknown";
         }
+    }
+
+    public static Idempotent getIdempotent(ProceedingJoinPoint joinPoint) throws NoSuchMethodException {
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        Method method = joinPoint.getTarget().getClass().getDeclaredMethod(signature.getName(), signature.getParameterTypes());
+        return method.getAnnotation(Idempotent.class);
     }
 }

@@ -1,14 +1,18 @@
-package com.hongjie.pms.common.handler;
+package com.hongjie.pms.common.idempotent.handler;
 
-import com.hongjie.pms.common.annotation.Idempotent;
-import com.hongjie.pms.common.enums.IdempotentTypeEnum;
+import com.hongjie.pms.common.idempotent.annotation.Idempotent;
+import com.hongjie.pms.common.idempotent.enums.IdempotentTypeEnum;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.aspectj.lang.ProceedingJoinPoint;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Accessors(chain = true)
 public final class IdempotentParamWrapper {
 

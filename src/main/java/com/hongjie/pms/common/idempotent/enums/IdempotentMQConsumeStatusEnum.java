@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.hongjie.pms.common.enums;
+package com.hongjie.pms.common.idempotent.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

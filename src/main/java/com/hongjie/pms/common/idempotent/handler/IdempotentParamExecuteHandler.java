@@ -1,4 +1,4 @@
-package com.hongjie.pms.common.handler;
+package com.hongjie.pms.common.idempotent.handler;
 
 import cn.hutool.crypto.digest.DigestUtil;
 import com.alibaba.fastjson2.JSON;

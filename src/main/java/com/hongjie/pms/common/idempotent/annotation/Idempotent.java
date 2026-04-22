@@ -1,7 +1,7 @@
-package com.hongjie.pms.common.annotation;
+package com.hongjie.pms.common.idempotent.annotation;
 
-import com.hongjie.pms.common.enums.IdempotentSceneEnum;
-import com.hongjie.pms.common.enums.IdempotentTypeEnum;
+import com.hongjie.pms.common.idempotent.enums.IdempotentSceneEnum;
+import com.hongjie.pms.common.idempotent.enums.IdempotentTypeEnum;
 
 import java.lang.annotation.*;
 import java.util.concurrent.TimeUnit;
@@ -19,6 +19,8 @@ public @interface Idempotent {
      */
     String key() default "";
 
+    String uniqueKeyPrefix() default "";
+
     IdempotentTypeEnum type() default IdempotentTypeEnum.PARAM;
 
     IdempotentSceneEnum scene() default IdempotentSceneEnum.RESTAPI;
@@ -26,7 +28,7 @@ public @interface Idempotent {
     /**
      * 过期时间
      */
-    int expire() default 60;
+    int keyTimeout() default 60;
 
     /**
      * 时间单位
