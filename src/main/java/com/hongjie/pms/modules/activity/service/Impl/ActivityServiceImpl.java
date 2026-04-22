@@ -7,12 +7,10 @@ import com.hongjie.pms.common.circuitbreaker.annotation.CircuitBreaker;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.cache.DistributedCache;
 import com.hongjie.pms.common.cache.toolkit.CacheUtil;
-import com.hongjie.pms.common.delay.DelayTaskService;
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.enums.PostType;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.exception.SystemException;
-import com.hongjie.pms.common.mq.DelayMessageDto;
 import com.hongjie.pms.modules.activity.dto.request.ActivityListRequestDto;
 import com.hongjie.pms.modules.activity.dto.request.SignUpInfoRequest;
 import com.hongjie.pms.modules.activity.dto.response.ActivityDetailRespDto;
@@ -32,6 +30,7 @@ import com.hongjie.pms.modules.following.mapper.FollowMapper;
 import com.hongjie.pms.modules.like.entity.LikeRecord;
 import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
 import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.common.punishment.scheduler.DelayTaskService;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
@@ -40,11 +39,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import com.hongjie.pms.common.enums.AuditStatus;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -102,6 +99,10 @@ public class ActivityServiceImpl implements ActivityService {
         if (remindTime.isAfter(LocalDateTime.now())) {
             delayTaskService.addTask("ACTIVITY_REMIND", activity.getId(), remindTime);
         }
+
+        // 活动开始
+        LocalDateTime startTime = request.getStartTime();
+        delayTaskService.addTask("ACTIVITY_START", activity.getId(), startTime);
 
         // 活动结束后1分钟统计
         LocalDateTime statisticsTime = request.getEndTime().plusMinutes(1);
@@ -922,28 +923,47 @@ public class ActivityServiceImpl implements ActivityService {
     public void signIn(Long activityId, Long userId) {
         Activity activity = activityMapper.selectById(activityId);
         Long currentUserId = UserContext.getUserId();
+
         if (activity == null) {
             throw new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND);
         }
+
+        // 只有活动发布者可以签到
         if (!activity.getUserId().equals(currentUserId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
+
+        // 活动已结束不能签到
         if (activity.getStatus() == 2) {
-            throw new BusinessException(ErrorCode.ACTIVITY_ENDED);
+            throw new BusinessException(ErrorCode.ACTIVITY_ENDED, "活动已结束，无法签到");
         }
+
+        // 活动结束时间已过也不能签到
+        if (activity.getEndTime().isBefore(LocalDateTime.now())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "活动已结束，无法签到");
+        }
+
         ActivitySignup signup = activitySignupMapper.selectOne(new LambdaQueryWrapper<ActivitySignup>()
                 .eq(ActivitySignup::getActivityId, activityId)
                 .eq(ActivitySignup::getUserId, userId)
         );
+
         if (signup == null) {
             throw new BusinessException(ErrorCode.ACTIVITY_NOT_SIGNUP);
         }
-        if (signup.getStatus() == 2) {
+
+        if (signup.getStatus() == 4) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户已爽约，无法签到");
+        }
+
+        if (signup.getCheckInTime() != null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "用户已签到");
         }
+
         signup.setCheckInTime(LocalDateTime.now());
-        signup.setStatus(3);
+        signup.setStatus(3); // 3-已签到
         activitySignupMapper.updateById(signup);
+
         messageService.sendSignInSuccessNotification(
                 signup.getUserId(),
                 activity.getTitle(),

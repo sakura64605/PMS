@@ -54,7 +54,17 @@ public class PunishmentUtil {
      * 计算惩罚天数（基于用户对象）
      */
     public int calculatePunishmentDays(User user) {
-        return calculatePunishmentDays(user.getTotalSignups(), user.getTotalNoShows());
+        // 使用总报名数和总爽约数进行惩罚计算
+        int totalSignups = user.getTotalSignups() != null ? user.getTotalSignups() : 0;
+        int totalNoShows = user.getTotalNoShows() != null ? user.getTotalNoShows() : 0;
+        return calculatePunishmentDays(totalSignups, totalNoShows);
+    }
+
+    /**
+     * 计算惩罚天数（基于最近数据）
+     */
+    public int calculateRecentPunishmentDays(int recentSignups, int recentNoShows) {
+        return calculatePunishmentDays(recentSignups, recentNoShows);
     }
 
     /**

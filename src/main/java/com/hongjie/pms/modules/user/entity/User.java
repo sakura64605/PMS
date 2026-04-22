@@ -50,6 +50,26 @@ public class User {
     private String email;
 
     /**
+     * 是否禁言: 0-正常 1-禁言
+     */
+    private Integer isMuted;
+
+    /**
+     * 禁言结束时间
+     */
+    private LocalDateTime muteEndTime;
+
+    /**
+     * 是否禁止报名: 0-正常 1-禁止报名
+     */
+    private Integer isBannedSignup;
+
+    /**
+     * 禁止报名结束时间
+     */
+    private LocalDateTime banSignupEndTime;
+
+    /**
      * 手机号
      */
     private String phone;

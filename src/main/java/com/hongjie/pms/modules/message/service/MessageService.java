@@ -101,6 +101,8 @@ public class MessageService {
                 return "有人点赞了你的评论";
             case "pet_activity":
                 return "有人点赞了你的活动";
+            case "系统通知":
+                return "系统通知";
             default:
                 return "有人点赞了";
         }
@@ -117,6 +119,8 @@ public class MessageService {
                 return "点赞了你的评论";
             case "pet_activity":
                 return "点赞了你的活动《" + targetTitle + "》";
+            case "系统通知":
+                return "系统通知:注意";
             default:
                 return "点赞了《" + targetTitle + "》";
         }
@@ -306,13 +310,13 @@ public class MessageService {
     /**
      * 发送惩罚开始通知
      */
-    public void sendPunishmentStartNotification(Long userId, int days) {
+    public void sendPunishmentStartNotification(Long userId, String content) {
         UserMessage message = new UserMessage();
         message.setUserId(userId);
         message.setSenderId(null);
         message.setType("PUNISHMENT");
         message.setTitle("账号受限");
-        message.setContent("您因爽约率过高，已被禁止报名 " + days + " 天");
+        message.setContent(content);
         sendAndPush(message);
     }
 

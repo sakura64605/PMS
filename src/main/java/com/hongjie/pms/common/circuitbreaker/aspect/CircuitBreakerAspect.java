@@ -4,8 +4,6 @@ import com.hongjie.pms.common.circuitbreaker.annotation.CircuitBreaker;
 import com.hongjie.pms.common.circuitbreaker.CircuitBreakerConfig;
 import com.hongjie.pms.common.circuitbreaker.CircuitBreakerManager;
 import jakarta.annotation.PostConstruct;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -21,7 +19,6 @@ import java.lang.reflect.Method;
 @Slf4j
 @Aspect
 @Order(2)
-@NoArgsConstructor
 public class CircuitBreakerAspect {
 
     @Autowired

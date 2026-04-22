@@ -1,4 +1,4 @@
-package com.hongjie.pms.common.delay;
+package com.hongjie.pms.common.punishment.scheduler;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

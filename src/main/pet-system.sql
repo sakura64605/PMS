@@ -355,3 +355,26 @@ CREATE TABLE `delay_task` (
                               `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                               INDEX `idx_execute_time` (`execute_time`, `status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='延时任务表';
+
+ALTER TABLE `user`
+    ADD COLUMN `is_muted` TINYINT DEFAULT 0 COMMENT '是否禁言: 0-正常 1-禁言',
+ADD COLUMN `mute_end_time` DATETIME DEFAULT NULL COMMENT '禁言结束时间',
+ADD COLUMN `is_banned_signup` TINYINT DEFAULT 0 COMMENT '是否禁止报名: 0-正常 1-禁止报名',
+ADD COLUMN `ban_signup_end_time` DATETIME DEFAULT NULL COMMENT '禁止报名结束时间';
+
+-- 举报记录表
+CREATE TABLE `report_record` (
+                                 `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                 `reporter_id` BIGINT NOT NULL COMMENT '举报人ID',
+                                 `target_type` VARCHAR(50) NOT NULL COMMENT '目标类型: pet/activity/comment/user',
+                                 `target_id` BIGINT NOT NULL COMMENT '目标ID',
+                                 `reason` VARCHAR(200) NOT NULL COMMENT '举报原因',
+                                 `status` TINYINT DEFAULT 0 COMMENT '状态: 0-待处理 1-已处理 2-已驳回',
+                                 `handler_id` BIGINT DEFAULT NULL COMMENT '处理人ID',
+                                 `handle_result` VARCHAR(200) DEFAULT NULL COMMENT '处理结果',
+                                 `handle_time` DATETIME DEFAULT NULL COMMENT '处理时间',
+                                 `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                 INDEX idx_target (target_type, target_id),
+                                 INDEX idx_status (status),
+                                 INDEX idx_reporter (reporter_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='举报记录表';

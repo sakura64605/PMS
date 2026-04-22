@@ -1,4 +1,4 @@
-package com.hongjie.pms.common.delay;
+package com.hongjie.pms.common.punishment.scheduler;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
