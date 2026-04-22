@@ -40,6 +40,8 @@ public class DelayTaskScheduler {
                     taskHandler.handleActivityStart(task.getBusinessId());
                 } else if ("MUTED_PUNISHMENT_END".equals(task.getTaskType())){
                     taskHandler.handleMutedEnd(task.getBusinessId());
+                } else if ("BANNED_PUNISHMENT_END".equals(task.getTaskType())){
+                    taskHandler.handleBannedEnd(task.getBusinessId());
                 }
                 task.setStatus(1);
                 delayTaskMapper.updateById(task);

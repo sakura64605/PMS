@@ -169,7 +169,11 @@ public class DelayTaskHandler {
     public void handleMutedEnd(Long userId) {
         log.info("执行用户禁言惩罚结束: userId={}", userId);
         User user = userMapper.selectById(userId);
-
+        LocalDateTime now = LocalDateTime.now();
+        if (user.getMuteEndTime().isAfter(now)){
+            throw new BusinessException("禁言时间未结束");
+        }
+        user.setMuteEndTime(null);
         user.setIsMuted(0);
         userMapper.updateById(user);
     }
@@ -286,5 +290,12 @@ public class DelayTaskHandler {
         Activity activity = activityMapper.selectById(businessId);
         activity.setStatus(1);
         activityMapper.updateById(activity);
+    }
+
+    public void handleBannedEnd(Long businessId) {
+        log.info("执行用户封禁结束: userId={}", businessId);
+        User user = userMapper.selectById(businessId);
+        user.setStatus(0);
+        userMapper.updateById(user);
     }
 }
