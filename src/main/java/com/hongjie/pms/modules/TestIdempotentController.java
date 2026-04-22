@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 public class TestIdempotentController {
 
     /**
-     * Token 方式幂等测试
+     * SPEL 方式幂等测试
      */
     @PostMapping("/token/create")
     @Idempotent(
@@ -27,7 +27,7 @@ public class TestIdempotentController {
         System.out.println("处理订单：" + request.getOrderNo());
         return CommonResult.success("订单创建成功：" + request.getOrderNo());
     }
-    
+
     @Data
     public static class OrderRequest {
         private String orderNo;
