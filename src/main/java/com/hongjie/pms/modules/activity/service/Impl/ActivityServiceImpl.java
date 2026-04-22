@@ -4,15 +4,14 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.annotation.CircuitBreaker;
-import com.hongjie.pms.common.annotation.DistributedCacheable;
 import com.hongjie.pms.common.base.core.UserContext;
+import com.hongjie.pms.common.cache.DistributedCache;
+import com.hongjie.pms.common.cache.toolkit.CacheUtil;
 import com.hongjie.pms.common.delay.DelayTaskService;
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.enums.PostType;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.exception.SystemException;
-import com.hongjie.pms.common.mq.CacheUpdateConsumer;
-import com.hongjie.pms.common.mq.CacheUpdateProducer;
 import com.hongjie.pms.common.mq.DelayMessageDto;
 import com.hongjie.pms.modules.activity.dto.request.ActivityListRequestDto;
 import com.hongjie.pms.modules.activity.dto.request.SignUpInfoRequest;
@@ -65,8 +64,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final LikeRecordMapper likeRecordMapper;
     private final FollowMapper followMapper;
     private final MessageService messageService;
-    private final CacheUpdateProducer cacheUpdateProducer;
-    private final RedisTemplate redisTemplate;
+    private final DistributedCache distributedCache;
     private final DelayTaskService delayTaskService;
     private final FeedService feedService;
     private final AuditService auditService;
@@ -111,7 +109,9 @@ public class ActivityServiceImpl implements ActivityService {
             delayTaskService.addTask("ACTIVITY_STATISTICS", activity.getId(), statisticsTime);
         }
 
-        cacheUpdateProducer.sendEvictAll("activityList");
+        // 清理活动列表缓存
+        String activityListCacheKey = CacheUtil.buildKey("activityList", "1", "10");
+        distributedCache.delete(activityListCacheKey);
 
         ActivityPostRespDto response = ActivityPostRespDto.builder()
                 .id(activity.getId())
@@ -186,8 +186,9 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setAuditStatus(hasMajorChange ? 0 : activity.getAuditStatus());
         Integer result = activityMapper.updateById(activity);
 
-        cacheUpdateProducer.sendEvict("activity", String.valueOf(activityRequestDto.getId()));
-        cacheUpdateProducer.sendEvictAll("activityList");
+        // 清理缓存
+        String cacheKey = CacheUtil.buildKey("activity", String.valueOf(activityRequestDto.getId()));
+        distributedCache.delete(cacheKey);
 
         if (result <= 0) {
             throw new SystemException(ErrorCode.DB_ERROR);
@@ -209,8 +210,9 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setDeleted(1);
         Integer result = activityMapper.updateById(activity);
 
-        cacheUpdateProducer.sendEvict("activity", String.valueOf(id));
-        cacheUpdateProducer.sendEvictAll("activityList");
+        // 清理缓存
+        String cacheKey = CacheUtil.buildKey("activity", String.valueOf(id));
+        distributedCache.delete(cacheKey);
 
         if (result <= 0) {
             throw new SystemException(ErrorCode.DB_ERROR);
@@ -227,14 +229,21 @@ public class ActivityServiceImpl implements ActivityService {
     )
     @Override
     public IPage<ActivityListRespDto> getActivityList(ActivityListRequestDto request) {
-        String cacheKey = "activityList:" + request.getPageNum() + "_" + request.getPageSize() + "_" + request.getStatus() + "_" + request.getUserId() + "_" + request.getKeyword() + "_" + request.getLocation() + "_" + request.getOrderBy() + "_" + request.getOrder();
+        String cacheKey = CacheUtil.buildKey("activityList", 
+            String.valueOf(request.getPageNum()), 
+            String.valueOf(request.getPageSize()), 
+            String.valueOf(request.getStatus()), 
+            String.valueOf(request.getUserId()), 
+            String.valueOf(request.getKeyword()), 
+            String.valueOf(request.getLocation()), 
+            String.valueOf(request.getOrderBy()), 
+            String.valueOf(request.getOrder())
+        );
 
-        List<ActivityListRespDto> cachedList = (List<ActivityListRespDto>) redisTemplate.opsForValue().get(cacheKey);
-        if (cachedList != null) {
+        Page<ActivityListRespDto> cachedPage = distributedCache.get(cacheKey, Page.class);
+        if (cachedPage != null) {
             log.info("从缓存获取活动列表: key={}", cacheKey);
-            Page<ActivityListRespDto> page = new Page<>(request.getPageNum(), request.getPageSize(), cachedList.size());
-            page.setRecords(cachedList);
-            return page;
+            return cachedPage;
         }
 
         LambdaQueryWrapper<Activity> wrapper = new LambdaQueryWrapper<>();
@@ -380,7 +389,8 @@ public class ActivityServiceImpl implements ActivityService {
         );
         resultPage.setRecords(recordsDto);
 
-        redisTemplate.opsForValue().set(cacheKey, recordsDto, 120, TimeUnit.SECONDS);
+        // 放入缓存，设置过期时间为2分钟
+        distributedCache.put(cacheKey, resultPage, 120);
 
         return resultPage;
     }
@@ -413,8 +423,8 @@ public class ActivityServiceImpl implements ActivityService {
     @Transactional
     public ActivityDetailRespDto getActivityDetail(Long id) {
         // 1. 先查缓存
-        String cacheKey = "activity:" + id;
-        ActivityDetailRespDto cached = (ActivityDetailRespDto) redisTemplate.opsForValue().get(cacheKey);
+        String cacheKey = CacheUtil.buildKey("activity", String.valueOf(id));
+        ActivityDetailRespDto cached = distributedCache.get(cacheKey, ActivityDetailRespDto.class);
         if (cached != null) {
             log.info("从缓存获取活动详情: id={}", id);
             return cached;
@@ -492,7 +502,7 @@ public class ActivityServiceImpl implements ActivityService {
         activityDetailRespDto.setDeleted(activity.getDeleted());
 
         // 4. 写入缓存（30分钟）
-        redisTemplate.opsForValue().set(cacheKey, activityDetailRespDto, 1800, TimeUnit.SECONDS);
+        distributedCache.put(cacheKey, activityDetailRespDto, 1800);
 
         return activityDetailRespDto;
     }
@@ -510,8 +520,8 @@ public class ActivityServiceImpl implements ActivityService {
         }
 
         // 1. 从降级缓存读取
-        String cacheKey = "activity:fallback:" + id;
-        ActivityDetailRespDto cached = (ActivityDetailRespDto) redisTemplate.opsForValue().get(cacheKey);
+        String cacheKey = CacheUtil.buildKey("activity:fallback", String.valueOf(id));
+        ActivityDetailRespDto cached = distributedCache.get(cacheKey, ActivityDetailRespDto.class);
         if (cached != null) {
             log.info("从降级缓存读取活动详情: id={}", id);
             return cached;
@@ -538,7 +548,7 @@ public class ActivityServiceImpl implements ActivityService {
         fallbackResp.setUser(emptyUser);
 
         // 缓存降级响应（60秒）
-        redisTemplate.opsForValue().set(cacheKey, fallbackResp, 60, TimeUnit.SECONDS);
+        distributedCache.put(cacheKey, fallbackResp, 60);
 
         return fallbackResp;
     }
@@ -625,12 +635,17 @@ public class ActivityServiceImpl implements ActivityService {
 
         // 更新缓存（异步）
         CompletableFuture.runAsync(() -> {
-            redisTemplate.delete("activity:" + activityId);
-            Set<String> activityListKeys = redisTemplate.keys("activityList:*");
-            if (activityListKeys != null && !activityListKeys.isEmpty()) {
-                redisTemplate.delete(activityListKeys);
-            }
-            redisTemplate.delete("userActivity:" + currentUserId);
+            // 清除活动缓存
+            String activityCacheKey = CacheUtil.buildKey("activity", String.valueOf(activityId));
+            distributedCache.delete(activityCacheKey);
+            
+            // 清除活动列表缓存
+            String activityListCacheKey = CacheUtil.buildKey("activityList", "1", "10");
+            distributedCache.delete(activityListCacheKey);
+            
+            // 清除用户活动缓存
+            String userActivityCacheKey = CacheUtil.buildKey("userActivity", String.valueOf(currentUserId));
+            distributedCache.delete(userActivityCacheKey);
         });
 
         // 发送通知（异步）
@@ -844,8 +859,9 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setDeleted(0);
         activityMapper.updateById(activity);
 
-        cacheUpdateProducer.sendEvict("activity", String.valueOf(id));
-        cacheUpdateProducer.sendEvictAll("activityList");
+        // 清理缓存
+        String cacheKey = CacheUtil.buildKey("activity", String.valueOf(id));
+        distributedCache.delete(cacheKey);
 
     }
 

@@ -1,5 +1,8 @@
 package com.hongjie.pms.common.annotation;
 
+import com.hongjie.pms.common.enums.IdempotentSceneEnum;
+import com.hongjie.pms.common.enums.IdempotentTypeEnum;
+
 import java.lang.annotation.*;
 import java.util.concurrent.TimeUnit;
 
@@ -15,6 +18,10 @@ public @interface Idempotent {
      * 幂等key，支持SpEL表达式
      */
     String key() default "";
+
+    IdempotentTypeEnum type() default IdempotentTypeEnum.PARAM;
+
+    IdempotentSceneEnum scene() default IdempotentSceneEnum.RESTAPI;
 
     /**
      * 过期时间

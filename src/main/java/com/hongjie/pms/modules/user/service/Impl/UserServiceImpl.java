@@ -4,9 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.hongjie.pms.common.annotation.CircuitBreaker;
-import com.hongjie.pms.common.annotation.DistributedCacheable;
 import com.hongjie.pms.common.base.core.UpdateTimeContext;
 import com.hongjie.pms.common.base.core.UserContext;
+import com.hongjie.pms.common.cache.DistributedCache;
+import com.hongjie.pms.common.cache.toolkit.CacheUtil;
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.exception.SystemException;
@@ -17,6 +18,7 @@ import com.hongjie.pms.common.utils.JWTUtils;
 import com.hongjie.pms.common.utils.PasswordUtils;
 import com.hongjie.pms.modules.following.entity.Follow;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
+import org.redisson.api.RBloomFilter;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import com.hongjie.pms.modules.user.dto.request.ChangePasswordRequestDto;
 import com.hongjie.pms.modules.user.dto.request.LoginRequestDto;
@@ -53,6 +55,8 @@ public class UserServiceImpl implements UserService {
     private final JWTUtils jwtUtils;
     private final AvatarHistoryMapper avatarHistoryMapper;
     private final FollowMapper followMapper;
+    private final DistributedCache distributedCache;
+    private final RBloomFilter<String> userRegisterCachePenetrationBloomFilter;
 
     @Override
     public LoginResponseDto login(LoginRequestDto loginRequestDto) {
@@ -98,6 +102,21 @@ public class UserServiceImpl implements UserService {
         String password = registerRequestDto.getPassword();
         String phone = registerRequestDto.getPhone();
 
+        // 先检查布隆过滤器，快速判断用户名和手机号是否可能存在
+        if (userRegisterCachePenetrationBloomFilter.contains("username:" + userName)) {
+            // 布隆过滤器命中，需要进一步检查数据库
+            if (findUserByUsername(userName) != null) {
+                throw new BusinessException(ErrorCode.USERNAME_EXISTS);
+            }
+        }
+        if (userRegisterCachePenetrationBloomFilter.contains("phone:" + phone)) {
+            // 布隆过滤器命中，需要进一步检查数据库
+            if (findUserByPhone(phone) != null) {
+                throw new BusinessException(ErrorCode.PHONE_EXISTS);
+            }
+        }
+        
+        // 布隆过滤器未命中，直接检查数据库
         if (findUserByUsername(userName) != null) {
             throw new BusinessException(ErrorCode.USERNAME_EXISTS);
         }
@@ -128,6 +147,9 @@ public class UserServiceImpl implements UserService {
         Integer result = userMapper.insert(user);
         String token = jwtUtils.generateToken(userName, 0, user.getId());
         if(result > 0){
+            // 注册成功后，将用户名和手机号添加到布隆过滤器
+            userRegisterCachePenetrationBloomFilter.add("username:" + userName);
+            userRegisterCachePenetrationBloomFilter.add("phone:" + phone);
             log.info("用户{}注册成功", userName);
             return RegisterResponseDto.builder()
                     .token(token)
@@ -172,7 +194,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @CacheEvict(value = "user", key = "#userId")
     public UserInfoDto updateUserInfo(Long userId, UserUpdateRequestDto updateDto) {
 
         User user = new User();
@@ -206,6 +227,10 @@ public class UserServiceImpl implements UserService {
 
         Integer result = userMapper.updateById(user);
         if(result > 0){
+            // 清理缓存
+            String cacheKey = CacheUtil.buildKey("user", String.valueOf(userId));
+            distributedCache.delete(cacheKey);
+            
             return UserInfoDto.builder()
                     .userId(userId)
                     .nickName(updateDto.getNickName())
@@ -315,13 +340,16 @@ public class UserServiceImpl implements UserService {
             fallbackMethod = "fallbackGetUserById"
     )
     @Override
-    @DistributedCacheable(
-            value = "user",
-            key = "#userId",
-            ttl = 3600,
-            bloomFilter = true   // 开启布隆过滤器
-    )
     public UserProfileDto getUserProfileInfo(Long userId) {
+        String cacheKey = CacheUtil.buildKey("user", String.valueOf(userId));
+        
+        // 尝试从缓存获取
+        UserProfileDto cachedProfile = distributedCache.get(cacheKey, UserProfileDto.class);
+        if (cachedProfile != null) {
+            return cachedProfile;
+        }
+        
+        // 缓存未命中，从数据库查询
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("id", userId);
 
@@ -371,6 +399,10 @@ public class UserServiceImpl implements UserService {
         userProfileDto.setJoinTime(user.getCreateTime());
         userProfileDto.setLastActiveTime(user.getLastActiveTime());
         userProfileDto.setGender(user.getGender());
+        
+        // 放入缓存，设置过期时间为1小时
+        distributedCache.put(cacheKey, userProfileDto, 3600);
+        
         return userProfileDto;
     }
 

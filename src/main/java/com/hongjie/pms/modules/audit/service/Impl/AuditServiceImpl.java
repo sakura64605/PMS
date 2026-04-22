@@ -8,7 +8,8 @@ import com.hongjie.pms.common.enums.AuditStatus;
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.enums.TargetType;
 import com.hongjie.pms.common.exception.BusinessException;
-import com.hongjie.pms.common.mq.CacheUpdateProducer;
+import com.hongjie.pms.common.cache.DistributedCache;
+import com.hongjie.pms.common.cache.toolkit.CacheUtil;
 import com.hongjie.pms.modules.activity.entity.Activity;
 import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
 import com.hongjie.pms.modules.audit.dto.AuditHistoryDto;
@@ -43,7 +44,7 @@ public class AuditServiceImpl implements AuditService {
     private final ActivityMapper activityMapper;
     private final UserMapper userMapper;
     private final MessageService messageService;
-    private final CacheUpdateProducer cacheUpdateProducer;
+    private final DistributedCache distributedCache;
     private final RedisTemplate redisTemplate;
 
     // ==================== 提交审核 ====================
@@ -310,11 +311,21 @@ public class AuditServiceImpl implements AuditService {
 
     private void clearCache(String targetType, Long targetId) {
         if (TargetType.ADOPT.getCode().equals(targetType) || TargetType.HELP.getCode().equals(targetType)) {
-            cacheUpdateProducer.sendEvict("pet", String.valueOf(targetId));
-            cacheUpdateProducer.sendEvictAll("petList");
+            // 清除宠物详情缓存
+            String petCacheKey = CacheUtil.buildKey("pet", String.valueOf(targetId));
+            distributedCache.delete(petCacheKey);
+            
+            // 清除宠物列表缓存
+            String petListCacheKey = CacheUtil.buildKey("petList", "1", "10");
+            distributedCache.delete(petListCacheKey);
         } else if (TargetType.ACTIVITY.getCode().equals(targetType)) {
-            cacheUpdateProducer.sendEvict("activity", String.valueOf(targetId));
-            cacheUpdateProducer.sendEvictAll("activityList");
+            // 清除活动详情缓存
+            String activityCacheKey = CacheUtil.buildKey("activity", String.valueOf(targetId));
+            distributedCache.delete(activityCacheKey);
+            
+            // 清除活动列表缓存
+            String activityListCacheKey = CacheUtil.buildKey("activityList", "1", "10");
+            distributedCache.delete(activityListCacheKey);
         }
     }
 

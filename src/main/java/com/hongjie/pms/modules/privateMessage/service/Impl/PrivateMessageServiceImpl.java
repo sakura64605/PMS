@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.base.core.UserContext;
+import com.hongjie.pms.common.cache.DistributedCache;
+import com.hongjie.pms.common.cache.toolkit.CacheUtil;
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.modules.message.websocket.WebSocketHandler;
@@ -39,6 +41,7 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
     private final PrivateMessageMapper messageMapper;
     private final UserMapper userMapper;
     private final RedissonClient redissonClient;
+    private final DistributedCache distributedCache;
 
     @Override
     @Transactional
@@ -78,13 +81,32 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
         MessageDto messageDto = convertToDto(message, fromUser);
         WebSocketHandler.pushToUser(toUserId, messageDto);
 
+        // 清理缓存
+        // 清理会话列表缓存
+        String conversationCacheKeyFrom = CacheUtil.buildKey("conversation", String.valueOf(fromUserId), "1", "10");
+        String conversationCacheKeyTo = CacheUtil.buildKey("conversation", String.valueOf(toUserId), "1", "10");
+        distributedCache.delete(conversationCacheKeyFrom);
+        distributedCache.delete(conversationCacheKeyTo);
+        
+        // 清理聊天记录缓存
+        String messageCacheKey = CacheUtil.buildKey("message", String.valueOf(conversation.getId()), "1", "20");
+        distributedCache.delete(messageCacheKey);
+
         log.info("发送私信: from={}, to={}, content={}", fromUserId, toUserId, request.getContent());
         return messageDto;
     }
 
     @Override
-    // TODO: 缓存优化 - 添加缓存机制，提高会话列表查询性能
     public IPage<ConversationDto> getConversationList(Long userId, Integer pageNum, Integer pageSize) {
+        String cacheKey = CacheUtil.buildKey("conversation", String.valueOf(userId), String.valueOf(pageNum), String.valueOf(pageSize));
+        
+        // 尝试从缓存获取
+        Page<ConversationDto> cachedPage = distributedCache.get(cacheKey, Page.class);
+        if (cachedPage != null) {
+            return cachedPage;
+        }
+        
+        // 缓存未命中，从数据库查询
         Page<PrivateConversation> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<PrivateConversation> wrapper = new LambdaQueryWrapper<PrivateConversation>()
                 .and(w -> w.eq(PrivateConversation::getUserA, userId).or().eq(PrivateConversation::getUserB, userId))
@@ -98,6 +120,10 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
 
         Page<ConversationDto> resultPage = new Page<>(pageNum, pageSize, conversationPage.getTotal());
         resultPage.setRecords(records);
+        
+        // 放入缓存，设置过期时间为5分钟
+        distributedCache.put(cacheKey, resultPage, 300);
+        
         return resultPage;
     }
 
@@ -105,8 +131,15 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
      * 获取聊天记录（过滤已删除的）
      */
     @Override
-    // TODO: 缓存优化 - 添加缓存机制，提高聊天记录查询性能
     public IPage<MessageDto> getMessageList(Long userId, Long conversationId, Integer pageNum, Integer pageSize) {
+        String cacheKey = CacheUtil.buildKey("message", String.valueOf(conversationId), String.valueOf(pageNum), String.valueOf(pageSize));
+        
+        // 尝试从缓存获取
+        Page<MessageDto> cachedPage = distributedCache.get(cacheKey, Page.class);
+        if (cachedPage != null) {
+            return cachedPage;
+        }
+        
         // 1. 验证权限
         PrivateConversation conversation = conversationMapper.selectById(conversationId);
         if (conversation == null || (!conversation.getUserA().equals(userId) && !conversation.getUserB().equals(userId))) {
@@ -143,6 +176,10 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
 
         Page<MessageDto> resultPage = new Page<>(pageNum, pageSize, messagePage.getTotal());
         resultPage.setRecords(records);
+        
+        // 放入缓存，设置过期时间为5分钟
+        distributedCache.put(cacheKey, resultPage, 300);
+        
         return resultPage;
     }
 
@@ -180,6 +217,15 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
             conversationMapper.clearUnreadB(conversationId, userId);
             messageMapper.markAsRead(conversationId, userId);
         }
+        
+        // 清理缓存
+        // 清理会话列表缓存
+        String conversationCacheKey = CacheUtil.buildKey("conversation", String.valueOf(userId), "1", "10");
+        distributedCache.delete(conversationCacheKey);
+        
+        // 清理聊天记录缓存
+        String messageCacheKey = CacheUtil.buildKey("message", String.valueOf(conversationId), "1", "20");
+        distributedCache.delete(messageCacheKey);
     }
 
     @Override
@@ -290,6 +336,15 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
         // 检查双方是否都删除了该会话的所有消息，如果是则删除会话
         checkAndDeleteConversationIfBothDeleted(conversationId);
 
+        // 清理缓存
+        // 清理会话列表缓存
+        String conversationCacheKey = CacheUtil.buildKey("conversation", String.valueOf(userId), "1", "10");
+        distributedCache.delete(conversationCacheKey);
+        
+        // 清理聊天记录缓存
+        String messageCacheKey = CacheUtil.buildKey("message", String.valueOf(conversationId), "1", "20");
+        distributedCache.delete(messageCacheKey);
+
         log.info("用户删除会话: userId={}, conversationId={}", userId, conversationId);
     }
 
@@ -349,6 +404,15 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
             conversation.setLastMessageTime(lastMsg != null ? lastMsg.getCreateTime() : null);
             conversationMapper.updateById(conversation);
         }
+
+        // 清理缓存
+        // 清理会话列表缓存
+        String conversationCacheKey = CacheUtil.buildKey("conversation", String.valueOf(userId), "1", "10");
+        distributedCache.delete(conversationCacheKey);
+        
+        // 清理聊天记录缓存
+        String messageCacheKey = CacheUtil.buildKey("message", String.valueOf(conversationId), "1", "20");
+        distributedCache.delete(messageCacheKey);
 
         log.info("用户清空聊天记录: userId={}, conversationId={}", userId, conversationId);
     }

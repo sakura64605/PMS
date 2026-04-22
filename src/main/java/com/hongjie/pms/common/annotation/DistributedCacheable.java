@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author hongjie
  */
+@Deprecated
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented

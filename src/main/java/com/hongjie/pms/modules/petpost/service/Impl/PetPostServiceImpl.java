@@ -5,13 +5,13 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.annotation.CircuitBreaker;
-import com.hongjie.pms.common.annotation.DistributedCacheable;
 import com.hongjie.pms.common.base.core.UserContext;
+import com.hongjie.pms.common.cache.DistributedCache;
+import com.hongjie.pms.common.cache.toolkit.CacheUtil;
 import com.hongjie.pms.common.enums.CommentLikeTypes;
 import com.hongjie.pms.common.enums.PostType;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.exception.SystemException;
-import com.hongjie.pms.common.mq.CacheUpdateProducer;
 import com.hongjie.pms.common.utils.OssUtils;
 import com.hongjie.pms.modules.audit.service.AuditService;
 import com.hongjie.pms.modules.feed.service.FeedService;
@@ -57,10 +57,10 @@ public class PetPostServiceImpl implements PetPostService {
     private final LikeRecordMapper likeRecordMapper;
     private final FavoriteRecordMapper favoriteRecordMapper;
     private final FollowMapper followMapper;
-    private final CacheUpdateProducer cacheUpdateProducer;
     private final RedisTemplate redisTemplate;
     private final FeedService feedService;
     private final AuditService auditService;
+    private final DistributedCache distributedCache;
 
     @Override
     public PetListResponseDto post(PetPostRequestDto request) {
@@ -287,13 +287,26 @@ public class PetPostServiceImpl implements PetPostService {
             fallbackMethod = "fallbackGetPetDetail"
     )
     @Override
-//    @DistributedCacheable(
-//            value = "pet",
-//            key = "#petId",
-//            ttl = 1800,
-//            bloomFilter = false  // 不开启
-//    )
     public PetDetailDto detail(Long id, Long currentUserId) {
+        String cacheKey = CacheUtil.buildKey("pet", String.valueOf(id));
+        
+        // 尝试从缓存获取
+        PetDetailDto cachedDetail = distributedCache.get(cacheKey, PetDetailDto.class);
+        if (cachedDetail != null) {
+            // 获取互动数据（点赞、收藏）
+            if (currentUserId != null) {
+                // 检查是否点赞
+                LikeRecord likeRecord = likeRecordMapper.selectOne(new QueryWrapper<LikeRecord>().eq("user_id", currentUserId).eq("target_id", id).eq("target_type", CommentLikeTypes.PET_POST));
+                cachedDetail.setIsLiked(likeRecord != null);
+
+                // 检查是否收藏
+                FavoriteRecord favoriteRecord = favoriteRecordMapper.selectOne(new QueryWrapper<FavoriteRecord>().eq("user_id", currentUserId).eq("target_id", id).eq("target_type", CommentLikeTypes.PET_POST));
+                cachedDetail.setIsFavorite(favoriteRecord != null);
+            }
+            return cachedDetail;
+        }
+        
+        // 缓存未命中，从数据库查询
         // 1. 查询宠物信息
         PetPost pet = petPostMapper.selectById(id);
 
@@ -366,6 +379,9 @@ public class PetPostServiceImpl implements PetPostService {
             FavoriteRecord favoriteRecord = favoriteRecordMapper.selectOne(new QueryWrapper<FavoriteRecord>().eq("user_id", currentUserId).eq("target_id", id).eq("target_type", CommentLikeTypes.PET_POST));
             detailDto.setIsFavorite(favoriteRecord != null);
         }
+
+        // 放入缓存，设置过期时间为30分钟
+        distributedCache.put(cacheKey, detailDto, 1800);
 
         return detailDto;
     }
@@ -440,7 +456,9 @@ public class PetPostServiceImpl implements PetPostService {
         pet.setAuditStatus(0);
         petPostMapper.updateById(pet);
 
-        cacheUpdateProducer.sendEvict("pet", String.valueOf(pet.getId()));
+        // 清理缓存
+        String cacheKey = CacheUtil.buildKey("pet", String.valueOf(pet.getId()));
+        distributedCache.delete(cacheKey);
 
         return PetListResponseDto.builder()
                 .id(pet.getId())
@@ -484,7 +502,9 @@ public class PetPostServiceImpl implements PetPostService {
         }
         pet.setStatus(-1);
         petPostMapper.updateById(pet);
-        cacheUpdateProducer.sendEvict("pet", String.valueOf(pet.getId()));
+        // 清理缓存
+        String cacheKey = CacheUtil.buildKey("pet", String.valueOf(pet.getId()));
+        distributedCache.delete(cacheKey);
     }
 
     @Override
@@ -497,6 +517,9 @@ public class PetPostServiceImpl implements PetPostService {
         }
         pet.setStatus(3);
         petPostMapper.updateById(pet);
+        // 清理缓存
+        String cacheKey = CacheUtil.buildKey("pet", String.valueOf(pet.getId()));
+        distributedCache.delete(cacheKey);
     }
 
     @Override
@@ -509,7 +532,9 @@ public class PetPostServiceImpl implements PetPostService {
         }
         pet.setStatus(1);
         petPostMapper.updateById(pet);
-        cacheUpdateProducer.sendEvict("pet", String.valueOf(pet.getId()));
+        // 清理缓存
+        String cacheKey = CacheUtil.buildKey("pet", String.valueOf(pet.getId()));
+        distributedCache.delete(cacheKey);
     }
 
     @Override
@@ -671,6 +696,9 @@ public class PetPostServiceImpl implements PetPostService {
                 .status(2)
                 .build(), new QueryWrapper<PetPost>().eq("id", id));
 
+        // 清理缓存
+        String cacheKey = CacheUtil.buildKey("pet", String.valueOf(pet.getId()));
+        distributedCache.delete(cacheKey);
     }
 
     private void deleteFromOss(List<String> images) {

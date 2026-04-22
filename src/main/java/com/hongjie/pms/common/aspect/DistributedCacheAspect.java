@@ -26,7 +26,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 @Aspect
 @Component
-@Order(0)
+@Order(99)
+@Deprecated
 public class DistributedCacheAspect {
 
     @Autowired
