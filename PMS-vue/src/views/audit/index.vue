@@ -433,8 +433,105 @@
         </div>
         
         <!-- 数据统计 -->
-        <div v-else-if="activeTab === 'stats'" class="empty-section">
-          <el-empty description="数据统计功能开发中" />
+        <div v-else-if="activeTab === 'stats'">
+          <!-- 实时统计 -->
+          <el-card class="realtime-card">
+            <template #header>
+              <div class="card-header">
+                <span>实时统计</span>
+                <el-button type="info" @click="fetchRealtimeData">刷新</el-button>
+              </div>
+            </template>
+            
+            <div v-if="realtimeLoading" class="loading-container">
+              <el-skeleton :rows="3" animated />
+            </div>
+            <div v-else class="realtime-data">
+              <div class="realtime-item">
+                <span class="realtime-label">今日用户数：</span>
+                <span class="realtime-value">{{ realtimeData?.newUserCount || 0 }}</span>
+              </div>
+              <div class="realtime-item">
+                <span class="realtime-label">今日帖子数：</span>
+                <span class="realtime-value">{{ (realtimeData?.newPetPostCount || 0) + (realtimeData?.newActivityCount || 0) + (realtimeData?.newDailyPostCount || 0) }}</span>
+              </div>
+              <div class="realtime-item">
+                <span class="realtime-label">今日评论数：</span>
+                <span class="realtime-value">{{ realtimeData?.newCommentCount || 0 }}</span>
+              </div>
+            </div>
+          </el-card>
+          
+          <!-- 数据统计概览 -->
+          <el-card class="statistics-card">
+            <template #header>
+              <div class="card-header">
+                <span>数据统计概览</span>
+                <div class="filter-container">
+                  <el-date-picker
+                    v-model="statsDateRange"
+                    type="daterange"
+                    range-separator="至"
+                    start-placeholder="开始日期"
+                    end-placeholder="结束日期"
+                    style="width: 300px; margin-right: 10px"
+                  />
+                  <el-button type="primary" @click="fetchOverviewData">查询</el-button>
+                  <el-button type="warning" @click="openBackfillDialog">补录数据</el-button>
+                </div>
+              </div>
+            </template>
+            
+            <div v-if="loading" class="loading-container">
+              <el-skeleton :rows="4" animated />
+            </div>
+            <div v-else>
+              <!-- 周期切换 -->
+              <div class="period-tabs">
+                <el-tabs v-model="period" @tab-click="fetchOverviewData">
+                  <el-tab-pane label="日" value="day" />
+                  <el-tab-pane label="周" value="week" />
+                  <el-tab-pane label="月" value="month" />
+                  <el-tab-pane label="年" value="year" />
+                </el-tabs>
+              </div>
+              
+              <div class="statistics-overview">
+                <div class="stat-card">
+                  <div class="stat-value">{{ overviewData?.dailyStats?.newUserCount || 0 }}</div>
+                  <div class="stat-label">新增用户</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value">{{ overviewData?.dailyStats?.activeUserCount || 0 }}</div>
+                  <div class="stat-label">活跃用户</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value">{{ (overviewData?.dailyStats?.newPetPostCount || 0) + (overviewData?.dailyStats?.newActivityCount || 0) + (overviewData?.dailyStats?.newDailyPostCount || 0) }}</div>
+                  <div class="stat-label">新增帖子</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value">{{ overviewData?.dailyStats?.newCommentCount || 0 }}</div>
+                  <div class="stat-label">新增评论</div>
+                </div>
+              </div>
+            </div>
+          </el-card>
+          
+          <!-- 趋势图表 -->
+          <el-card class="trend-card">
+            <template #header>
+              <div class="card-header">
+                <span>数据趋势</span>
+              </div>
+            </template>
+            
+            <div v-if="trendLoading" class="loading-container">
+              <el-skeleton :rows="6" animated />
+            </div>
+            <div v-else class="trend-chart">
+              <div ref="trendChartRef" class="chart-container"></div>
+            </div>
+          </el-card>
         </div>
         
         <!-- 公告管理 -->
@@ -706,18 +803,48 @@
           </span>
         </template>
       </el-dialog>
+      
+      <!-- 补录统计数据对话框 -->
+      <el-dialog
+        v-model="backfillDialogVisible"
+        title="补录统计数据"
+        width="400px"
+      >
+        <el-form label-width="80px">
+          <el-form-item label="补录日期" required>
+            <el-date-picker
+              v-model="backfillDate"
+              type="date"
+              placeholder="选择补录日期"
+              style="width: 100%"
+              value-format="YYYY-MM-DD"
+            />
+          </el-form-item>
+          <el-form-item>
+            <p class="tip-text">提示：补录统计数据会重新计算指定日期的统计信息，可能会覆盖原有数据。</p>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button @click="backfillDialogVisible = false">取消</el-button>
+            <el-button type="primary" :loading="backfillLoading" @click="submitBackfill">确认补录</el-button>
+          </span>
+        </template>
+      </el-dialog>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox, ElDialog, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElRadioGroup, ElRadio, ElCheckbox, ElDatePicker, ElButton } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { getAuditList, batchApproveAudit, batchRejectAudit, getAuditHistory } from '../../api/audit'
 import { getAdminUserList, disableUser, enableUser, batchDisableUsers, batchEnableUsers, batchResetPassword } from '../../api/user'
 import { getAdminNoticeList, createNotice, updateNotice, deleteNotice, publishNotice, unpublishNotice } from '../../api/notice'
 import { getReportList, getReportDetail, handleReport } from '../../api/report'
+import { getOverviewStatistics, getRealtimeStatistics, regenerateStatistics } from '../../api/statistics'
+import * as echarts from 'echarts'
 import { Search, Plus, View, Check, Close } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -811,6 +938,16 @@ const reportHandleDialogVisible = ref(false)
 const currentReportId = ref(0)
 const handleStatus = ref(1)
 const handleResult = ref('')
+
+// 统计数据相关
+const statsDateRange = ref<[Date, Date] | null>(null)
+const period = ref('week')
+const realtimeLoading = ref(false)
+const trendLoading = ref(false)
+const overviewData = ref<any>(null)
+const realtimeData = ref<any>(null)
+const trendChartRef = ref<HTMLElement | null>(null)
+let trendChart: echarts.ECharts | null = null
 
 // 获取审核列表
 const fetchAuditList = async () => {
@@ -1611,7 +1748,206 @@ const getNoticeStatusText = (status: number) => {
 // 页面加载时获取审核列表
 onMounted(() => {
   fetchAuditList()
+  
+  // 设置默认日期范围为最近7天
+  const endDate = new Date()
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - 6)
+  statsDateRange.value = [startDate, endDate]
+  
+  // 监听窗口大小变化，调整图表大小
+  window.addEventListener('resize', handleResize)
 })
+
+onUnmounted(() => {
+  // 清理事件监听器
+  window.removeEventListener('resize', handleResize)
+  // 销毁图表实例
+  if (trendChart) {
+    trendChart.dispose()
+  }
+})
+
+// 处理窗口大小变化
+const handleResize = () => {
+  if (trendChart) {
+    trendChart.resize()
+  }
+}
+
+// 获取统计概览数据
+const fetchOverviewData = async () => {
+  if (!statsDateRange.value) return
+  
+  loading.value = true
+  trendLoading.value = true
+  try {
+    const [start, end] = statsDateRange.value
+    const startDate = start.toISOString().split('T')[0]
+    const endDate = end.toISOString().split('T')[0]
+    
+    const response = await getOverviewStatistics({
+      startDate,
+      endDate,
+      period: period.value
+    })
+    
+    if (response.code === 200) {
+      overviewData.value = response.data
+      // 初始化趋势图表
+      initTrendChart()
+    }
+  } catch (error) {
+    console.error('获取统计概览失败:', error)
+  } finally {
+    loading.value = false
+    trendLoading.value = false
+  }
+}
+
+// 获取实时统计数据
+const fetchRealtimeData = async () => {
+  realtimeLoading.value = true
+  try {
+    const response = await getRealtimeStatistics()
+    if (response.code === 200) {
+      realtimeData.value = response.data
+    }
+  } catch (error) {
+    console.error('获取实时统计失败:', error)
+  } finally {
+    realtimeLoading.value = false
+  }
+}
+
+// 初始化趋势图表
+const initTrendChart = () => {
+  if (!trendChartRef.value || !overviewData.value?.trendData) return
+  
+  if (trendChart) {
+    trendChart.dispose()
+  }
+  
+  trendChart = echarts.init(trendChartRef.value)
+  
+  const option = {
+    title: {
+      text: '数据趋势',
+      left: 'center'
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'cross',
+        label: {
+          backgroundColor: '#6a7985'
+        }
+      }
+    },
+    legend: {
+      data: ['DAU', '新增用户', '新增帖子', '新增评论'],
+      top: 30
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    xAxis: [
+      {
+        type: 'category',
+        boundaryGap: false,
+        data: overviewData.value.trendData.dates
+      }
+    ],
+    yAxis: [
+      {
+        type: 'value'
+      }
+    ],
+    series: [
+      {
+        name: 'DAU',
+        type: 'line',
+        stack: 'Total',
+        areaStyle: {},
+        emphasis: {
+          focus: 'series'
+        },
+        data: overviewData.value.trendData.dauList
+      },
+      {
+        name: '新增用户',
+        type: 'line',
+        stack: 'Total',
+        emphasis: {
+          focus: 'series'
+        },
+        data: overviewData.value.trendData.newUserList
+      },
+      {
+        name: '新增帖子',
+        type: 'line',
+        stack: 'Total',
+        emphasis: {
+          focus: 'series'
+        },
+        data: overviewData.value.trendData.newPostList
+      },
+      {
+        name: '新增评论',
+        type: 'line',
+        stack: 'Total',
+        emphasis: {
+          focus: 'series'
+        },
+        data: overviewData.value.trendData.newCommentList
+      }
+    ]
+  }
+  
+  trendChart.setOption(option)
+}
+
+// 补录统计数据相关
+const backfillDate = ref('')
+const backfillDialogVisible = ref(false)
+const backfillLoading = ref(false)
+
+// 打开补录统计数据对话框
+const openBackfillDialog = () => {
+  backfillDate.value = ''
+  backfillDialogVisible.value = true
+}
+
+// 提交补录统计数据
+const submitBackfill = async () => {
+  if (!backfillDate.value) {
+    ElMessage.error('请选择补录日期')
+    return
+  }
+  
+  backfillLoading.value = true
+  try {
+    const response = await regenerateStatistics(backfillDate.value)
+    if (response.code === 200) {
+      ElMessage.success('补录成功')
+      backfillDialogVisible.value = false
+      // 重新获取统计数据
+      fetchOverviewData()
+      fetchRealtimeData()
+    } else {
+      ElMessage.error(response.message || '补录失败')
+    }
+  } catch (error) {
+    console.error('补录统计数据失败:', error)
+    ElMessage.error('补录失败，请重试')
+  } finally {
+    backfillLoading.value = false
+  }
+}
+
 </script>
 
 <style scoped>
@@ -2088,5 +2424,113 @@ onMounted(() => {
     gap: 10px;
     align-items: stretch;
   }
+  
+  .realtime-data {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .statistics-overview {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 数据统计相关样式 */
+.statistics-card,
+.realtime-card,
+.trend-card {
+  margin-top: 20px;
+}
+
+.filter-container {
+  display: flex;
+  align-items: center;
+}
+
+.statistics-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.stat-card {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: bold;
+  color: #409eff;
+  margin-bottom: 10px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #606266;
+}
+
+.realtime-data {
+  display: flex;
+  gap: 40px;
+  margin-top: 20px;
+}
+
+.realtime-item {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+}
+
+.realtime-label {
+  color: #606266;
+  margin-right: 10px;
+}
+
+.realtime-value {
+  font-weight: bold;
+  color: #409eff;
+  font-size: 18px;
+}
+
+.chart-container {
+  width: 100%;
+  height: 400px;
+  margin-top: 20px;
+}
+
+.period-tabs {
+  margin-bottom: 20px;
+}
+
+.period-tabs .el-tabs__header {
+  margin-bottom: 15px;
+}
+
+.period-tabs .el-tabs__nav {
+  display: flex;
+  justify-content: center;
+}
+
+.period-tabs .el-tabs__item {
+  font-size: 14px;
+  padding: 0 20px;
+}
+
+.tip-text {
+  color: #909399;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
 }
 </style>

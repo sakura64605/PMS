@@ -1,4 +1,4 @@
-import request from './request'
+import request from '../utils/request'
 
 // 获取统计概览
 export const getOverviewStatistics = (params: {
@@ -7,7 +7,7 @@ export const getOverviewStatistics = (params: {
   period: string // day, week, month, year
 }) => {
   return request({
-    url: '/statistics/overview',
+    url: '/admin/statistics/overview',
     method: 'get',
     params
   })
@@ -16,20 +16,16 @@ export const getOverviewStatistics = (params: {
 // 获取实时统计数据
 export const getRealtimeStatistics = () => {
   return request({
-    url: '/statistics/realtime',
+    url: '/admin/statistics/realtime',
     method: 'get'
   })
 }
 
-// 获取补录统计数据
-export const getBackfillStatistics = (params: {
-  startDate: string
-  endDate: string
-  period: string // day, week, month, year
-}) => {
+// 补录统计数据
+export const regenerateStatistics = (date: string) => {
   return request({
-    url: '/statistics/backfill',
-    method: 'get',
-    params
+    url: '/admin/statistics/regenerate',
+    method: 'post',
+    params: { date }
   })
 }
