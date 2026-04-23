@@ -92,6 +92,9 @@ public class AuditServiceImpl implements AuditService {
         } else if (TargetType.ACTIVITY.name().equals(targetType)) {
             Activity activity = activityMapper.selectById(id);
             activity.setAuditStatus(AuditStatus.APPROVED.getCode());
+        } else if (TargetType.DAILY.name().equals(targetType)) {
+            DailyPost daily = dailyPostMapper.selectById(id);
+            daily.setAuditStatus(AuditStatus.APPROVED.getCode());
         }
 
         clearCache(targetType, id);

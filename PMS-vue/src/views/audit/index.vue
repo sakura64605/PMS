@@ -334,8 +334,102 @@
         </div>
         
         <!-- 举报管理 -->
-        <div v-else-if="activeTab === 'report'" class="empty-section">
-          <el-empty description="举报管理功能开发中" />
+        <div v-else-if="activeTab === 'report'">
+          <div class="operation-bar">
+            <el-input
+              v-model="reportKeyword"
+              placeholder="搜索关键词"
+              prefix-icon="el-icon-search"
+              class="search-input"
+              @keyup.enter="fetchReportList"
+            />
+            <el-select v-model="reportStatus" placeholder="状态" class="filter-select">
+              <el-option label="全部" value="" />
+              <el-option label="待处理" value="0" />
+              <el-option label="已处理" value="1" />
+              <el-option label="已驳回" value="2" />
+            </el-select>
+            <el-select v-model="reportTargetType" placeholder="目标类型" class="filter-select">
+              <el-option label="全部" value="" />
+              <el-option label="宠物" value="pet" />
+              <el-option label="活动" value="activity" />
+              <el-option label="评论" value="comment" />
+              <el-option label="用户" value="user" />
+            </el-select>
+            <el-button type="primary" @click="fetchReportList" class="search-btn">
+              <el-icon><Search /></el-icon>
+              搜索
+            </el-button>
+          </div>
+          
+          <div v-if="reportLoading" class="loading-container">
+            <el-skeleton :rows="10" animated />
+          </div>
+          <div v-else-if="reportList.length > 0" class="report-list">
+            <el-table :data="reportList" style="width: 100%">
+              <el-table-column prop="id" label="ID" width="80" />
+              <el-table-column label="目标信息" min-width="200">
+                <template #default="scope">
+                  <div>
+                    <div class="report-target-info">
+                      <el-tag size="small" :type="getReportTargetTypeTagType(scope.row.targetType)">
+                        {{ getReportTargetTypeText(scope.row.targetType) }}
+                      </el-tag>
+                      <span class="report-target-id">ID: {{ scope.row.targetId }}</span>
+                    </div>
+                    <div class="report-target-title" v-if="scope.row.targetTitle">
+                      {{ scope.row.targetTitle }}
+                    </div>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column prop="reason" label="举报原因" min-width="150" />
+              <el-table-column label="举报者" width="120">
+                <template #default="scope">
+                  {{ scope.row.reporterName || '未知' }}
+                </template>
+              </el-table-column>
+              <el-table-column label="状态" width="100">
+                <template #default="scope">
+                  <el-tag :type="getReportStatusTagType(scope.row.status)">
+                    {{ getReportStatusText(scope.row.status) }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="createTime" label="举报时间" width="180" />
+              <el-table-column label="操作" width="200">
+                <template #default="scope">
+                  <el-button size="small" type="info" @click="handleViewReportDetail(scope.row.id)">
+                    <el-icon><View /></el-icon>
+                    查看
+                  </el-button>
+                  <el-button 
+                    v-if="scope.row.status === 0" 
+                    size="small" 
+                    type="primary" 
+                    @click="handleOpenReportHandleDialog(scope.row.id)"
+                  >
+                    处理
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            
+            <div class="pagination-container">
+              <el-pagination
+                v-model:current-page="reportCurrentPage"
+                v-model:page-size="reportPageSize"
+                :page-sizes="[10, 20, 50, 100]"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="reportTotal"
+                @size-change="handleReportSizeChange"
+                @current-change="handleReportCurrentChange"
+              />
+            </div>
+          </div>
+          <div v-else class="empty-section">
+            <el-empty description="暂无举报记录" />
+          </div>
         </div>
         
         <!-- 数据统计 -->
@@ -523,6 +617,95 @@
           </span>
         </template>
       </el-dialog>
+      
+      <!-- 举报详情对话框 -->
+      <el-dialog
+        v-model="reportDetailDialogVisible"
+        title="举报详情"
+        width="600px"
+      >
+        <div v-if="reportDetail" class="report-detail-content">
+          <el-form label-width="80px">
+            <el-form-item label="举报ID">
+              {{ reportDetail.id }}
+            </el-form-item>
+            <el-form-item label="目标类型">
+              <el-tag :type="getReportTargetTypeTagType(reportDetail.targetType)">
+                {{ getReportTargetTypeText(reportDetail.targetType) }}
+              </el-tag>
+            </el-form-item>
+            <el-form-item label="目标ID">
+              {{ reportDetail.targetId }}
+            </el-form-item>
+            <el-form-item label="目标标题">
+              {{ reportDetail.targetTitle || '无' }}
+            </el-form-item>
+            <el-form-item label="举报原因">
+              {{ reportDetail.reason }}
+            </el-form-item>
+            <el-form-item label="举报者">
+              {{ reportDetail.reporterName || '未知' }}
+            </el-form-item>
+            <el-form-item label="举报时间">
+              {{ reportDetail.createTime }}
+            </el-form-item>
+            <el-form-item label="处理状态">
+              <el-tag :type="getReportStatusTagType(reportDetail.status)">
+                {{ getReportStatusText(reportDetail.status) }}
+              </el-tag>
+            </el-form-item>
+            <el-form-item label="处理结果" v-if="reportDetail.handleResult">
+              {{ reportDetail.handleResult }}
+            </el-form-item>
+            <el-form-item label="处理人" v-if="reportDetail.handlerName">
+              {{ reportDetail.handlerName }}
+            </el-form-item>
+            <el-form-item label="处理时间" v-if="reportDetail.handleTime">
+              {{ reportDetail.handleTime }}
+            </el-form-item>
+          </el-form>
+          <div class="report-action-buttons">
+            <el-button type="primary" @click="handleViewReportContent(reportDetail.targetType, reportDetail.targetId)">
+              查看举报内容
+            </el-button>
+          </div>
+        </div>
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button @click="reportDetailDialogVisible = false">关闭</el-button>
+          </span>
+        </template>
+      </el-dialog>
+      
+      <!-- 举报处理对话框 -->
+      <el-dialog
+        v-model="reportHandleDialogVisible"
+        title="处理举报"
+        width="500px"
+      >
+        <el-form label-width="80px">
+          <el-form-item label="处理结果" required>
+            <el-radio-group v-model="handleStatus">
+              <el-radio label="1">已处理（下架）</el-radio>
+              <el-radio label="2">已驳回</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="处理说明" required>
+            <el-input
+              v-model="handleResult"
+              type="textarea"
+              rows="4"
+              placeholder="请填写处理说明..."
+            />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button @click="reportHandleDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="handleSubmitReportHandle">确认处理</el-button>
+          </span>
+        </template>
+      </el-dialog>
     </el-card>
   </div>
 </template>
@@ -534,7 +717,8 @@ import { useRouter } from 'vue-router'
 import { getAuditList, batchApproveAudit, batchRejectAudit, getAuditHistory } from '../../api/audit'
 import { getAdminUserList, disableUser, enableUser, batchDisableUsers, batchEnableUsers, batchResetPassword } from '../../api/user'
 import { getAdminNoticeList, createNotice, updateNotice, deleteNotice, publishNotice, unpublishNotice } from '../../api/notice'
-import { Search, Plus } from '@element-plus/icons-vue'
+import { getReportList, getReportDetail, handleReport } from '../../api/report'
+import { Search, Plus, View, Check, Close } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -607,6 +791,26 @@ const commonReasons = [
   '重复发布',
   '信息不完整'
 ]
+
+// 举报管理相关数据
+const reportList = ref<any[]>([])
+const reportLoading = ref(false)
+const reportCurrentPage = ref(1)
+const reportPageSize = ref(10)
+const reportTotal = ref(0)
+const reportKeyword = ref('')
+const reportStatus = ref('')
+const reportTargetType = ref('')
+
+// 举报详情对话框
+const reportDetailDialogVisible = ref(false)
+const reportDetail = ref({})
+
+// 举报处理对话框
+const reportHandleDialogVisible = ref(false)
+const currentReportId = ref(0)
+const handleStatus = ref(1)
+const handleResult = ref('')
 
 // 获取审核列表
 const fetchAuditList = async () => {
@@ -909,8 +1113,7 @@ const handleTabChange = () => {
     } else if (activeTab.value === 'announcement') {
       fetchNoticeList()
     } else if (activeTab.value === 'report') {
-      // 跳转到举报管理页面
-      router.push('/report')
+      fetchReportList()
     }
   }, 0)
 }
@@ -1199,6 +1402,152 @@ const handleSaveNotice = async () => {
     ElMessage.error('操作失败，请重试')
     console.error('保存公告失败:', error)
   }
+}
+
+// 获取举报列表
+const fetchReportList = async () => {
+  reportLoading.value = true
+  try {
+    const response = await getReportList({
+      status: reportStatus.value ? parseInt(reportStatus.value) : undefined,
+      targetType: reportTargetType.value || undefined,
+      keyword: reportKeyword.value || undefined,
+      pageNum: reportCurrentPage.value,
+      pageSize: reportPageSize.value
+    })
+    if (response.code === 200 && response.data) {
+      reportList.value = response.data.records || []
+      reportTotal.value = response.data.total || 0
+    } else {
+      ElMessage.error(response.message || '获取举报列表失败')
+    }
+  } catch (error) {
+    ElMessage.error('获取举报列表失败')
+    console.error('获取举报列表失败:', error)
+  } finally {
+    reportLoading.value = false
+  }
+}
+
+// 查看举报详情
+const handleViewReportDetail = async (id: number) => {
+  try {
+    const response = await getReportDetail(id)
+    if (response.code === 200) {
+      reportDetail.value = response.data
+      reportDetailDialogVisible.value = true
+    } else {
+      ElMessage.error(response.message || '获取举报详情失败')
+    }
+  } catch (error) {
+    ElMessage.error('获取举报详情失败')
+    console.error('获取举报详情失败:', error)
+  }
+}
+
+// 打开举报处理对话框
+const handleOpenReportHandleDialog = (id: number) => {
+  currentReportId.value = id
+  handleStatus.value = 1
+  handleResult.value = ''
+  reportHandleDialogVisible.value = true
+}
+
+// 提交举报处理
+const handleSubmitReportHandle = async () => {
+  if (!handleResult.value.trim()) {
+    ElMessage.error('处理说明不能为空')
+    return
+  }
+  
+  try {
+    const response = await handleReport({
+      id: currentReportId.value,
+      status: handleStatus.value,
+      handleResult: handleResult.value
+    })
+    if (response.code === 200) {
+      ElMessage.success('处理成功')
+      reportHandleDialogVisible.value = false
+      fetchReportList()
+    } else {
+      ElMessage.error(response.message || '处理失败')
+    }
+  } catch (error) {
+    ElMessage.error('处理失败')
+    console.error('处理举报失败:', error)
+  }
+}
+
+// 查看举报内容
+const handleViewReportContent = (targetType: string, targetId: number) => {
+  if (targetType === 'pet') {
+    // 宠物类型跳转到宠物详情页面
+    router.push(`/pets/${targetId}`)
+  } else if (targetType === 'activity') {
+    // 活动类型跳转到活动详情页面
+    router.push(`/pets/activity/${targetId}`)
+  } else if (targetType === 'user') {
+    // 用户类型跳转到用户简介页面
+    router.push(`/user/${targetId}`)
+  } else if (targetType === 'comment') {
+    // 评论类型暂时跳转到宠物首页
+    router.push('/pets')
+  }
+}
+
+// 获取举报状态标签类型
+const getReportStatusTagType = (status: number) => {
+  switch (status) {
+    case 0: return 'warning' // 待处理-黄色
+    case 1: return 'success' // 已处理-绿色
+    case 2: return 'danger' // 已驳回-红色
+    default: return ''
+  }
+}
+
+// 获取举报状态文本
+const getReportStatusText = (status: number) => {
+  switch (status) {
+    case 0: return '待处理'
+    case 1: return '已处理'
+    case 2: return '已驳回'
+    default: return '未知'
+  }
+}
+
+// 获取举报目标类型标签类型
+const getReportTargetTypeTagType = (targetType: string) => {
+  switch (targetType) {
+    case 'pet': return 'primary'
+    case 'activity': return 'success'
+    case 'comment': return 'info'
+    case 'user': return 'warning'
+    default: return ''
+  }
+}
+
+// 获取举报目标类型文本
+const getReportTargetTypeText = (targetType: string) => {
+  switch (targetType) {
+    case 'pet': return '宠物'
+    case 'activity': return '活动'
+    case 'comment': return '评论'
+    case 'user': return '用户'
+    default: return '未知'
+  }
+}
+
+// 处理举报列表分页大小变化
+const handleReportSizeChange = (size: number) => {
+  reportPageSize.value = size
+  fetchReportList()
+}
+
+// 处理举报列表当前页码变化
+const handleReportCurrentChange = (current: number) => {
+  reportCurrentPage.value = current
+  fetchReportList()
 }
 
 // 获取公告类型标签类型

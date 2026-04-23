@@ -275,9 +275,9 @@
             
             <!-- 报名进度 -->
             <div class="progress-section">
-              <div class="progress-label">👥 报名进度：{{ activity.currentPeople }} / {{ activity.maxPeople }} 人 ({{ ((activity.currentPeople / activity.maxPeople) * 100).toFixed(2) }}%)</div>
+              <div class="progress-label">👥 报名进度：{{ activity.currentPeople || 0 }} / {{ activity.maxPeople || 0 }} 人 ({{ activity.maxPeople && activity.maxPeople > 0 ? ((activity.currentPeople || 0) / activity.maxPeople * 100).toFixed(2) : 0 }}%)</div>
               <el-progress
-                :percentage="(activity.currentPeople / activity.maxPeople) * 100"
+                :percentage="activity.maxPeople && activity.maxPeople > 0 ? parseFloat(((activity.currentPeople || 0) / activity.maxPeople * 100).toFixed(2)) : 0"
                 :stroke-width="8"
               />
             </div>

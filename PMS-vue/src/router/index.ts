@@ -87,12 +87,6 @@ const routes: RouteRecordRaw[] = [
         path: 'audit/:id',
         name: 'AuditDetail',
         component: () => import('../views/audit/detail.vue')
-      },
-      {
-        path: 'report',
-        name: 'Report',
-        component: () => import('../views/report/index.vue'),
-        meta: { isAdminOnly: true }
       }
     ]
   },

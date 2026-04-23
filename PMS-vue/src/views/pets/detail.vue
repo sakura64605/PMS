@@ -925,6 +925,9 @@ const handleReportComment = (commentId: number) => {
   // 这里可以设置举报的目标ID和类型
   // 注意：需要在ReportForm组件中添加props来接收这些值
   // 或者通过其他方式传递
+  // 传递目标类型为comment
+  window.reportTargetType = 'comment';
+  window.reportTargetId = commentId;
 };
 
 // 评论列表

@@ -117,14 +117,21 @@ const handleSubmitReport = async () => {
           reason += (reason ? '; ' : '') + form.otherReason;
         }
         
+        // 检查全局变量，优先使用全局变量中的值（用于评论举报）
+        const targetType = (window as any).reportTargetType || props.targetType;
+        const targetId = (window as any).reportTargetId || props.targetId;
+        
         await submitReport({
-          targetType: props.targetType,
-          targetId: props.targetId,
+          targetType: targetType,
+          targetId: targetId,
           reason: reason
         });
         ElMessage.success('举报成功，我们会尽快处理');
         dialogVisible.value = false;
         emit('success');
+        // 清空全局变量
+        delete (window as any).reportTargetType;
+        delete (window as any).reportTargetId;
       } catch (error: any) {
         ElMessage.error(error.message || '举报失败');
       } finally {

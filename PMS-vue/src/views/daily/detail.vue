@@ -54,8 +54,8 @@
       <!-- 操作栏 -->
       <div class="daily-actions">
         <div class="action-item" @click="handleLike">
-          <el-icon :class="dailyDetail.isLiked ? 'liked' : ''">
-            <component :is="dailyDetail.isLiked ? 'StarFilled' : 'Star'" />
+          <el-icon :class="(dailyDetail.isLiked || false) ? 'liked' : ''">
+            <component :is="(dailyDetail.isLiked || false) ? 'StarFilled' : 'Star'" />
           </el-icon>
           <span>{{ dailyDetail.likeCount }}</span>
         </div>
