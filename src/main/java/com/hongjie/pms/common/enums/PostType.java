@@ -1,7 +1,8 @@
 package com.hongjie.pms.common.enums;
 
 public enum PostType {
-    PET("pet", "宠物"),
+    HELP("help", "救助"),
+    ADOPT("adopt", "领养"),
     ACTIVITY("activity", "活动");
 
     private final String code;

@@ -3,6 +3,7 @@ package com.hongjie.pms.common.enums;
 public enum TargetType {
     ADOPT("adopt", "领养"),
     HELP("help", "救助"),
+    DAILY("daily", "日常"),
     ACTIVITY("activity", "活动");
 
     private final String code;

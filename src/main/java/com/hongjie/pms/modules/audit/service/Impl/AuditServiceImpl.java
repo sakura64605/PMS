@@ -17,6 +17,8 @@ import com.hongjie.pms.modules.audit.dto.AuditListDto;
 import com.hongjie.pms.modules.audit.entity.AuditRecord;
 import com.hongjie.pms.modules.audit.mapper.AuditRecordMapper;
 import com.hongjie.pms.modules.audit.service.AuditService;
+import com.hongjie.pms.modules.daily.entity.DailyPost;
+import com.hongjie.pms.modules.daily.mapper.DailyPostMapper;
 import com.hongjie.pms.modules.message.service.MessageService;
 import com.hongjie.pms.modules.petpost.entity.PetPost;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
@@ -45,7 +47,7 @@ public class AuditServiceImpl implements AuditService {
     private final UserMapper userMapper;
     private final MessageService messageService;
     private final DistributedCache distributedCache;
-    private final RedisTemplate redisTemplate;
+    private final DailyPostMapper dailyPostMapper;
 
     // ==================== 提交审核 ====================
 
@@ -66,6 +68,9 @@ public class AuditServiceImpl implements AuditService {
         record.setTargetId(targetId);
         record.setAuditStatus(AuditStatus.PENDING.getCode());
         auditRecordMapper.insert(record);
+
+        clearCache(targetType, targetId);
+
         log.info("提交审核: targetType={}, targetId={}", targetType, targetId);
     }
 
@@ -74,13 +79,21 @@ public class AuditServiceImpl implements AuditService {
     @Override
     @Transactional
     public void approve(Long id, String targetType) {
-        AuditRecord record = new AuditRecord();
-        record.setTargetId(id);
+        AuditRecord record = getPendingRecord(targetType, id);
+        record.setAuditorId(UserContext.getUserId());
+        record.setAuditTime(LocalDateTime.now());
         record.setAuditStatus(AuditStatus.APPROVED.getCode());
-        record.setTargetType(targetType);
-        auditRecordMapper.insert(record);
+        auditRecordMapper.updateById(record);
 
-        updateTargetAuditStatus(targetType, id, AuditStatus.APPROVED.getCode(), null);
+        if (TargetType.HELP.name().equals(targetType) || TargetType.ADOPT.name().equals(targetType)) {
+            PetPost pet = petPostMapper.selectById(id);
+            pet.setAuditStatus(AuditStatus.APPROVED.getCode());
+            petPostMapper.updateById(pet);
+        } else if (TargetType.ACTIVITY.name().equals(targetType)) {
+            Activity activity = activityMapper.selectById(id);
+            activity.setAuditStatus(AuditStatus.APPROVED.getCode());
+        }
+
         clearCache(targetType, id);
 
         log.info("审核通过: targetType={}, targetId={}", targetType, id);
@@ -191,6 +204,25 @@ public class AuditServiceImpl implements AuditService {
             }
         }
 
+        if (queryAll || TargetType.DAILY.getCode().equals(targetType)) {
+            LambdaQueryWrapper<DailyPost> wrapper = new LambdaQueryWrapper<DailyPost>()
+                    .eq(DailyPost::getAuditStatus, AuditStatus.PENDING.getCode())
+                    .eq(DailyPost::getStatus, 1);
+
+            if (StringUtils.hasText(keyword)) {
+                wrapper.and(w -> w
+                        .like(DailyPost::getContent, keyword)
+                        .or()
+                        .like(DailyPost::getLocation, keyword)
+                );
+            }
+            wrapper.orderByDesc(DailyPost::getCreateTime);
+            List<DailyPost> list = dailyPostMapper.selectList(wrapper);
+            for (DailyPost item : list) {
+                resultList.add(convertDailyToDto(item));
+            }
+        }
+
         // 按时间筛选
         if (StringUtils.hasText(dateRange)) {
             LocalDateTime startTime = parseDateRange(dateRange);
@@ -275,6 +307,32 @@ public class AuditServiceImpl implements AuditService {
             throw new BusinessException(ErrorCode.NOT_FOUND, "待审核记录不存在");
         }
         return record;
+    }
+
+    private AuditListDto convertDailyToDto(DailyPost daily) {
+        User user = userMapper.selectById(daily.getUserId());
+        UserSimpleDto userDto = user != null ? UserSimpleDto.builder()
+                .userId(user.getId())
+                .username(user.getUserName())
+                .nickname(user.getNickName())
+                .avatar(user.getAvatar())
+                .build() : null;
+
+        return AuditListDto.builder()
+                .id(daily.getId())
+                .targetType(TargetType.DAILY.getCode())
+                .targetTypeDesc("日常动态")
+                .title(daily.getContent() != null && daily.getContent().length() > 50
+                        ? daily.getContent().substring(0, 50) + "..."
+                        : daily.getContent())
+                .content(daily.getContent())
+                .images(daily.getImages())
+                .user(userDto)
+                .createTime(daily.getCreateTime())
+                .auditStatus(daily.getAuditStatus())
+                .auditStatusDesc(AuditStatus.getDescByCode(daily.getAuditStatus()))
+                .location(daily.getLocation())
+                .build();
     }
 
     private void updateTargetAuditStatus(String targetType, Long targetId, Integer auditStatus, String rejectReason) {
@@ -402,6 +460,12 @@ public class AuditServiceImpl implements AuditService {
             if (activity != null) {
                 title = activity.getTitle();
                 userId = activity.getUserId();
+            }
+        } else if (TargetType.DAILY.getCode().equals(record.getTargetType())) {
+            DailyPost daily = dailyPostMapper.selectById(record.getTargetId());
+            if (daily != null) {
+                title = daily.getContent();
+                userId = daily.getUserId();
             }
         }
 

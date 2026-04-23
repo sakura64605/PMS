@@ -87,22 +87,34 @@ public class PetPostServiceImpl implements PetPostService {
 
         petPostMapper.insert(petPost);
 
-        auditService.submit(PostType.PET.getCode(), petPost.getId());
-
         // 获取用户信息
         User user = userMapper.selectById(userId);
 
-        // 推送 Feed
-        feedService.pushToFans(
-                userId,
-                petPost.getId(),
-                PostType.PET.getCode(),
-                petPost.getTitle(),
-                petPost.getImages(),
-                user.getUserName(),
-                user.getAvatar(),
-                petPost.getCreateTime()
-        );
+        if (request.getType() == 1) {
+            auditService.submit(PostType.HELP.getCode(), petPost.getId());
+            feedService.pushToFans(
+                    userId,
+                    petPost.getId(),
+                    PostType.HELP.getCode(),
+                    petPost.getTitle(),
+                    petPost.getImages(),
+                    user.getUserName(),
+                    user.getAvatar(),
+                    petPost.getCreateTime()
+            );
+        } else if (request.getType() == 0) {
+            auditService.submit(PostType.ADOPT.getCode(), petPost.getId());
+            feedService.pushToFans(
+                    userId,
+                    petPost.getId(),
+                    PostType.ADOPT.getCode(),
+                    petPost.getTitle(),
+                    petPost.getImages(),
+                    user.getUserName(),
+                    user.getAvatar(),
+                    petPost.getCreateTime()
+            );
+        }
 
         return PetListResponseDto.builder()
                 .id(petPost.getId())

@@ -378,3 +378,73 @@ CREATE TABLE `report_record` (
                                  INDEX idx_status (status),
                                  INDEX idx_reporter (reporter_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='举报记录表';
+
+-- 日常表
+CREATE TABLE `daily_post` (
+                              `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+                              `user_id` BIGINT NOT NULL,
+                              `content` TEXT NOT NULL COMMENT '文字内容',
+                              `images` JSON COMMENT '图片列表',
+                              `video_url` VARCHAR(500) COMMENT '视频URL',
+                              `topic_id` BIGINT COMMENT '话题ID',
+                              `location` VARCHAR(200) COMMENT '位置',
+                              `view_count` INT DEFAULT 0,
+                              `like_count` INT DEFAULT 0,
+                              `comment_count` INT DEFAULT 0,
+                              `share_count` INT DEFAULT 0,
+                              `status` TINYINT DEFAULT 1 COMMENT '1-正常 0-删除',
+                              `audit_status` TINYINT DEFAULT 0 COMMENT '0-待审核 1-通过 2-拒绝',
+                              `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                              INDEX idx_user (user_id),
+                              INDEX idx_topic (topic_id),
+                              INDEX idx_time (create_time),
+                              INDEX idx_hot (like_count, view_count)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='日常表';
+
+-- 话题表
+CREATE TABLE `topic` (
+                         `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+                         `name` VARCHAR(100) NOT NULL COMMENT '话题名称，如：#猫咪日常#',
+                         `description` VARCHAR(500) COMMENT '话题描述',
+                         `post_count` INT DEFAULT 0 COMMENT '帖子数',
+                         `view_count` INT DEFAULT 0 COMMENT '浏览量',
+                         `hot_score` DOUBLE DEFAULT 0 COMMENT '热度分',
+                         `status` TINYINT DEFAULT 1 COMMENT '1-正常 0-删除',
+                         `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                         UNIQUE KEY uk_name (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 日常-话题关联表
+CREATE TABLE `daily_topic_rel` (
+                                   `daily_id` BIGINT NOT NULL,
+                                   `topic_id` BIGINT NOT NULL,
+                                   PRIMARY KEY (daily_id, topic_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 1. 用户行为日志表
+CREATE TABLE `daily_user_behavior` (
+                                       `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                       `user_id` BIGINT NOT NULL,
+                                       `target_id` BIGINT NOT NULL,
+                                       `action_type` VARCHAR(20) NOT NULL COMMENT 'view/like/share/follow',
+                                       `action_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                       INDEX idx_user (user_id, action_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2. 用户兴趣画像表
+CREATE TABLE `daily_user_interest` (
+                                       `user_id` BIGINT PRIMARY KEY,
+                                       `interest_json` TEXT COMMENT '{"cat":0.8, "dog":0.2, "topic_1":0.6}',
+                                       `update_time` DATETIME
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 3. 日常帖子特征表
+CREATE TABLE `daily_item_feature` (
+                                      `daily_id` BIGINT PRIMARY KEY,
+                                      `topic_ids` VARCHAR(500) COMMENT '话题ID列表',
+                                      `topic_tags` VARCHAR(500) COMMENT '话题标签',
+                                      `hot_score` DOUBLE DEFAULT 0,
+                                      `fresh_score` DOUBLE DEFAULT 0,
+                                      `quality_score` DOUBLE DEFAULT 0,
+                                      `update_time` DATETIME
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

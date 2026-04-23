@@ -221,7 +221,7 @@ public class FeedServiceImpl extends ServiceImpl<UserInboxMapper, UserInbox> imp
             result.add(FeedDto.builder()
                     .id(pet.getId())
                     .postId(pet.getId())
-                    .postType(PostType.PET.getCode())
+                    .postType(pet.getType() == 0 ? PostType.ADOPT.name() : PostType.HELP.name())
                     .title(pet.getTitle())
                     .content(pet.getContent())
                     .coverImage(pet.getImages() != null && !pet.getImages().isEmpty() ? pet.getImages().get(0) : null)
@@ -278,21 +278,51 @@ public class FeedServiceImpl extends ServiceImpl<UserInboxMapper, UserInbox> imp
                 .collect(Collectors.groupingBy(UserInbox::getPostType));
 
         // 处理宠物帖子
-        if (groupMap.containsKey(PostType.PET.getCode())) {
-            List<Long> petIds = groupMap.get(PostType.PET.getCode()).stream()
+        if (groupMap.containsKey(PostType.HELP.getCode())) {
+            List<Long> petIds = groupMap.get(PostType.HELP.getCode()).stream()
                     .map(UserInbox::getPostId)
                     .collect(Collectors.toList());
             List<PetPost> pets = petPostMapper.selectBatchIds(petIds);
             Map<Long, PetPost> petMap = pets.stream()
                     .collect(Collectors.toMap(PetPost::getId, p -> p));
 
-            for (UserInbox inbox : groupMap.get(PostType.PET.getCode())) {
+            for (UserInbox inbox : groupMap.get(PostType.HELP.getCode())) {
                 PetPost pet = petMap.get(inbox.getPostId());
                 if (pet != null && pet.getStatus() == 1) {
                     result.add(FeedDto.builder()
                             .id(pet.getId())
                             .postId(pet.getId())
-                            .postType(PostType.PET.getCode())
+                            .postType(PostType.HELP.getCode())
+                            .title(pet.getTitle())
+                            .content(pet.getContent())
+                            .coverImage(inbox.getCoverImage())
+                            .viewCount(pet.getViewCount())
+                            .likeCount(pet.getLikeCount())
+                            .commentCount(pet.getCommentCount())
+                            .posterId(pet.getUserId())
+                            .posterName(inbox.getPosterName())
+                            .posterAvatar(inbox.getPosterAvatar())
+                            .createTime(inbox.getCreateTime())
+                            .build());
+                }
+            }
+        }
+
+        if (groupMap.containsKey(PostType.ADOPT.getCode())) {
+            List<Long> petIds = groupMap.get(PostType.ADOPT.getCode()).stream()
+                    .map(UserInbox::getPostId)
+                    .collect(Collectors.toList());
+            List<PetPost> pets = petPostMapper.selectBatchIds(petIds);
+            Map<Long, PetPost> petMap = pets.stream()
+                    .collect(Collectors.toMap(PetPost::getId, p -> p));
+
+            for (UserInbox inbox : groupMap.get(PostType.ADOPT.getCode())) {
+                PetPost pet = petMap.get(inbox.getPostId());
+                if (pet != null && pet.getStatus() == 1) {
+                    result.add(FeedDto.builder()
+                            .id(pet.getId())
+                            .postId(pet.getId())
+                            .postType(PostType.ADOPT.getCode())
                             .title(pet.getTitle())
                             .content(pet.getContent())
                             .coverImage(inbox.getCoverImage())
@@ -396,7 +426,7 @@ public class FeedServiceImpl extends ServiceImpl<UserInboxMapper, UserInbox> imp
         // 3. 合并并按时间排序
         List<FeedItem> items = new ArrayList<>();
         for (PetPost pet : petList) {
-            items.add(new FeedItem(pet.getId(), "pet", pet.getUserId(), pet.getCreateTime()));
+            items.add(new FeedItem(pet.getId(), pet.getType() == 0 ? "adopt" : "help", pet.getUserId(), pet.getCreateTime()));
         }
         for (Activity activity : activityList) {
             items.add(new FeedItem(activity.getId(), "activity", activity.getUserId(), activity.getCreateTime()));

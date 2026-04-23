@@ -4,6 +4,7 @@
     <el-header height="60px" class="header">
       <div class="header-left">
         <div class="logo">
+          <el-avatar :size="40" src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=cute%20cartoon%20pet%20logo%20with%20cat%20and%20dog%20silhouette%2C%20friendly%20style%2C%20blue%20and%20orange%20colors&image_size=square"></el-avatar>
           <span class="logo-text">PetCircle -宠友社</span>
         </div>
         <el-menu
@@ -29,6 +30,10 @@
             <el-menu-item index="/pets/collections">我的收藏</el-menu-item>
             <el-menu-item index="/recycle">回收站</el-menu-item>
           </el-sub-menu>
+          <el-menu-item index="/daily">
+            <el-icon><Postcard /></el-icon>
+            <template #title>宠友日记</template>
+          </el-menu-item>
           <el-menu-item index="/feed">
             <el-icon><Link /></el-icon>
             <template #title>关注</template>
@@ -310,18 +315,14 @@ onMounted(() => {
   display: flex;
   align-items: center;
   white-space: nowrap;
-}
-
-.logo-img {
-  width: 32px;
-  height: 32px;
-  margin-right: 10px;
+  gap: 12px;
 }
 
 .logo-text {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
   color: #409eff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .top-menu {
@@ -333,8 +334,25 @@ onMounted(() => {
   margin: 0;
   height: 60px;
   line-height: 60px;
-  min-width: 90px;
+  min-width: 100px;
   text-align: center;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.top-menu .el-menu-item:hover {
+  background-color: #ecf5ff !important;
+  color: #409eff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
+}
+
+.top-menu .el-menu-item.is-active {
+  background-color: #409eff !important;
+  color: white !important;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.4);
 }
 
 .header-right {
@@ -349,16 +367,21 @@ onMounted(() => {
 }
 
 .message-icon {
-  font-size: 20px;
+  font-size: 22px;
   color: #606266;
   cursor: pointer;
-  padding: 10px;
+  padding: 12px;
   border-radius: 50%;
-  transition: background-color 0.3s;
+  transition: all 0.3s ease;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
 }
 
 .message-icon:hover {
-  background-color: #f5f7fa;
+  background-color: #ecf5ff;
+  color: #409eff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
 }
 
 .message-badge {
@@ -372,14 +395,26 @@ onMounted(() => {
   display: flex;
   align-items: center;
   cursor: pointer;
-  padding: 0 10px;
-  height: 40px;
-  border-radius: 20px;
-  transition: background-color 0.3s;
+  padding: 0 12px;
+  height: 44px;
+  border-radius: 22px;
+  transition: all 0.3s ease;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
 }
 
 .user-dropdown:hover {
-  background-color: #f5f7fa;
+  background-color: #e9ecef;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.user-dropdown .el-avatar {
+  transition: all 0.3s ease;
+}
+
+.user-dropdown:hover .el-avatar {
+  transform: scale(1.05);
 }
 
 .user-name {

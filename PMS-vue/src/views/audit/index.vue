@@ -37,6 +37,7 @@
               <el-option label="领养" value="adopt" />
               <el-option label="救助" value="help" />
               <el-option label="活动" value="activity" />
+              <el-option label="日记" value="daily" />
             </el-select>
             <el-button type="primary" icon="el-icon-search" @click="fetchAuditList" class="search-btn">
               搜索
@@ -79,7 +80,12 @@
                   <span class="item-publisher">发布者：{{ item.user.nickname }} · {{ item.address }}</span>
                   <span class="item-time">{{ formatTime(item.createTime) }}</span>
                 </div>
-                <div class="item-info" v-if="item.targetType !== 'activity'">
+                <div class="item-info" v-if="item.targetType === 'daily'">
+                  <span class="item-daily-info">
+                    日记内容：{{ item.content.substring(0, 30) }}{{ item.content.length > 30 ? '...' : '' }}
+                  </span>
+                </div>
+                <div class="item-info" v-else-if="item.targetType !== 'activity'">
                   <span class="item-pet-info">
                     宠物：{{ item.petType }} / {{ item.petName }} / {{ item.petAge }} / {{ getGenderText(item.petGender) }}
                   </span>
@@ -161,6 +167,7 @@
               <el-option label="领养" value="adopt" />
               <el-option label="救助" value="help" />
               <el-option label="活动" value="activity" />
+              <el-option label="日记" value="daily" />
             </el-select>
             <el-select v-model="historyStatusFilter" placeholder="全部状态" class="filter-select">
               <el-option label="全部状态" value="" />
@@ -658,6 +665,9 @@ const handleViewDetail = (id: number, targetType: string) => {
   if (targetType === 'activity') {
     // 活动类型跳转到活动详情页面
     router.push(`/pets/activity/${id}`)
+  } else if (targetType === 'daily') {
+    // 日记类型跳转到日记详情页面
+    router.push(`/daily/${id}`)
   } else {
     // 其他类型跳转到宠物详情页面
     router.push(`/pets/${id}`)
@@ -804,6 +814,7 @@ const getTypeIcon = (type: string) => {
     case 'adopt': return '🐱'
     case 'help': return '🐕'
     case 'activity': return '📍'
+    case 'daily': return '📝'
     default: return ''
   }
 }
@@ -814,6 +825,7 @@ const getTypeText = (type: string) => {
     case 'adopt': return '领养'
     case 'help': return '救助'
     case 'activity': return '活动'
+    case 'daily': return '日记'
     default: return '未知'
   }
 }
@@ -1414,6 +1426,10 @@ onMounted(() => {
 
 .type-tag.activity {
   background-color: #409eff;
+}
+
+.type-tag.daily {
+  background-color: #909399;
 }
 
 .status-tag {

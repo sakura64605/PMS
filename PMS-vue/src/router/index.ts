@@ -120,6 +120,22 @@ const routes: RouteRecordRaw[] = [
         name: 'ActivityDetail',
         component: () => import('../views/pets/activity-detail.vue')
       },
+      {
+        path: 'daily',
+        name: 'Daily',
+        component: () => import('../views/daily/index.vue')
+      },
+      {
+        path: 'daily/publish',
+        name: 'DailyPublish',
+        component: () => import('../views/daily/publish.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'daily/:id',
+        name: 'DailyDetail',
+        component: () => import('../views/daily/detail.vue')
+      },
 
     ]
   }
