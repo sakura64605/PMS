@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 
+/**
+ * 管理员接口
+ */
 @Slf4j
 @RequiredArgsConstructor
 @RestController

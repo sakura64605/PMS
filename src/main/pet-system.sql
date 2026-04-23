@@ -448,3 +448,64 @@ CREATE TABLE `daily_item_feature` (
                                       `quality_score` DOUBLE DEFAULT 0,
                                       `update_time` DATETIME
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 每日统计数据表
+CREATE TABLE `daily_statistics` (
+                                    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+                                    `stat_date` DATE NOT NULL COMMENT '统计日期',
+
+    -- 用户统计
+                                    `new_user_count` INT DEFAULT 0 COMMENT '新增用户数',
+                                    `total_user_count` INT DEFAULT 0 COMMENT '累计用户数',
+                                    `active_user_count` INT DEFAULT 0 COMMENT '活跃用户数',
+                                    `dau` INT DEFAULT 0 COMMENT '日活跃用户',
+                                    `wau` INT DEFAULT 0 COMMENT '周活跃用户',
+                                    `mau` INT DEFAULT 0 COMMENT '月活跃用户',
+
+    -- 内容统计
+                                    `new_pet_post_count` INT DEFAULT 0 COMMENT '新增宠物帖子数',
+                                    `total_pet_post_count` INT DEFAULT 0 COMMENT '累计宠物帖子数',
+                                    `new_activity_count` INT DEFAULT 0 COMMENT '新增活动数',
+                                    `total_activity_count` INT DEFAULT 0 COMMENT '累计活动数',
+                                    `new_daily_post_count` INT DEFAULT 0 COMMENT '新增日常动态数',
+                                    `total_daily_post_count` INT DEFAULT 0 COMMENT '累计日常动态数',
+                                    `new_comment_count` INT DEFAULT 0 COMMENT '新增评论数',
+                                    `total_comment_count` INT DEFAULT 0 COMMENT '累计评论数',
+
+    -- 互动统计
+                                    `new_like_count` INT DEFAULT 0 COMMENT '新增点赞数',
+                                    `total_like_count` INT DEFAULT 0 COMMENT '累计点赞数',
+                                    `new_follow_count` INT DEFAULT 0 COMMENT '新增关注数',
+                                    `total_follow_count` INT DEFAULT 0 COMMENT '累计关注数',
+                                    `new_favorite_count` INT DEFAULT 0 COMMENT '新增收藏数',
+                                    `total_favorite_count` INT DEFAULT 0 COMMENT '累计收藏数',
+                                    `new_share_count` INT DEFAULT 0 COMMENT '新增分享数',
+                                    `total_share_count` INT DEFAULT 0 COMMENT '累计分享数',
+
+    -- 活动统计
+                                    `new_signup_count` INT DEFAULT 0 COMMENT '新增报名数',
+                                    `total_signup_count` INT DEFAULT 0 COMMENT '累计报名数',
+                                    `new_checkin_count` INT DEFAULT 0 COMMENT '新增签到数',
+                                    `total_checkin_count` INT DEFAULT 0 COMMENT '累计签到数',
+
+    -- 审核统计
+                                    `pending_audit_count` INT DEFAULT 0 COMMENT '待审核数量',
+                                    `approved_count` INT DEFAULT 0 COMMENT '审核通过数',
+                                    `rejected_count` INT DEFAULT 0 COMMENT '审核拒绝数',
+
+    -- 举报统计
+                                    `new_report_count` INT DEFAULT 0 COMMENT '新增举报数',
+                                    `pending_report_count` INT DEFAULT 0 COMMENT '待处理举报数',
+                                    `handled_report_count` INT DEFAULT 0 COMMENT '已处理举报数',
+
+    -- 私信统计
+                                    `new_private_message_count` INT DEFAULT 0 COMMENT '新增私信数',
+                                    `total_private_message_count` INT DEFAULT 0 COMMENT '累计私信数',
+
+                                    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+
+                                    PRIMARY KEY (`id`),
+                                    UNIQUE KEY `uk_stat_date` (`stat_date`),
+                                    KEY `idx_stat_date` (`stat_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='每日统计数据表';

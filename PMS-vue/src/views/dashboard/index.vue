@@ -20,6 +20,98 @@
           </div>
         </el-card>
         
+        <!-- 数据统计概览 -->
+        <el-card class="statistics-card">
+          <template #header>
+            <div class="card-header">
+              <span>数据统计概览</span>
+              <div class="filter-container">
+                <el-date-picker
+                  v-model="dateRange"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  style="width: 300px; margin-right: 10px"
+                />
+                <el-select v-model="period" placeholder="统计周期" style="width: 120px; margin-right: 10px">
+                  <el-option label="日" value="day" />
+                  <el-option label="周" value="week" />
+                  <el-option label="月" value="month" />
+                  <el-option label="年" value="year" />
+                </el-select>
+                <el-button type="primary" @click="fetchOverviewData">查询</el-button>
+              </div>
+            </div>
+          </template>
+          
+          <div v-if="loading" class="loading-container">
+            <el-skeleton :rows="4" animated />
+          </div>
+          <div v-else class="statistics-overview">
+            <div class="stat-card">
+              <div class="stat-value">{{ overviewData?.newUsers || 0 }}</div>
+              <div class="stat-label">新增用户</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ overviewData?.activeUsers || 0 }}</div>
+              <div class="stat-label">活跃用户</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ overviewData?.newPosts || 0 }}</div>
+              <div class="stat-label">新增帖子</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ overviewData?.newComments || 0 }}</div>
+              <div class="stat-label">新增评论</div>
+            </div>
+          </div>
+        </el-card>
+        
+        <!-- 实时统计 -->
+        <el-card class="realtime-card">
+          <template #header>
+            <div class="card-header">
+              <span>实时统计</span>
+              <el-button type="info" @click="fetchRealtimeData">刷新</el-button>
+            </div>
+          </template>
+          
+          <div v-if="realtimeLoading" class="loading-container">
+            <el-skeleton :rows="3" animated />
+          </div>
+          <div v-else class="realtime-data">
+            <div class="realtime-item">
+              <span class="realtime-label">今日用户数：</span>
+              <span class="realtime-value">{{ realtimeData?.todayUsers || 0 }}</span>
+            </div>
+            <div class="realtime-item">
+              <span class="realtime-label">今日帖子数：</span>
+              <span class="realtime-value">{{ realtimeData?.todayPosts || 0 }}</span>
+            </div>
+            <div class="realtime-item">
+              <span class="realtime-label">今日评论数：</span>
+              <span class="realtime-value">{{ realtimeData?.todayComments || 0 }}</span>
+            </div>
+          </div>
+        </el-card>
+        
+        <!-- 趋势图表 -->
+        <el-card class="trend-card">
+          <template #header>
+            <div class="card-header">
+              <span>数据趋势</span>
+            </div>
+          </template>
+          
+          <div v-if="trendLoading" class="loading-container">
+            <el-skeleton :rows="6" animated />
+          </div>
+          <div v-else class="trend-chart">
+            <div ref="trendChartRef" class="chart-container"></div>
+          </div>
+        </el-card>
+        
         <el-card class="notice-card">
           <template #header>
             <div class="card-header">
@@ -27,8 +119,6 @@
               <el-badge v-if="unreadCount > 0" :value="unreadCount" type="danger" />
             </div>
           </template>
-          
-
           
           <div class="notice-list">
             <div v-for="notice in noticeList" :key="notice.id" class="notice-item" @click="handleNoticeClick(notice.id)">
@@ -71,9 +161,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getNoticeList, getUnreadCount } from '../../api/notice'
+import { getOverviewStatistics, getRealtimeStatistics } from '../../api/statistics'
+import * as echarts from 'echarts'
 
 const router = useRouter()
 const username = ref('')
@@ -86,6 +178,17 @@ const pageNum = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 
+// 统计数据相关
+const dateRange = ref<[Date, Date] | null>(null)
+const period = ref('week')
+const loading = ref(false)
+const realtimeLoading = ref(false)
+const trendLoading = ref(false)
+const overviewData = ref<any>(null)
+const realtimeData = ref<any>(null)
+const trendChartRef = ref<HTMLElement | null>(null)
+let trendChart: echarts.ECharts | null = null
+
 onMounted(() => {
   // 从localStorage获取用户信息
   const userInfo = localStorage.getItem('userInfo')
@@ -95,10 +198,160 @@ onMounted(() => {
     role.value = info.role
   }
   
+  // 设置默认日期范围为最近7天
+  const endDate = new Date()
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - 6)
+  dateRange.value = [startDate, endDate]
+  
   // 获取公告列表和未读数量
   fetchNoticeList()
   fetchUnreadCount()
+  
+  // 获取统计数据
+  fetchOverviewData()
+  fetchRealtimeData()
+  
+  // 监听窗口大小变化，调整图表大小
+  window.addEventListener('resize', handleResize)
 })
+
+onUnmounted(() => {
+  // 清理事件监听器
+  window.removeEventListener('resize', handleResize)
+  // 销毁图表实例
+  if (trendChart) {
+    trendChart.dispose()
+  }
+})
+
+// 处理窗口大小变化
+const handleResize = () => {
+  if (trendChart) {
+    trendChart.resize()
+  }
+}
+
+// 获取统计概览数据
+const fetchOverviewData = async () => {
+  if (!dateRange.value) return
+  
+  loading.value = true
+  trendLoading.value = true
+  try {
+    const [start, end] = dateRange.value
+    const startDate = start.toISOString().split('T')[0]
+    const endDate = end.toISOString().split('T')[0]
+    
+    const response = await getOverviewStatistics({
+      startDate,
+      endDate,
+      period: period.value
+    })
+    
+    if (response.code === 200) {
+      overviewData.value = response.data
+      // 初始化趋势图表
+      initTrendChart()
+    }
+  } catch (error) {
+    console.error('获取统计概览失败:', error)
+  } finally {
+    loading.value = false
+    trendLoading.value = false
+  }
+}
+
+// 获取实时统计数据
+const fetchRealtimeData = async () => {
+  realtimeLoading.value = true
+  try {
+    const response = await getRealtimeStatistics()
+    if (response.code === 200) {
+      realtimeData.value = response.data
+    }
+  } catch (error) {
+    console.error('获取实时统计失败:', error)
+  } finally {
+    realtimeLoading.value = false
+  }
+}
+
+// 初始化趋势图表
+const initTrendChart = () => {
+  if (!trendChartRef.value || !overviewData.value?.trendData) return
+  
+  if (trendChart) {
+    trendChart.dispose()
+  }
+  
+  trendChart = echarts.init(trendChartRef.value)
+  const trendData = overviewData.value.trendData
+  
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'cross',
+        label: {
+          backgroundColor: '#6a7985'
+        }
+      }
+    },
+    legend: {
+      data: ['DAU', '新增用户', '新增帖子', '新增评论']
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    xAxis: [
+      {
+        type: 'category',
+        boundaryGap: false,
+        data: trendData.dates
+      }
+    ],
+    yAxis: [
+      {
+        type: 'value'
+      }
+    ],
+    series: [
+      {
+        name: 'DAU',
+        type: 'line',
+        stack: 'Total',
+        areaStyle: {
+          opacity: 0.3
+        },
+        data: trendData.dauList || []
+      },
+      {
+        name: '新增用户',
+        type: 'line',
+        stack: 'Total',
+        data: trendData.newUserList || []
+      },
+      {
+        name: '新增帖子',
+        type: 'line',
+        stack: 'Total',
+        data: trendData.newPostList || []
+      },
+      {
+        name: '新增评论',
+        type: 'line',
+        stack: 'Total',
+        data: trendData.newCommentList || []
+      }
+    ]
+  }
+  
+  trendChart.setOption(option)
+}
 
 const logout = () => {
   // 清除本地存储的token和用户信息
@@ -230,11 +483,83 @@ const getPriorityText = (priority: number) => {
   font-size: 16px;
 }
 
+.statistics-card,
+.realtime-card,
+.trend-card,
 .notice-card {
   margin-top: 20px;
 }
 
+.filter-container {
+  display: flex;
+  align-items: center;
+}
 
+.loading-container {
+  padding: 20px 0;
+}
+
+.statistics-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.stat-card {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: bold;
+  color: #409eff;
+  margin-bottom: 10px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #606266;
+}
+
+.realtime-data {
+  display: flex;
+  gap: 40px;
+  margin-top: 20px;
+}
+
+.realtime-item {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+}
+
+.realtime-label {
+  color: #606266;
+  margin-right: 10px;
+}
+
+.realtime-value {
+  font-weight: bold;
+  color: #409eff;
+  font-size: 18px;
+}
+
+.chart-container {
+  width: 100%;
+  height: 400px;
+  margin-top: 20px;
+}
 
 .notice-list {
   padding: 10px 0;
