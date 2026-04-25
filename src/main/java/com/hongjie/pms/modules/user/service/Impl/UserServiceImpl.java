@@ -74,6 +74,8 @@ public class UserServiceImpl implements UserService {
 
         user.setLastActiveTime(LocalDateTime.now());
 
+        userMapper.update(user, new LambdaUpdateWrapper<User>().eq(User::getId, user.getId()));
+
         String password = loginRequestDto.getPassword();
         if(!PasswordUtils.matches(password, user.getPassword())){
             throw new BusinessException(ErrorCode.PASSWORD_ERROR, "用户名或密码错误");

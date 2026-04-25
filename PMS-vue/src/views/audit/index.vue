@@ -459,58 +459,143 @@
                 <span class="realtime-label">今日评论数：</span>
                 <span class="realtime-value">{{ realtimeData?.newCommentCount || 0 }}</span>
               </div>
+              <div class="realtime-item">
+                <span class="realtime-label">今日点赞数：</span>
+                <span class="realtime-value">{{ realtimeData?.newLikeCount || 0 }}</span>
+              </div>
+              <div class="realtime-item">
+                <span class="realtime-label">待审核数：</span>
+                <span class="realtime-value">{{ realtimeData?.pendingAuditCount || 0 }}</span>
+              </div>
             </div>
           </el-card>
           
-          <!-- 数据统计概览 -->
+          <!-- 周期切换标签页 -->
           <el-card class="statistics-card">
             <template #header>
               <div class="card-header">
                 <span>数据统计概览</span>
-                <div class="filter-container">
-                  <el-date-picker
-                    v-model="statsDateRange"
-                    type="daterange"
-                    range-separator="至"
-                    start-placeholder="开始日期"
-                    end-placeholder="结束日期"
-                    style="width: 300px; margin-right: 10px"
-                  />
-                  <el-button type="primary" @click="fetchOverviewData">查询</el-button>
-                  <el-button type="warning" @click="openBackfillDialog">补录数据</el-button>
-                </div>
               </div>
             </template>
             
+            <!-- 周期切换 - 使用 el-radio-group 替代 tabs，更可靠 -->
+            <div class="period-switch">
+              <el-radio-group v-model="period" @change="handlePeriodChange">
+                <el-radio-button value="day">日统计</el-radio-button>
+                <el-radio-button value="week">周统计</el-radio-button>
+                <el-radio-button value="month">月统计</el-radio-button>
+                <el-radio-button value="year">年统计</el-radio-button>
+                <el-radio-button value="custom">自定义</el-radio-button>
+              </el-radio-group>
+            </div>
+            
+            <!-- 日期选择区 - 使用 v-show 确保 DOM 存在 -->
+            <div class="date-filter-area">
+              <!-- 日统计 -->
+              <div v-show="period === 'day'" class="filter-row">
+                <span class="filter-label">选择日期：</span>
+                <el-date-picker
+                  v-model="dayDate"
+                  type="date"
+                  placeholder="选择日期"
+                  style="width: 200px"
+                  value-format="YYYY-MM-DD"
+                />
+                <el-button type="primary" style="margin-left: 12px" @click="fetchOverviewData">
+                  查询
+                </el-button>
+              </div>
+              
+              <!-- 周统计 -->
+              <div v-show="period === 'week'" class="filter-row">
+                <span class="filter-label">选择周：</span>
+                <el-date-picker
+                  v-model="weekDate"
+                  type="week"
+                  placeholder="选择周"
+                  format="yyyy年 w周"
+                  value-format="YYYY-MM-DD"
+                  style="width: 200px"
+                />
+                <el-button type="primary" style="margin-left: 12px" @click="fetchOverviewData">
+                  查询
+                </el-button>
+              </div>
+              
+              <!-- 月统计 -->
+              <div v-show="period === 'month'" class="filter-row">
+                <span class="filter-label">选择月份：</span>
+                <el-date-picker
+                  v-model="monthDate"
+                  type="month"
+                  placeholder="选择月份"
+                  format="yyyy年 MM月"
+                  value-format="YYYY-MM"
+                  style="width: 200px"
+                />
+                <el-button type="primary" style="margin-left: 12px" @click="fetchOverviewData">
+                  查询
+                </el-button>
+              </div>
+              
+              <!-- 年统计 -->
+              <div v-show="period === 'year'" class="filter-row">
+                <span class="filter-label">选择年份：</span>
+                <el-date-picker
+                  v-model="yearDate"
+                  type="year"
+                  placeholder="选择年份"
+                  format="yyyy年"
+                  value-format="YYYY"
+                  style="width: 200px"
+                />
+                <el-button type="primary" style="margin-left: 12px" @click="fetchOverviewData">
+                  查询
+                </el-button>
+              </div>
+              
+              <!-- 自定义时间段 -->
+              <div v-show="period === 'custom'" class="filter-row">
+                <span class="filter-label">选择时间段：</span>
+                <el-date-picker
+                  v-model="customDateRange"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  style="width: 300px"
+                />
+                <el-button type="primary" style="margin-left: 12px" @click="fetchOverviewData">
+                  查询
+                </el-button>
+              </div>
+            </div>
+            
+            <!-- 补录数据按钮 -->
+            <div style="margin-top: 16px; text-align: right">
+              <el-button type="warning" @click="openBackfillDialog">补录数据</el-button>
+            </div>
+            
+            <!-- 统计数据卡片 -->
             <div v-if="loading" class="loading-container">
               <el-skeleton :rows="4" animated />
             </div>
             <div v-else>
-              <!-- 周期切换 -->
-              <div class="period-tabs">
-                <el-tabs v-model="period" @tab-click="fetchOverviewData">
-                  <el-tab-pane label="日" value="day" />
-                  <el-tab-pane label="周" value="week" />
-                  <el-tab-pane label="月" value="month" />
-                  <el-tab-pane label="年" value="year" />
-                </el-tabs>
-              </div>
-              
               <div class="statistics-overview">
                 <div class="stat-card">
-                  <div class="stat-value">{{ overviewData?.dailyStats?.newUserCount || 0 }}</div>
+                  <div class="stat-value">{{ overviewData?.newUserCount || overviewData?.totalNewUsers || overviewData?.dailyStats?.newUserCount || 0 }}</div>
                   <div class="stat-label">新增用户</div>
                 </div>
                 <div class="stat-card">
-                  <div class="stat-value">{{ overviewData?.dailyStats?.activeUserCount || 0 }}</div>
+                  <div class="stat-value">{{ overviewData?.activeUserCount || overviewData?.dau || overviewData?.totalActiveUsers || overviewData?.avgDailyActiveUsers || overviewData?.dailyStats?.activeUserCount || 0 }}</div>
                   <div class="stat-label">活跃用户</div>
                 </div>
                 <div class="stat-card">
-                  <div class="stat-value">{{ (overviewData?.dailyStats?.newPetPostCount || 0) + (overviewData?.dailyStats?.newActivityCount || 0) + (overviewData?.dailyStats?.newDailyPostCount || 0) }}</div>
+                  <div class="stat-value">{{ (overviewData?.newPetPostCount || 0) + (overviewData?.newActivityCount || 0) + (overviewData?.newDailyPostCount || 0) + (overviewData?.totalNewPosts || 0) + (overviewData?.dailyStats?.newPetPostCount || 0) + (overviewData?.dailyStats?.newActivityCount || 0) + (overviewData?.dailyStats?.newDailyPostCount || 0) }}</div>
                   <div class="stat-label">新增帖子</div>
                 </div>
                 <div class="stat-card">
-                  <div class="stat-value">{{ overviewData?.dailyStats?.newCommentCount || 0 }}</div>
+                  <div class="stat-value">{{ overviewData?.newCommentCount || overviewData?.totalNewComments || overviewData?.dailyStats?.newCommentCount || 0 }}</div>
                   <div class="stat-label">新增评论</div>
                 </div>
               </div>
@@ -528,8 +613,12 @@
             <div v-if="trendLoading" class="loading-container">
               <el-skeleton :rows="6" animated />
             </div>
-            <div v-else class="trend-chart">
-              <div ref="trendChartRef" class="chart-container"></div>
+            <div v-else class="trend-chart" style="width: 100%; height: 400px; background-color: #f5f7fa; border-radius: 8px; padding: 20px;">
+              <div ref="trendChartRef" class="chart-container" style="width: 100%; height: 360px;"></div>
+              <div style="margin-top: 20px; text-align: center; color: #999;">
+                如果图表未显示，请检查浏览器控制台的错误信息
+                <el-button type="primary" size="small" @click="testChart" style="margin-left: 20px;">测试图表</el-button>
+              </div>
             </div>
           </el-card>
         </div>
@@ -804,30 +893,128 @@
         </template>
       </el-dialog>
       
-      <!-- 补录统计数据对话框 -->
+      <!-- 补录统计数据对话框 - 重构版 -->
       <el-dialog
         v-model="backfillDialogVisible"
         title="补录统计数据"
-        width="400px"
+        width="500px"
+        @close="resetBackfillForm"
       >
-        <el-form label-width="80px">
-          <el-form-item label="补录日期" required>
-            <el-date-picker
-              v-model="backfillDate"
-              type="date"
-              placeholder="选择补录日期"
-              style="width: 100%"
-              value-format="YYYY-MM-DD"
-            />
+        <el-form :model="backfillForm" :rules="backfillRules" ref="backfillFormRef" label-width="80px">
+          <el-form-item label="补录方式" prop="backfillType">
+            <el-radio-group v-model="backfillForm.backfillType" @change="handleBackfillTypeChange">
+              <el-radio label="single">单日补录</el-radio>
+              <el-radio label="range">区间补录</el-radio>
+            </el-radio-group>
           </el-form-item>
+          
+          <!-- 单日补录 -->
+          <template v-if="backfillForm.backfillType === 'single'">
+            <el-form-item label="补录日期" prop="singleDate">
+              <el-date-picker
+                v-model="backfillForm.singleDate"
+                type="date"
+                placeholder="选择补录日期"
+                style="width: 100%"
+                value-format="YYYY-MM-DD"
+                :disabled-date="disabledDate"
+              />
+            </el-form-item>
+          </template>
+          
+          <!-- 区间补录 -->
+          <template v-else>
+            <el-form-item label="开始日期" prop="startDate">
+              <el-date-picker
+                v-model="backfillForm.startDate"
+                type="date"
+                placeholder="选择开始日期"
+                style="width: 100%"
+                value-format="YYYY-MM-DD"
+                :disabled-date="disabledDate"
+              />
+            </el-form-item>
+            <el-form-item label="结束日期" prop="endDate">
+              <el-date-picker
+                v-model="backfillForm.endDate"
+                type="date"
+                placeholder="选择结束日期"
+                style="width: 100%"
+                value-format="YYYY-MM-DD"
+                :disabled-date="disabledDate"
+              />
+            </el-form-item>
+          </template>
+          
+          <el-form-item v-if="backfillForm.backfillType === 'range'">
+            <div class="date-range-hint">
+              <el-icon><InfoFilled /></el-icon>
+              <span>区间补录将重新计算从 {{ backfillForm.startDate || '开始日期' }} 到 {{ backfillForm.endDate || '结束日期' }} 的所有日期数据</span>
+            </div>
+          </el-form-item>
+          
           <el-form-item>
-            <p class="tip-text">提示：补录统计数据会重新计算指定日期的统计信息，可能会覆盖原有数据。</p>
+            <div class="tip-text">
+              <el-icon><WarningFilled /></el-icon>
+              <span>提示：补录统计数据会重新计算指定日期的统计信息，可能会覆盖原有数据。</span>
+            </div>
           </el-form-item>
         </el-form>
+        
         <template #footer>
           <span class="dialog-footer">
             <el-button @click="backfillDialogVisible = false">取消</el-button>
-            <el-button type="primary" :loading="backfillLoading" @click="submitBackfill">确认补录</el-button>
+            <el-button 
+              type="primary" 
+              :loading="backfillLoading" 
+              @click="submitBackfill"
+              :disabled="!isBackfillFormValid"
+            >
+              确认补录
+            </el-button>
+          </span>
+        </template>
+      </el-dialog>
+      
+      <!-- 批量补录进度对话框 -->
+      <el-dialog
+        v-model="progressDialogVisible"
+        title="批量补录进度"
+        width="500px"
+        :close-on-click-modal="false"
+        :close-on-press-escape="false"
+        :show-close="false"
+      >
+        <div class="progress-container">
+          <div class="progress-info">
+            <span>正在补录：{{ currentBackfillDate }}</span>
+            <span>{{ backfillProgress }}%</span>
+          </div>
+          <el-progress 
+            :percentage="backfillProgress" 
+            :status="backfillProgress === 100 ? 'success' : ''"
+            :stroke-width="16"
+            striped
+            striped-flow
+          />
+          <div class="progress-stats">
+            <span>成功：{{ backfillSuccessCount }}</span>
+            <span>失败：{{ backfillFailCount }}</span>
+            <span v-if="backfillTotalCount > 0">总计：{{ backfillTotalCount }}</span>
+          </div>
+          <div v-if="backfillErrorMessage" class="progress-error">
+            <el-alert :title="backfillErrorMessage" type="error" :closable="false" />
+          </div>
+        </div>
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button 
+              v-if="backfillProgress === 100" 
+              type="primary" 
+              @click="closeProgressDialog"
+            >
+              关闭
+            </el-button>
           </span>
         </template>
       </el-dialog>
@@ -836,16 +1023,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed, reactive } from 'vue'
 import { ElMessage, ElMessageBox, ElDialog, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElRadioGroup, ElRadio, ElCheckbox, ElDatePicker, ElButton } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { getAuditList, batchApproveAudit, batchRejectAudit, getAuditHistory } from '../../api/audit'
 import { getAdminUserList, disableUser, enableUser, batchDisableUsers, batchEnableUsers, batchResetPassword } from '../../api/user'
 import { getAdminNoticeList, createNotice, updateNotice, deleteNotice, publishNotice, unpublishNotice } from '../../api/notice'
 import { getReportList, getReportDetail, handleReport } from '../../api/report'
-import { getOverviewStatistics, getRealtimeStatistics, regenerateStatistics } from '../../api/statistics'
+import { getStatistics, getRealtime, regenerateStatistics, clearStatisticsCache, regenerateStatisticsRange } from '../../api/statistics'
 import * as echarts from 'echarts'
-import { Search, Plus, View, Check, Close } from '@element-plus/icons-vue'
+import { Search, Plus, View, Check, Close, InfoFilled, WarningFilled } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -940,8 +1127,12 @@ const handleStatus = ref(1)
 const handleResult = ref('')
 
 // 统计数据相关
-const statsDateRange = ref<[Date, Date] | null>(null)
-const period = ref('week')
+const period = ref('day')
+const dayDate = ref('')
+const weekDate = ref('')
+const monthDate = ref('')
+const yearDate = ref('')
+const customDateRange = ref<[Date, Date] | null>(null)
 const realtimeLoading = ref(false)
 const trendLoading = ref(false)
 const overviewData = ref<any>(null)
@@ -1749,11 +1940,33 @@ const getNoticeStatusText = (status: number) => {
 onMounted(() => {
   fetchAuditList()
   
-  // 设置默认日期范围为最近7天
-  const endDate = new Date()
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() - 6)
-  statsDateRange.value = [startDate, endDate]
+  // 设置默认日期
+  const today = new Date()
+  
+  // 默认显示昨天的日期
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  dayDate.value = yesterday.toISOString().split('T')[0]
+  
+  // 初始化其他周期的默认日期
+  const lastWeek = new Date(today)
+  lastWeek.setDate(today.getDate() - 7)
+  weekDate.value = lastWeek.toISOString().split('T')[0]
+  
+  const lastMonth = new Date(today)
+  lastMonth.setMonth(today.getMonth() - 1)
+  monthDate.value = lastMonth.toISOString().substring(0, 7)
+  
+  const lastYear = new Date(today)
+  lastYear.setFullYear(today.getFullYear() - 1)
+  yearDate.value = lastYear.getFullYear().toString()
+  
+  const customStart = new Date(today)
+  customStart.setDate(today.getDate() - 6)
+  customDateRange.value = [customStart, today]
+  
+  // 初始化时查询数据
+  fetchOverviewData()
   
   // 监听窗口大小变化，调整图表大小
   window.addEventListener('resize', handleResize)
@@ -1777,39 +1990,186 @@ const handleResize = () => {
 
 // 获取统计概览数据
 const fetchOverviewData = async () => {
-  if (!statsDateRange.value) return
+  // 根据不同周期验证日期
+  if (period.value === 'day' && !dayDate.value) {
+    ElMessage.error('请选择日期')
+    return
+  } else if (period.value === 'week' && !weekDate.value) {
+    ElMessage.error('请选择周')
+    return
+  } else if (period.value === 'month' && !monthDate.value) {
+    ElMessage.error('请选择月')
+    return
+  } else if (period.value === 'year' && !yearDate.value) {
+    ElMessage.error('请选择年')
+    return
+  } else if (period.value === 'custom' && !customDateRange.value) {
+    ElMessage.error('请选择日期范围')
+    return
+  }
   
   loading.value = true
   trendLoading.value = true
   try {
-    const [start, end] = statsDateRange.value
-    const startDate = start.toISOString().split('T')[0]
-    const endDate = end.toISOString().split('T')[0]
+    let params: any = {}
     
-    const response = await getOverviewStatistics({
-      startDate,
-      endDate,
-      period: period.value
-    })
+    switch (period.value) {
+      case 'day':
+        params.type = 'daily'
+        params.date = dayDate.value
+        break
+      case 'week':
+        params.type = 'weekly'
+        // 计算所选日期所在周的周日作为结束日期
+        const selectedWeekDate = new Date(weekDate.value)
+        // 计算到周日的天数（周日为0，其他为1-6）
+        const daysToSunday = 7 - selectedWeekDate.getDay()
+        // 设置为周日
+        selectedWeekDate.setDate(selectedWeekDate.getDate() + daysToSunday)
+        params.date = selectedWeekDate.toISOString().split('T')[0]
+        console.log('周统计日期:', params.date)
+        break
+      case 'month':
+        params.type = 'monthly'
+        params.month = monthDate.value
+        break
+      case 'year':
+        params.type = 'yearly'
+        params.year = parseInt(yearDate.value)
+        break
+      case 'custom':
+        params.type = 'range'
+        const [start, end] = customDateRange.value!
+        params.startDate = start.toISOString().split('T')[0]
+        params.endDate = end.toISOString().split('T')[0]
+        break
+      default:
+        ElMessage.error('无效的统计周期')
+        return
+    }
+    
+    // 获取主数据
+    console.log('=== 开始获取统计数据 ===')
+    console.log('请求参数:', params)
+    const response = await getStatistics(params)
+    
+    console.log('=== 数据获取完成 ===')
+    console.log('响应数据:', response)
     
     if (response.code === 200) {
       overviewData.value = response.data
-      // 初始化趋势图表
-      initTrendChart()
+      console.log('=== 数据获取成功 ===')
+      console.log('overviewData.value:', overviewData.value)
+      console.log('trendData:', overviewData.value?.trendData)
+      
+      // 确保DOM渲染完成后初始化图表
+      await nextTick()
+      console.log('DOM渲染完成，开始初始化图表')
+      
+      // 确保图表容器存在
+      if (trendChartRef.value) {
+        console.log('图表容器存在，初始化图表')
+        initTrendChart()
+      } else {
+        console.log('图表容器不存在，延迟初始化')
+        // 延迟一秒后再次尝试
+        setTimeout(() => {
+          if (trendChartRef.value) {
+            console.log('延迟后图表容器存在，初始化图表')
+            initTrendChart()
+          } else {
+            console.log('延迟后图表容器仍不存在')
+          }
+        }, 1000)
+      }
+    } else {
+      console.log('=== 数据获取失败 ===')
+      console.log('错误信息:', response.message)
     }
   } catch (error) {
     console.error('获取统计概览失败:', error)
+    ElMessage.error('获取统计数据失败，请重试')
   } finally {
     loading.value = false
     trendLoading.value = false
   }
 }
 
+// 辅助函数：获取趋势数据的开始日期
+const getStartDateForTrend = (period: string): string => {
+  const today = new Date()
+  switch (period) {
+    case 'day':
+    case 'week':
+    case 'month':
+      // 最近30天
+      const start = new Date(today)
+      start.setDate(today.getDate() - 30)
+      return start.toISOString().split('T')[0]
+    case 'year':
+      // 最近12个月
+      const startYear = new Date(today)
+      startYear.setFullYear(today.getFullYear() - 1)
+      return startYear.toISOString().split('T')[0]
+    default:
+      const startDefault = new Date(today)
+      startDefault.setDate(today.getDate() - 30)
+      return startDefault.toISOString().split('T')[0]
+  }
+}
+
+// 辅助函数：获取趋势数据的结束日期
+const getEndDateForTrend = (): string => {
+  const today = new Date()
+  return today.toISOString().split('T')[0]
+}
+
+// 处理周期切换
+const handlePeriodChange = () => {
+  // 设置默认日期
+  const today = new Date()
+  
+  if (period.value === 'day') {
+    // 默认显示昨天的日期
+    const yesterday = new Date(today)
+    yesterday.setDate(today.getDate() - 1)
+    dayDate.value = yesterday.toISOString().split('T')[0]
+  } else if (period.value === 'week') {
+    // 默认显示上周
+    const lastWeek = new Date(today)
+    lastWeek.setDate(today.getDate() - 7)
+    weekDate.value = lastWeek.toISOString().split('T')[0]
+  } else if (period.value === 'month') {
+    // 默认显示上个月
+    const lastMonth = new Date(today)
+    lastMonth.setMonth(today.getMonth() - 1)
+    monthDate.value = lastMonth.toISOString().substring(0, 7)
+  } else if (period.value === 'year') {
+    // 默认显示去年
+    const lastYear = new Date(today)
+    lastYear.setFullYear(today.getFullYear() - 1)
+    yearDate.value = lastYear.getFullYear().toString()
+  } else if (period.value === 'custom') {
+    // 默认显示最近7天
+    const startDate = new Date(today)
+    startDate.setDate(today.getDate() - 6)
+    customDateRange.value = [startDate, today]
+  }
+  
+  // 自动查询数据
+  fetchOverviewData()
+}
+
+// 日期变化时的处理
+const handleDateChange = (value: any) => {
+  console.log(`${period.value} 日期变化:`, value)
+}
+
 // 获取实时统计数据
 const fetchRealtimeData = async () => {
   realtimeLoading.value = true
   try {
-    const response = await getRealtimeStatistics()
+    const response = await getRealtime()
     if (response.code === 200) {
       realtimeData.value = response.data
     }
@@ -1822,18 +2182,118 @@ const fetchRealtimeData = async () => {
 
 // 初始化趋势图表
 const initTrendChart = () => {
-  if (!trendChartRef.value || !overviewData.value?.trendData) return
+  console.log('=== initTrendChart 开始 ===')
+  console.log('trendChartRef.value:', trendChartRef.value)
   
-  if (trendChart) {
-    trendChart.dispose()
+  // 检查容器高度
+  if (trendChartRef.value) {
+    const rect = trendChartRef.value.getBoundingClientRect()
+    console.log('图表容器尺寸:', rect.width, 'x', rect.height)
   }
   
-  trendChart = echarts.init(trendChartRef.value)
+  console.log('overviewData.value:', overviewData.value)
+  console.log('trendData:', overviewData.value?.trendData)
+  
+  if (!trendChartRef.value || !overviewData.value) {
+    console.log('条件不满足，退出')
+    return
+  }
+  
+  // 确保容器有足够的高度
+  if (trendChartRef.value.clientHeight === 0) {
+    console.log('容器高度为0，设置默认高度')
+    trendChartRef.value.style.height = '400px'
+  }
+  
+  // 先销毁旧实例
+  if (trendChart) {
+    trendChart.dispose()
+    console.log('旧图表实例已销毁')
+  }
+  
+  try {
+    // 尝试获取已存在的实例
+    const existingChart = echarts.getInstanceByDom(trendChartRef.value)
+    if (existingChart) {
+      trendChart = existingChart
+      console.log('使用已存在的图表实例')
+    } else {
+      // 创建新实例
+      trendChart = echarts.init(trendChartRef.value)
+      console.log('echarts 实例创建成功:', trendChart)
+    }
+  } catch (error) {
+    console.error('创建echarts实例失败:', error)
+    return
+  }
+  
+  // 准备图表数据
+  let dates = []
+  let dauList = []
+  let newUserList = []
+  let newPostList = []
+  let newCommentList = []
+  
+  // 检查是否有趋势数据
+  if (overviewData.value.trendData) {
+    console.log('有趋势数据，使用完整的趋势数据')
+    // 周、月、年统计都有完整的趋势数据
+    dates = overviewData.value.trendData.dates || []
+    dauList = overviewData.value.trendData.dauList || []
+    newUserList = overviewData.value.trendData.newUserList || []
+    newPostList = overviewData.value.trendData.newPostList || []
+    newCommentList = overviewData.value.trendData.newCommentList || []
+    
+    // 检查是否有newLikeList数据
+    if (overviewData.value.trendData.newLikeList) {
+      console.log('有newLikeList数据')
+    }
+  } else {
+    console.log('无趋势数据，创建单数据点图表')
+    // 单个周期统计（日/周/月/年），创建单数据点图表
+    let periodLabel = ''
+    if (period.value === 'day') {
+      periodLabel = dayDate.value
+    } else if (period.value === 'week') {
+      periodLabel = overviewData.value.weekRange || weekDate.value
+    } else if (period.value === 'month') {
+      periodLabel = overviewData.value.month || monthDate.value
+    } else if (period.value === 'year') {
+      periodLabel = overviewData.value.year || yearDate.value
+    }
+    
+    dates = [periodLabel]
+    
+    // 从不同的响应结构中提取数据
+    dauList = [overviewData.value.dau || overviewData.value.activeUserCount || overviewData.value.avgDailyActiveUsers || 0]
+    newUserList = [overviewData.value.newUserCount || overviewData.value.totalNewUsers || 0]
+    
+    // 计算新增帖子数
+    const postCount = (overviewData.value.newPetPostCount || 0) + 
+                     (overviewData.value.newActivityCount || 0) + 
+                     (overviewData.value.newDailyPostCount || 0) + 
+                     (overviewData.value.totalNewPosts || 0)
+    newPostList = [postCount]
+    
+    newCommentList = [overviewData.value.newCommentCount || overviewData.value.totalNewComments || 0]
+  }
+  
+  console.log('图表数据:', { dates, dauList, newUserList, newPostList, newCommentList })
+  
+  // 即使数据为空，也显示一个空图表
+  if (dates.length === 0) {
+    dates = ['无数据']
+    dauList = [0]
+    newUserList = [0]
+    newPostList = [0]
+    newCommentList = [0]
+  }
   
   const option = {
     title: {
       text: '数据趋势',
-      left: 'center'
+      left: 'center',
+      top: 10
     },
     tooltip: {
       trigger: 'axis',
@@ -1845,8 +2305,8 @@ const initTrendChart = () => {
       }
     },
     legend: {
-      data: ['DAU', '新增用户', '新增帖子', '新增评论'],
-      top: 30
+      data: ['DAU', '新增用户', '新增帖子', '新增评论', '新增点赞'],
+      top: 40
     },
     grid: {
       left: '3%',
@@ -1858,7 +2318,7 @@ const initTrendChart = () => {
       {
         type: 'category',
         boundaryGap: false,
-        data: overviewData.value.trendData.dates
+        data: dates
       }
     ],
     yAxis: [
@@ -1875,7 +2335,7 @@ const initTrendChart = () => {
         emphasis: {
           focus: 'series'
         },
-        data: overviewData.value.trendData.dauList
+        data: dauList
       },
       {
         name: '新增用户',
@@ -1884,7 +2344,7 @@ const initTrendChart = () => {
         emphasis: {
           focus: 'series'
         },
-        data: overviewData.value.trendData.newUserList
+        data: newUserList
       },
       {
         name: '新增帖子',
@@ -1893,7 +2353,7 @@ const initTrendChart = () => {
         emphasis: {
           focus: 'series'
         },
-        data: overviewData.value.trendData.newPostList
+        data: newPostList
       },
       {
         name: '新增评论',
@@ -1902,50 +2362,337 @@ const initTrendChart = () => {
         emphasis: {
           focus: 'series'
         },
-        data: overviewData.value.trendData.newCommentList
+        data: newCommentList
+      },
+      {
+        name: '新增点赞',
+        type: 'line',
+        stack: 'Total',
+        emphasis: {
+          focus: 'series'
+        },
+        data: overviewData.value.trendData?.newLikeList || []
       }
     ]
   }
   
-  trendChart.setOption(option)
+  console.log('设置图表选项')
+  console.log('图表数据:', { dates, dauList, newUserList, newPostList, newCommentList })
+  console.log('图表选项:', option)
+  
+  try {
+    // 确保容器有足够的高度
+    if (trendChartRef.value.clientHeight === 0) {
+      trendChartRef.value.style.height = '400px'
+      console.log('设置容器高度为400px')
+    }
+    
+    // 销毁旧实例
+    if (trendChart) {
+      trendChart.dispose()
+      console.log('销毁旧图表实例')
+    }
+    
+    // 创建新实例
+    trendChart = echarts.init(trendChartRef.value)
+    console.log('创建新图表实例:', trendChart)
+    
+    // 设置图表选项
+    trendChart.setOption(option)
+    console.log('图表设置完成')
+    
+    // 手动触发resize，确保图表正确显示
+    setTimeout(() => {
+      if (trendChart) {
+        trendChart.resize()
+        console.log('图表 resize 完成')
+      }
+    }, 100)
+  } catch (error) {
+    console.error('设置图表选项失败:', error)
+  }
+}
+
+// 手动测试图表
+let testChartInstance = null
+const testChart = () => {
+  console.log('=== 手动测试图表 ===')
+  console.log('trendChartRef.value:', trendChartRef.value)
+  
+  if (trendChartRef.value) {
+    console.log('容器存在，创建测试图表')
+    console.log('容器尺寸:', trendChartRef.value.clientWidth, 'x', trendChartRef.value.clientHeight)
+    
+    try {
+      // 先销毁旧实例
+      if (testChartInstance) {
+        testChartInstance.dispose()
+        console.log('旧实例已销毁')
+      }
+      
+      // 创建新实例
+      testChartInstance = echarts.init(trendChartRef.value)
+      console.log('echarts实例创建成功:', testChartInstance)
+      
+      const testOption = {
+        title: {
+          text: '测试图表',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis'
+        },
+        xAxis: {
+          type: 'category',
+          data: ['1月', '2月', '3月', '4月', '5月', '6月']
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [
+          {
+            data: [120, 200, 150, 80, 70, 110],
+            type: 'line'
+          }
+        ]
+      }
+      
+      testChartInstance.setOption(testOption)
+      console.log('测试图表创建成功')
+      
+      // 手动触发resize
+      setTimeout(() => {
+        testChartInstance.resize()
+        console.log('测试图表resize完成')
+      }, 100)
+    } catch (error) {
+      console.error('创建测试图表失败:', error)
+    }
+  } else {
+    console.log('容器不存在')
+  }
 }
 
 // 补录统计数据相关
-const backfillDate = ref('')
 const backfillDialogVisible = ref(false)
 const backfillLoading = ref(false)
+const backfillFormRef = ref<any>(null)
+
+// 进度对话框
+const progressDialogVisible = ref(false)
+const backfillProgress = ref(0)
+const backfillSuccessCount = ref(0)
+const backfillFailCount = ref(0)
+const backfillTotalCount = ref(0)
+const currentBackfillDate = ref('')
+const backfillErrorMessage = ref('')
+
+// 补录表单数据
+const backfillForm = reactive({
+  backfillType: 'single', // single / range
+  singleDate: '',
+  startDate: '',
+  endDate: ''
+})
+
+// 补录表单验证规则
+const backfillRules = {
+  singleDate: [
+    {
+      required: true,
+      message: '请选择补录日期',
+      trigger: 'change',
+      validator: (rule: any, value: any, callback: any) => {
+        if (backfillForm.backfillType === 'single' && !value) {
+          callback(new Error('请选择补录日期'))
+        } else {
+          callback()
+        }
+      }
+    }
+  ],
+  startDate: [
+    {
+      required: true,
+      message: '请选择开始日期',
+      trigger: 'change',
+      validator: (rule: any, value: any, callback: any) => {
+        if (backfillForm.backfillType === 'range' && !value) {
+          callback(new Error('请选择开始日期'))
+        } else {
+          callback()
+        }
+      }
+    }
+  ],
+  endDate: [
+    {
+      required: true,
+      message: '请选择结束日期',
+      trigger: 'change',
+      validator: (rule: any, value: any, callback: any) => {
+        if (backfillForm.backfillType === 'range') {
+          if (!value) {
+            callback(new Error('请选择结束日期'))
+          } else if (backfillForm.startDate && value < backfillForm.startDate) {
+            callback(new Error('结束日期不能早于开始日期'))
+          } else {
+            callback()
+          }
+        } else {
+          callback()
+        }
+      }
+    }
+  ]
+}
+
+// 计算补录表单是否有效
+const isBackfillFormValid = computed(() => {
+  if (backfillForm.backfillType === 'single') {
+    return !!backfillForm.singleDate
+  } else {
+    return !!backfillForm.startDate && !!backfillForm.endDate && 
+           backfillForm.endDate >= backfillForm.startDate
+  }
+})
+
+// 禁止选择未来日期
+const disabledDate = (date: Date) => {
+  return date > new Date()
+}
 
 // 打开补录统计数据对话框
 const openBackfillDialog = () => {
-  backfillDate.value = ''
+  resetBackfillForm()
   backfillDialogVisible.value = true
 }
 
-// 提交补录统计数据
-const submitBackfill = async () => {
-  if (!backfillDate.value) {
-    ElMessage.error('请选择补录日期')
-    return
+// 重置补录表单
+const resetBackfillForm = () => {
+  backfillForm.backfillType = 'single'
+  backfillForm.singleDate = ''
+  backfillForm.startDate = ''
+  backfillForm.endDate = ''
+  backfillErrorMessage.value = ''
+  if (backfillFormRef.value) {
+    backfillFormRef.value.resetFields()
+  }
+}
+
+// 处理补录方式切换
+const handleBackfillTypeChange = () => {
+  if (backfillFormRef.value) {
+    backfillFormRef.value.clearValidate()
+  }
+}
+
+// 单日补录
+const submitSingleBackfill = async () => {
+  try {
+    await regenerateStatistics(backfillForm.singleDate)
+    ElMessage.success(`补录成功：${backfillForm.singleDate}`)
+    return true
+  } catch (error: any) {
+    ElMessage.error(error.message || `补录失败：${backfillForm.singleDate}`)
+    return false
+  }
+}
+
+// 区间补录（带进度显示）
+const submitRangeBackfill = async () => {
+  const startDate = backfillForm.startDate
+  const endDate = backfillForm.endDate
+  
+  // 计算总天数
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  const totalDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  
+  // 初始化进度状态
+  progressDialogVisible.value = true
+  backfillProgress.value = 0
+  backfillSuccessCount.value = 0
+  backfillFailCount.value = 0
+  backfillTotalCount.value = totalDays
+  backfillErrorMessage.value = ''
+  
+  // 逐日补录
+  let currentDate = new Date(startDate)
+  let successCount = 0
+  let failCount = 0
+  
+  for (let i = 0; i < totalDays; i++) {
+    const dateStr = currentDate.toISOString().split('T')[0]
+    currentBackfillDate.value = dateStr
+    
+    try {
+      await regenerateStatistics(dateStr)
+      successCount++
+      backfillSuccessCount.value = successCount
+    } catch (error: any) {
+      failCount++
+      backfillFailCount.value = failCount
+      console.error(`补录失败 ${dateStr}:`, error)
+    }
+    
+    backfillProgress.value = Math.floor(((i + 1) / totalDays) * 100)
+    currentDate.setDate(currentDate.getDate() + 1)
   }
   
-  backfillLoading.value = true
-  try {
-    const response = await regenerateStatistics(backfillDate.value)
-    if (response.code === 200) {
-      ElMessage.success('补录成功')
-      backfillDialogVisible.value = false
-      // 重新获取统计数据
-      fetchOverviewData()
-      fetchRealtimeData()
-    } else {
-      ElMessage.error(response.message || '补录失败')
-    }
-  } catch (error) {
-    console.error('补录统计数据失败:', error)
-    ElMessage.error('补录失败，请重试')
-  } finally {
-    backfillLoading.value = false
+  if (failCount > 0) {
+    backfillErrorMessage.value = `补录完成，成功 ${successCount} 条，失败 ${failCount} 条`
+  } else {
+    backfillErrorMessage.value = ''
   }
+  
+  // 刷新数据
+  await fetchOverviewData()
+  await fetchRealtimeData()
+  
+  return failCount === 0
+}
+
+// 提交补录
+const submitBackfill = async () => {
+  if (!backfillFormRef.value) return
+  
+  await backfillFormRef.value.validate(async (valid: boolean) => {
+    if (valid) {
+      backfillLoading.value = true
+      
+      try {
+        if (backfillForm.backfillType === 'single') {
+          await submitSingleBackfill()
+          backfillDialogVisible.value = false
+          // 刷新数据
+          await fetchOverviewData()
+          await fetchRealtimeData()
+        } else {
+          // 区间补录，关闭主对话框，显示进度对话框
+          backfillDialogVisible.value = false
+          await submitRangeBackfill()
+        }
+      } catch (error) {
+        console.error('补录失败:', error)
+        ElMessage.error('补录失败，请重试')
+      } finally {
+        backfillLoading.value = false
+      }
+    }
+  })
+}
+
+// 关闭进度对话框
+const closeProgressDialog = () => {
+  progressDialogVisible.value = false
+  // 重置进度状态
+  backfillProgress.value = 0
+  backfillSuccessCount.value = 0
+  backfillFailCount.value = 0
+  backfillTotalCount.value = 0
+  currentBackfillDate.value = ''
+  backfillErrorMessage.value = ''
 }
 
 </script>
@@ -2532,5 +3279,113 @@ const submitBackfill = async () => {
   font-size: 14px;
   line-height: 1.5;
   margin: 0;
+}
+
+/* 周期切换样式 */
+.period-switch {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.period-switch .el-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.date-filter-area {
+  background-color: #f5f7fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+}
+
+.filter-label {
+  font-weight: 500;
+  margin-right: 12px;
+  color: #606266;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .filter-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .filter-label {
+    margin-bottom: 5px;
+  }
+  
+  .filter-row .el-button {
+    margin-top: 10px;
+  }
+  
+  .period-switch .el-radio-group {
+    flex-direction: column;
+  }
+  
+  .period-switch .el-radio-button {
+    width: 100%;
+  }
+}
+/* 补录对话框样式 */
+.date-range-hint {
+  background-color: #ecf5ff;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #409eff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tip-text {
+  background-color: #fdf6ec;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #e6a23c;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 进度对话框样式 */
+.progress-container {
+  padding: 20px 0;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.progress-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 16px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.progress-stats span {
+  padding: 4px 12px;
+  background-color: #f5f7fa;
+  border-radius: 16px;
+}
+
+.progress-error {
+  margin-top: 16px;
 }
 </style>

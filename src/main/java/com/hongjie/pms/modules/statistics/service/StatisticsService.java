@@ -28,9 +28,7 @@ import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
 import com.hongjie.pms.modules.privateMessage.entity.PrivateMessage;
 import com.hongjie.pms.modules.privateMessage.mapper.PrivateMessageMapper;
 import com.hongjie.pms.modules.report.entity.ReportRecord;
-import com.hongjie.pms.modules.report.enums.ReportStatus;
 import com.hongjie.pms.modules.report.mapper.ReportRecordMapper;
-import com.hongjie.pms.modules.statistics.dto.StatisticsQueryDto;
 import com.hongjie.pms.modules.statistics.dto.StatisticsResponseDto;
 import com.hongjie.pms.modules.statistics.entity.DailyStatistics;
 import com.hongjie.pms.modules.statistics.mapper.DailyStatisticsMapper;
@@ -38,12 +36,14 @@ import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -70,127 +70,164 @@ public class StatisticsService {
     private final DistributedCache distributedCache;
 
     /**
-     * 每天凌晨1点执行统计任务
+     * 获取日报数据
      */
-    @Scheduled(cron = "0 0 1 * * ?")
-    @Transactional
-    public void generateDailyStatistics() {
-        LocalDate statDate = LocalDate.now().minusDays(1);
-        log.info("开始生成 {} 的数据统计", statDate);
-        
-        long startTime = System.currentTimeMillis();
+    public StatisticsResponseDto.DailyStatisticsDto getDailyStatistics(LocalDate date) {
+        String cacheKey = CacheUtil.buildKey("statistics:daily", date.toString());
 
-        try {
-            // 检查是否已存在
-            DailyStatistics existing = statisticsMapper.selectByDate(statDate);
-            if (existing != null) {
-                log.info("{} 的数据统计已存在，跳过生成", statDate);
-                return;
-            }
-
-            DailyStatistics stats = new DailyStatistics();
-            stats.setStatDate(statDate);
-
-            // 统计用户数据
-            fillUserStatistics(stats, statDate);
-            
-            // 统计内容数据
-            fillContentStatistics(stats, statDate);
-            
-            // 统计互动数据
-            fillInteractionStatistics(stats, statDate);
-            
-            // 统计活动数据
-            fillActivityStatistics(stats, statDate);
-            
-            // 统计审核数据
-            fillAuditStatistics(stats, statDate);
-            
-            // 统计举报数据
-            fillReportStatistics(stats, statDate);
-            
-            // 统计私信数据
-            fillMessageStatistics(stats, statDate);
-
-            statisticsMapper.insert(stats);
-            
-            // 清理统计缓存
-            clearStatisticsCache();
-
-            long endTime = System.currentTimeMillis();
-            log.info("{} 的数据统计生成完成，耗时 {} ms", statDate, endTime - startTime);
-
-        } catch (Exception e) {
-            log.error("生成统计数据失败: {}", statDate, e);
-        }
-    }
-
-    /**
-     * 补录指定日期的统计数据
-     */
-    @Transactional
-    public void regenerateStatistics(LocalDate date) {
-        if (!UserContext.isAdmin()) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
-        }
-        
-        // 删除已存在的统计
-        statisticsMapper.delete(new LambdaQueryWrapper<DailyStatistics>()
-                .eq(DailyStatistics::getStatDate, date));
-        
-        // 重新生成
-        LocalDateTime startOfDay = date.atStartOfDay();
-        LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
-        
-        DailyStatistics stats = new DailyStatistics();
-        stats.setStatDate(date);
-        
-        // 使用指定日期的数据重新统计
-        regenerateStatisticsByDate(stats, startOfDay, endOfDay);
-        
-        statisticsMapper.insert(stats);
-        
-        // 清理缓存
-        clearStatisticsCache();
-        
-        log.info("补录统计数据完成: {}", date);
-    }
-
-    /**
-     * 获取统计概览（管理员仪表盘）
-     */
-    @RedisRateLimit(key = "getStatisticsOverview", capacity = 10, refillRate = 10, duration = 1, timeUnit = TimeUnit.MINUTES)
-    public StatisticsResponseDto getStatisticsOverview(StatisticsQueryDto queryDto) {
-        if (!UserContext.isAdmin()) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
-        }
-        
-        String cacheKey = CacheUtil.buildKey("statistics:overview", 
-                String.valueOf(queryDto.getStartDate()), 
-                String.valueOf(queryDto.getEndDate()),
-                queryDto.getPeriod());
-        
-        StatisticsResponseDto cached = distributedCache.get(cacheKey, StatisticsResponseDto.class);
+        StatisticsResponseDto.DailyStatisticsDto cached = distributedCache.get(cacheKey, StatisticsResponseDto.DailyStatisticsDto.class);
         if (cached != null) {
             return cached;
         }
-        
-        LocalDate endDate = queryDto.getEndDate() != null ? queryDto.getEndDate() : LocalDate.now();
-        LocalDate startDate = queryDto.getStartDate() != null ? queryDto.getStartDate() : endDate.minusDays(7);
-        
+
+        DailyStatistics stats = statisticsMapper.selectByDate(date);
+        StatisticsResponseDto.DailyStatisticsDto result = buildDailyStats(stats, date);
+
+        // 获取最近30天趋势
+        LocalDate startDate = date.minusDays(30);
+        LocalDate endDate = date;
+        List<DailyStatistics> trendStats = statisticsMapper.selectByDateRange(startDate, endDate);
+        result.setTrendData(buildTrendData(trendStats, startDate, endDate));
+
+        distributedCache.put(cacheKey, result, 3600);
+        return result;
+    }
+
+    /**
+     * 获取周报数据
+     */
+    public StatisticsResponseDto.WeeklyStatisticsDto getWeeklyStatistics(LocalDate date) {
+        LocalDate monday = date.with(java.time.DayOfWeek.MONDAY);
+        LocalDate sunday = monday.plusDays(6);
+
+        String cacheKey = CacheUtil.buildKey("statistics:weekly", monday.toString());
+
+        StatisticsResponseDto.WeeklyStatisticsDto cached = distributedCache.get(cacheKey, StatisticsResponseDto.WeeklyStatisticsDto.class);
+        if (cached != null) {
+            return cached;
+        }
+
+        List<DailyStatistics> weekStats = statisticsMapper.selectByDateRange(monday, sunday);
+        StatisticsResponseDto.WeeklyStatisticsDto result = buildWeeklyStats(weekStats, monday, sunday);
+
+        result.setTrendData(buildTrendData(weekStats, monday, sunday));
+
+        distributedCache.put(cacheKey, result, 7200);
+        return result;
+    }
+
+    /**
+     * 获取月报数据
+     */
+    public StatisticsResponseDto.MonthlyStatisticsDto getMonthlyStatistics(String month) {
+        YearMonth yearMonth = YearMonth.parse(month);
+        LocalDate firstDay = yearMonth.atDay(1);
+        LocalDate lastDay = yearMonth.atEndOfMonth();
+
+        String cacheKey = CacheUtil.buildKey("statistics:monthly", month);
+
+        StatisticsResponseDto.MonthlyStatisticsDto cached = distributedCache.get(cacheKey, StatisticsResponseDto.MonthlyStatisticsDto.class);
+        if (cached != null) {
+            return cached;
+        }
+
+        List<DailyStatistics> monthStats = statisticsMapper.selectByDateRange(firstDay, lastDay);
+        StatisticsResponseDto.MonthlyStatisticsDto result = buildMonthlyStats(monthStats, month, firstDay);
+
+        // 获取最近6个月趋势（包含当前月前后）
+        LocalDate startDate = firstDay.minusMonths(6);
+        LocalDate endDate = lastDay;
+        List<DailyStatistics> trendStats = statisticsMapper.selectByDateRange(startDate, endDate);
+        result.setTrendData(buildTrendData(monthStats, firstDay, lastDay));
+
+        distributedCache.put(cacheKey, result, 14400);
+        return result;
+    }
+
+    /**
+     * 获取年报数据
+     */
+    public StatisticsResponseDto.YearlyStatisticsDto getYearlyStatistics(int year) {
+        String cacheKey = CacheUtil.buildKey("statistics:yearly", String.valueOf(year));
+
+        StatisticsResponseDto.YearlyStatisticsDto cached = distributedCache.get(cacheKey, StatisticsResponseDto.YearlyStatisticsDto.class);
+        if (cached != null) {
+            return cached;
+        }
+
+        List<DailyStatistics> yearStats = statisticsMapper.selectByYear(year);
+        StatisticsResponseDto.YearlyStatisticsDto result = buildYearlyStats(yearStats, year);
+
+        // 获取最近2年趋势（包含当前年前后）
+        LocalDate startDate = LocalDate.of(year - 1, 1, 1);
+        LocalDate endDate = LocalDate.of(year, 12, 31);
+        List<DailyStatistics> trendStats = statisticsMapper.selectByDateRange(startDate, endDate);
+        result.setTrendData(buildTrendData(yearStats, LocalDate.of(year, 1, 1), LocalDate.of(year, 12, 31)));
+
+        distributedCache.put(cacheKey, result, 86400);
+        return result;
+    }
+
+    /**
+     * 获取自定义范围统计数据
+     */
+    public StatisticsResponseDto.RangeStatisticsDto getRangeStatistics(LocalDate startDate, LocalDate endDate) {
+        String cacheKey = CacheUtil.buildKey("statistics:range", startDate.toString(), endDate.toString());
+
+        StatisticsResponseDto.RangeStatisticsDto cached = distributedCache.get(cacheKey, StatisticsResponseDto.RangeStatisticsDto.class);
+        if (cached != null) {
+            return cached;
+        }
+
         List<DailyStatistics> statisticsList = statisticsMapper.selectByDateRange(startDate, endDate);
-        
-        StatisticsResponseDto response = StatisticsResponseDto.builder()
-                .dailyStats(buildDailyStats(statisticsList.isEmpty() ? null : statisticsList.get(statisticsList.size() - 1)))
-                .weeklyStats(buildWeeklyStats(statisticsList))
-                .monthlyStats(buildMonthlyStats(statisticsList))
-                .trendData(buildTrendData(statisticsList, startDate, endDate))
+
+        // 构建区间汇总数据
+        StatisticsResponseDto.RangeStatisticsDto result = buildRangeStatistics(statisticsList, startDate, endDate);
+
+        // 构建趋势数据（用于图表）
+        result.setTrendData(buildTrendData(statisticsList, startDate, endDate));
+
+        distributedCache.put(cacheKey, result, 1800);
+        return result;
+    }
+
+    /**
+     * 构建区间汇总数据
+     */
+    private StatisticsResponseDto.RangeStatisticsDto buildRangeStatistics(List<DailyStatistics> list, LocalDate startDate, LocalDate endDate) {
+        if (list == null || list.isEmpty()) {
+            return StatisticsResponseDto.RangeStatisticsDto.builder()
+                    .startDate(startDate)
+                    .endDate(endDate)
+                    .totalNewUsers(0)
+                    .avgActiveUsers(0)
+                    .maxDau(0)
+                    .minDau(0)
+                    .totalNewPosts(0)
+                    .totalNewComments(0)
+                    .totalNewLikes(0)
+                    .build();
+        }
+
+        int totalNewUsers = list.stream().mapToInt(DailyStatistics::getNewUserCount).sum();
+        int avgActiveUsers = (int) list.stream().mapToInt(DailyStatistics::getActiveUserCount).average().orElse(0);
+        int maxDau = list.stream().mapToInt(DailyStatistics::getDau).max().orElse(0);
+        int minDau = list.stream().mapToInt(DailyStatistics::getDau).min().orElse(0);
+        int totalNewPosts = list.stream().mapToInt(s -> s.getNewPetPostCount() + s.getNewActivityCount() + s.getNewDailyPostCount()).sum();
+        int totalNewComments = list.stream().mapToInt(DailyStatistics::getNewCommentCount).sum();
+        int totalNewLikes = list.stream().mapToInt(DailyStatistics::getNewLikeCount).sum();
+
+        return StatisticsResponseDto.RangeStatisticsDto.builder()
+                .startDate(startDate)
+                .endDate(endDate)
+                .totalNewUsers(totalNewUsers)
+                .avgActiveUsers(avgActiveUsers)
+                .maxDau(maxDau)
+                .minDau(minDau)
+                .totalNewPosts(totalNewPosts)
+                .totalNewComments(totalNewComments)
+                .totalNewLikes(totalNewLikes)
                 .build();
-        
-        // 缓存10分钟
-        distributedCache.put(cacheKey, response, 600);
-        
-        return response;
     }
 
     /**
@@ -198,15 +235,15 @@ public class StatisticsService {
      */
     public StatisticsResponseDto.DailyStatisticsDto getRealtimeStatistics() {
         String cacheKey = "statistics:realtime";
-        
+
         StatisticsResponseDto.DailyStatisticsDto cached = distributedCache.get(cacheKey, StatisticsResponseDto.DailyStatisticsDto.class);
         if (cached != null) {
             return cached;
         }
-        
+
         LocalDateTime todayStart = LocalDate.now().atStartOfDay();
         LocalDateTime now = LocalDateTime.now();
-        
+
         StatisticsResponseDto.DailyStatisticsDto realtime = StatisticsResponseDto.DailyStatisticsDto.builder()
                 .statDate(LocalDate.now())
                 .newUserCount(countNewUsers(todayStart, now))
@@ -222,36 +259,163 @@ public class StatisticsService {
                 .newReportCount(countNewReports(todayStart, now))
                 .pendingAuditCount(countPendingAudits())
                 .build();
-        
-        // 缓存1分钟
+
         distributedCache.put(cacheKey, realtime, 60);
-        
         return realtime;
     }
 
-    // ==================== 私有统计方法 ====================
+    // ==================== 定时任务 ====================
+
+    /**
+     * 每天凌晨1点执行统计任务
+     */
+    @Scheduled(cron = "0 0 1 * * ?")
+    @Transactional
+    public void generateDailyStatistics() {
+        LocalDate statDate = LocalDate.now().minusDays(1);
+        log.info("开始生成 {} 的数据统计", statDate);
+
+        long startTime = System.currentTimeMillis();
+
+        try {
+            DailyStatistics existing = statisticsMapper.selectByDate(statDate);
+            if (existing != null) {
+                log.info("{} 的数据统计已存在，跳过生成", statDate);
+                return;
+            }
+
+            DailyStatistics stats = new DailyStatistics();
+            stats.setStatDate(statDate);
+
+            fillUserStatistics(stats, statDate);
+            fillContentStatistics(stats, statDate);
+            fillInteractionStatistics(stats, statDate);
+            fillActivityStatistics(stats, statDate);
+            fillAuditStatistics(stats, statDate);
+            fillReportStatistics(stats, statDate);
+            fillMessageStatistics(stats, statDate);
+
+            statisticsMapper.insert(stats);
+
+            clearAllStatisticsCache();
+
+            log.info("{} 的数据统计生成完成，耗时 {} ms", statDate, System.currentTimeMillis() - startTime);
+
+        } catch (Exception e) {
+            log.error("生成统计数据失败: {}", statDate, e);
+        }
+    }
+
+    /**
+     * 补录指定日期的统计数据
+     */
+    @Transactional
+    public void regenerateStatistics(LocalDate date) {
+        if (!UserContext.isAdmin()) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+
+        statisticsMapper.delete(new LambdaQueryWrapper<DailyStatistics>()
+                .eq(DailyStatistics::getStatDate, date));
+
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
+
+        DailyStatistics stats = new DailyStatistics();
+        stats.setStatDate(date);
+
+        regenerateStatisticsByDate(stats, startOfDay, endOfDay);
+
+        statisticsMapper.insert(stats);
+        clearAllStatisticsCache();
+
+        log.info("补录统计数据完成: {}", date);
+    }
+
+    @Transactional
+    public void regenerateStatisticsRange(LocalDate startDate, LocalDate endDate) {
+        if (!UserContext.isAdmin()) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+
+        if (startDate.isAfter(endDate)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "开始日期不能晚于结束日期");
+        }
+
+        log.info("开始批量补录统计数据，日期范围: {} 至 {}", startDate, endDate);
+        long startTime = System.currentTimeMillis();
+
+        int successCount = 0;
+        int failCount = 0;
+
+        LocalDate currentDate = startDate;
+        while (!currentDate.isAfter(endDate)) {
+            try {
+                // 删除已存在的统计
+                statisticsMapper.delete(new LambdaQueryWrapper<DailyStatistics>()
+                        .eq(DailyStatistics::getStatDate, currentDate));
+
+                // 重新生成
+                LocalDateTime startOfDay = currentDate.atStartOfDay();
+                LocalDateTime endOfDay = currentDate.plusDays(1).atStartOfDay();
+
+                DailyStatistics stats = new DailyStatistics();
+                stats.setStatDate(currentDate);
+                regenerateStatisticsByDate(stats, startOfDay, endOfDay);
+
+                statisticsMapper.insert(stats);
+                successCount++;
+
+                log.debug("补录成功: {}", currentDate);
+            } catch (Exception e) {
+                failCount++;
+                log.error("补录失败: {}", currentDate, e);
+            }
+            currentDate = currentDate.plusDays(1);
+        }
+
+        // 清理缓存
+        clearAllStatisticsCache();
+
+        long endTime = System.currentTimeMillis();
+        log.info("批量补录完成，成功: {}, 失败: {}, 耗时: {} ms",
+                successCount, failCount, endTime - startTime);
+
+        if (failCount > 0) {
+            throw new BusinessException("批量补录部分失败，成功: " + successCount + "，失败: " + failCount);
+        }
+    }
+
+    /**
+     * 清理所有统计缓存
+     */
+    public void clearAllStatisticsCache() {
+        try {
+            RedisTemplate<String, Object> redisTemplate = (RedisTemplate<String, Object>) distributedCache.getInstance();
+            Set<String> keys = redisTemplate.keys("statistics:*");
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+                log.info("清理统计缓存完成，共清理 {} 个缓存", keys.size());
+            }
+        } catch (Exception e) {
+            log.warn("清理统计缓存失败: {}", e.getMessage());
+        }
+    }
+
+    // ==================== 私有统计填充方法 ====================
 
     private void fillUserStatistics(DailyStatistics stats, LocalDate statDate) {
         LocalDateTime startOfDay = statDate.atStartOfDay();
         LocalDateTime endOfDay = statDate.plusDays(1).atStartOfDay();
-        
-        // 新增用户数
+
         stats.setNewUserCount(countNewUsers(startOfDay, endOfDay));
-        
-        // 累计用户数
         stats.setTotalUserCount(Math.toIntExact(userMapper.selectCount(null)));
-        
-        // 活跃用户数（当日有操作的用户）
         stats.setActiveUserCount(countActiveUsers(startOfDay, endOfDay));
-        
-        // DAU = 活跃用户数
         stats.setDau(stats.getActiveUserCount());
-        
-        // WAU（过去7天活跃用户）
+
         LocalDateTime weekAgo = startOfDay.minusDays(7);
         stats.setWau(countActiveUsers(weekAgo, endOfDay));
-        
-        // MAU（过去30天活跃用户）
+
         LocalDateTime monthAgo = startOfDay.minusDays(30);
         stats.setMau(countActiveUsers(monthAgo, endOfDay));
     }
@@ -259,20 +423,13 @@ public class StatisticsService {
     private void fillContentStatistics(DailyStatistics stats, LocalDate statDate) {
         LocalDateTime startOfDay = statDate.atStartOfDay();
         LocalDateTime endOfDay = statDate.plusDays(1).atStartOfDay();
-        
-        // 宠物帖子
+
         stats.setNewPetPostCount(countNewPetPosts(startOfDay, endOfDay));
         stats.setTotalPetPostCount(Math.toIntExact(petPostMapper.selectCount(null)));
-        
-        // 活动
         stats.setNewActivityCount(countNewActivities(startOfDay, endOfDay));
         stats.setTotalActivityCount(Math.toIntExact(activityMapper.selectCount(null)));
-        
-        // 日常动态
         stats.setNewDailyPostCount(countNewDailyPosts(startOfDay, endOfDay));
         stats.setTotalDailyPostCount(Math.toIntExact(dailyPostMapper.selectCount(null)));
-        
-        // 评论
         stats.setNewCommentCount(countNewComments(startOfDay, endOfDay));
         stats.setTotalCommentCount(Math.toIntExact(commentMapper.selectCount(null)));
     }
@@ -280,68 +437,49 @@ public class StatisticsService {
     private void fillInteractionStatistics(DailyStatistics stats, LocalDate statDate) {
         LocalDateTime startOfDay = statDate.atStartOfDay();
         LocalDateTime endOfDay = statDate.plusDays(1).atStartOfDay();
-        
-        // 点赞
+
         stats.setNewLikeCount(countNewLikes(startOfDay, endOfDay));
         stats.setTotalLikeCount(Math.toIntExact(likeRecordMapper.selectCount(null)));
-        
-        // 关注
         stats.setNewFollowCount(countNewFollows(startOfDay, endOfDay));
         stats.setTotalFollowCount(Math.toIntExact(followMapper.selectCount(null)));
-        
-        // 收藏
         stats.setNewFavoriteCount(countNewFavorites(startOfDay, endOfDay));
         stats.setTotalFavoriteCount(Math.toIntExact(favoriteRecordMapper.selectCount(null)));
-        
-        // 分享（从各表统计）
-        stats.setNewShareCount(countNewShares(startOfDay, endOfDay));
-        stats.setTotalShareCount(countTotalShares());
+        stats.setNewShareCount(0);
+        stats.setTotalShareCount(0);
     }
 
     private void fillActivityStatistics(DailyStatistics stats, LocalDate statDate) {
         LocalDateTime startOfDay = statDate.atStartOfDay();
         LocalDateTime endOfDay = statDate.plusDays(1).atStartOfDay();
-        
-        // 报名
+
         stats.setNewSignupCount(countNewSignups(startOfDay, endOfDay));
         stats.setTotalSignupCount(Math.toIntExact(activitySignupMapper.selectCount(null)));
-        
-        // 签到
         stats.setNewCheckinCount(countNewCheckins(startOfDay, endOfDay));
         stats.setTotalCheckinCount(countTotalCheckins());
     }
 
     private void fillAuditStatistics(DailyStatistics stats, LocalDate statDate) {
-        // 待审核数量
         stats.setPendingAuditCount(countPendingAudits());
-        
-        // 审核通过数（当日）
+
         LocalDateTime startOfDay = statDate.atStartOfDay();
         LocalDateTime endOfDay = statDate.plusDays(1).atStartOfDay();
         stats.setApprovedCount(countAuditByStatus(startOfDay, endOfDay, 1));
-        
-        // 审核拒绝数（当日）
         stats.setRejectedCount(countAuditByStatus(startOfDay, endOfDay, 2));
     }
 
     private void fillReportStatistics(DailyStatistics stats, LocalDate statDate) {
         LocalDateTime startOfDay = statDate.atStartOfDay();
         LocalDateTime endOfDay = statDate.plusDays(1).atStartOfDay();
-        
-        // 新增举报数
+
         stats.setNewReportCount(countNewReports(startOfDay, endOfDay));
-        
-        // 待处理举报数
-        stats.setPendingReportCount(countReportsByStatus(ReportStatus.PENDING.getCode()));
-        
-        // 已处理举报数
-        stats.setHandledReportCount(countReportsByStatus(ReportStatus.HANDLED.getCode()));
+        stats.setPendingReportCount(countReportsByStatus(0));
+        stats.setHandledReportCount(countReportsByStatus(2));
     }
 
     private void fillMessageStatistics(DailyStatistics stats, LocalDate statDate) {
         LocalDateTime startOfDay = statDate.atStartOfDay();
         LocalDateTime endOfDay = statDate.plusDays(1).atStartOfDay();
-        
+
         stats.setNewPrivateMessageCount(countNewPrivateMessages(startOfDay, endOfDay));
         stats.setTotalPrivateMessageCount(Math.toIntExact(privateMessageMapper.selectCount(null)));
     }
@@ -351,7 +489,7 @@ public class StatisticsService {
         stats.setTotalUserCount(Math.toIntExact(userMapper.selectCount(null)));
         stats.setActiveUserCount(countActiveUsers(start, end));
         stats.setDau(stats.getActiveUserCount());
-        
+
         stats.setNewPetPostCount(countNewPetPosts(start, end));
         stats.setTotalPetPostCount(Math.toIntExact(petPostMapper.selectCount(null)));
         stats.setNewActivityCount(countNewActivities(start, end));
@@ -360,17 +498,17 @@ public class StatisticsService {
         stats.setTotalDailyPostCount(Math.toIntExact(dailyPostMapper.selectCount(null)));
         stats.setNewCommentCount(countNewComments(start, end));
         stats.setTotalCommentCount(Math.toIntExact(commentMapper.selectCount(null)));
-        
+
         stats.setNewLikeCount(countNewLikes(start, end));
         stats.setTotalLikeCount(Math.toIntExact(likeRecordMapper.selectCount(null)));
         stats.setNewFollowCount(countNewFollows(start, end));
         stats.setTotalFollowCount(Math.toIntExact(followMapper.selectCount(null)));
         stats.setNewFavoriteCount(countNewFavorites(start, end));
         stats.setTotalFavoriteCount(Math.toIntExact(favoriteRecordMapper.selectCount(null)));
-        
+
         stats.setNewSignupCount(countNewSignups(start, end));
         stats.setTotalSignupCount(Math.toIntExact(activitySignupMapper.selectCount(null)));
-        
+
         stats.setPendingAuditCount(countPendingAudits());
         stats.setNewReportCount(countNewReports(start, end));
     }
@@ -431,17 +569,6 @@ public class StatisticsService {
         return Math.toIntExact(favoriteRecordMapper.selectCount(wrapper));
     }
 
-    private Integer countNewShares(LocalDateTime start, LocalDateTime end) {
-        // 分享计数可以从分享记录表统计，这里简化处理
-        // 如果有专门的分享记录表，可以统计
-        return 0;
-    }
-
-    private Integer countTotalShares() {
-        // 累计分享数可以从各表统计
-        return 0;
-    }
-
     private Integer countNewSignups(LocalDateTime start, LocalDateTime end) {
         LambdaQueryWrapper<ActivitySignup> wrapper = new LambdaQueryWrapper<>();
         wrapper.between(ActivitySignup::getCreateTime, start, end);
@@ -491,12 +618,12 @@ public class StatisticsService {
         return Math.toIntExact(privateMessageMapper.selectCount(wrapper));
     }
 
-    // ==================== 构建响应数据 ====================
+    // ==================== 构建响应数据方法 ====================
 
-    private StatisticsResponseDto.DailyStatisticsDto buildDailyStats(DailyStatistics stats) {
+    private StatisticsResponseDto.DailyStatisticsDto buildDailyStats(DailyStatistics stats, LocalDate defaultDate) {
         if (stats == null) {
             return StatisticsResponseDto.DailyStatisticsDto.builder()
-                    .statDate(LocalDate.now())
+                    .statDate(defaultDate)
                     .newUserCount(0)
                     .activeUserCount(0)
                     .dau(0)
@@ -511,7 +638,7 @@ public class StatisticsService {
                     .pendingAuditCount(0)
                     .build();
         }
-        
+
         return StatisticsResponseDto.DailyStatisticsDto.builder()
                 .statDate(stats.getStatDate())
                 .newUserCount(stats.getNewUserCount())
@@ -529,8 +656,42 @@ public class StatisticsService {
                 .build();
     }
 
+    private StatisticsResponseDto.WeeklyStatisticsDto buildWeeklyStats(List<DailyStatistics> list, LocalDate startDate, LocalDate endDate) {
+        if (list == null || list.isEmpty()) {
+            return StatisticsResponseDto.WeeklyStatisticsDto.builder()
+                    .weekRange(startDate + " ~ " + endDate)
+                    .avgDailyActiveUsers(0)
+                    .totalNewUsers(0)
+                    .totalNewPosts(0)
+                    .totalNewComments(0)
+                    .totalNewLikes(0)
+                    .weekOverWeekGrowth(0)
+                    .build();
+        }
+
+        int avgActive = (int) list.stream()
+                .mapToInt(DailyStatistics::getActiveUserCount)
+                .average()
+                .orElse(0);
+
+        int totalNewUsers = list.stream().mapToInt(DailyStatistics::getNewUserCount).sum();
+        int totalNewPosts = list.stream().mapToInt(s -> s.getNewPetPostCount() + s.getNewActivityCount() + s.getNewDailyPostCount()).sum();
+        int totalNewComments = list.stream().mapToInt(DailyStatistics::getNewCommentCount).sum();
+        int totalNewLikes = list.stream().mapToInt(DailyStatistics::getNewLikeCount).sum();
+
+        return StatisticsResponseDto.WeeklyStatisticsDto.builder()
+                .weekRange(list.get(0).getStatDate() + " ~ " + list.get(list.size() - 1).getStatDate())
+                .avgDailyActiveUsers(avgActive)
+                .totalNewUsers(totalNewUsers)
+                .totalNewPosts(totalNewPosts)
+                .totalNewComments(totalNewComments)
+                .totalNewLikes(totalNewLikes)
+                .weekOverWeekGrowth(calculateWeekOverWeekGrowth(list))
+                .build();
+    }
+
     private StatisticsResponseDto.WeeklyStatisticsDto buildWeeklyStats(List<DailyStatistics> list) {
-        if (list.isEmpty()) {
+        if (list == null || list.isEmpty()) {
             return StatisticsResponseDto.WeeklyStatisticsDto.builder()
                     .weekRange("")
                     .avgDailyActiveUsers(0)
@@ -541,52 +702,73 @@ public class StatisticsService {
                     .weekOverWeekGrowth(0)
                     .build();
         }
-        
-        int avgActive = (int) list.stream()
-                .mapToInt(DailyStatistics::getActiveUserCount)
-                .average()
-                .orElse(0);
-        
-        int totalNewUsers = list.stream().mapToInt(DailyStatistics::getNewUserCount).sum();
-        int totalNewPosts = list.stream().mapToInt(s -> s.getNewPetPostCount() + s.getNewActivityCount() + s.getNewDailyPostCount()).sum();
-        int totalNewComments = list.stream().mapToInt(DailyStatistics::getNewCommentCount).sum();
-        int totalNewLikes = list.stream().mapToInt(DailyStatistics::getNewLikeCount).sum();
-        
-        return StatisticsResponseDto.WeeklyStatisticsDto.builder()
-                .weekRange(list.get(0).getStatDate() + " ~ " + list.get(list.size() - 1).getStatDate())
-                .avgDailyActiveUsers(avgActive)
-                .totalNewUsers(totalNewUsers)
-                .totalNewPosts(totalNewPosts)
-                .totalNewComments(totalNewComments)
-                .totalNewLikes(totalNewLikes)
-                .weekOverWeekGrowth(0)
-                .build();
+        return buildWeeklyStats(list, list.get(0).getStatDate(), list.get(list.size() - 1).getStatDate());
     }
 
-    private StatisticsResponseDto.MonthlyStatisticsDto buildMonthlyStats(List<DailyStatistics> list) {
-        if (list.isEmpty()) {
+    private StatisticsResponseDto.MonthlyStatisticsDto buildMonthlyStats(List<DailyStatistics> list, String month, LocalDate defaultDate) {
+        if (list == null || list.isEmpty()) {
+            String targetMonth = month != null ? month : defaultDate.format(DateTimeFormatter.ofPattern("yyyy-MM"));
             return StatisticsResponseDto.MonthlyStatisticsDto.builder()
-                    .month("")
+                    .month(targetMonth)
                     .totalActiveUsers(0)
                     .totalNewUsers(0)
                     .totalNewPosts(0)
                     .totalNewComments(0)
                     .monthOverMonthGrowth(0)
+                    .avgDailyActiveUsers(0)
                     .build();
         }
-        
-        int totalActive = (int) list.stream().map(DailyStatistics::getActiveUserCount).distinct().count();
+
         int totalNewUsers = list.stream().mapToInt(DailyStatistics::getNewUserCount).sum();
         int totalNewPosts = list.stream().mapToInt(s -> s.getNewPetPostCount() + s.getNewActivityCount() + s.getNewDailyPostCount()).sum();
         int totalNewComments = list.stream().mapToInt(DailyStatistics::getNewCommentCount).sum();
-        
+        int avgDailyActive = (int) list.stream().mapToInt(DailyStatistics::getActiveUserCount).average().orElse(0);
+
+        int totalActive = calculateMonthlyActiveUsers(list.get(0).getStatDate());
+        int monthOverMonthGrowth = calculateMonthOverMonthGrowth(list.get(0).getStatDate(), totalNewUsers);
+
+        String targetMonth = month != null ? month : list.get(0).getStatDate().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+
         return StatisticsResponseDto.MonthlyStatisticsDto.builder()
-                .month(list.get(0).getStatDate().format(DateTimeFormatter.ofPattern("yyyy-MM")))
+                .month(targetMonth)
                 .totalActiveUsers(totalActive)
                 .totalNewUsers(totalNewUsers)
                 .totalNewPosts(totalNewPosts)
                 .totalNewComments(totalNewComments)
-                .monthOverMonthGrowth(0)
+                .monthOverMonthGrowth(monthOverMonthGrowth)
+                .avgDailyActiveUsers(avgDailyActive)
+                .build();
+    }
+
+    private StatisticsResponseDto.YearlyStatisticsDto buildYearlyStats(List<DailyStatistics> list, int year) {
+        if (list == null || list.isEmpty()) {
+            return StatisticsResponseDto.YearlyStatisticsDto.builder()
+                    .year(year)
+                    .totalNewUsers(0)
+                    .totalNewPosts(0)
+                    .totalActiveUsers(0)
+                    .yearOverYearGrowth(0)
+                    .avgMonthlyActiveUsers(0)
+                    .build();
+        }
+
+        int totalNewUsers = list.stream().mapToInt(DailyStatistics::getNewUserCount).sum();
+        int totalNewPosts = list.stream().mapToInt(s -> s.getNewPetPostCount() + s.getNewActivityCount() + s.getNewDailyPostCount()).sum();
+        int avgMonthlyActive = (int) list.stream().collect(Collectors.groupingBy(
+                s -> s.getStatDate().getMonth(),
+                Collectors.summingInt(DailyStatistics::getActiveUserCount)
+        )).values().stream().mapToInt(Integer::intValue).average().orElse(0);
+
+        int totalActive = calculateYearlyActiveUsers(year);
+        int yearOverYearGrowth = calculateYearOverYearGrowth(year, totalNewUsers);
+
+        return StatisticsResponseDto.YearlyStatisticsDto.builder()
+                .year(year)
+                .totalNewUsers(totalNewUsers)
+                .totalNewPosts(totalNewPosts)
+                .totalActiveUsers(totalActive)
+                .yearOverYearGrowth(yearOverYearGrowth)
+                .avgMonthlyActiveUsers((int) avgMonthlyActive)
                 .build();
     }
 
@@ -597,14 +779,13 @@ public class StatisticsService {
         List<Integer> newPostList = new ArrayList<>();
         List<Integer> newCommentList = new ArrayList<>();
         List<Integer> newLikeList = new ArrayList<>();
-        
-        // 填充缺失的日期
+
         Map<LocalDate, DailyStatistics> statsMap = list.stream()
                 .collect(Collectors.toMap(DailyStatistics::getStatDate, s -> s));
-        
+
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
             dates.add(date.format(DateTimeFormatter.ofPattern("MM-dd")));
-            
+
             DailyStatistics stats = statsMap.get(date);
             if (stats != null) {
                 dauList.add(stats.getDau());
@@ -620,7 +801,7 @@ public class StatisticsService {
                 newLikeList.add(0);
             }
         }
-        
+
         return StatisticsResponseDto.TrendDataDto.builder()
                 .dates(dates)
                 .dauList(dauList)
@@ -631,14 +812,76 @@ public class StatisticsService {
                 .build();
     }
 
-    private void clearStatisticsCache() {
-        // 清理统计相关的所有缓存
-        Set<String> keys = distributedCache.getInstance() instanceof org.springframework.data.redis.core.RedisTemplate ? 
-                ((org.springframework.data.redis.core.RedisTemplate<String, Object>) distributedCache.getInstance()).keys("statistics:*") : null;
-        if (keys != null && !keys.isEmpty()) {
-            for (String key : keys) {
-                distributedCache.delete(key);
-            }
+    // ==================== 环比/同比计算方法 ====================
+
+    private int calculateWeekOverWeekGrowth(List<DailyStatistics> currentWeek) {
+        if (currentWeek == null || currentWeek.isEmpty()) {
+            return 0;
         }
+
+        try {
+            LocalDate currentMonday = currentWeek.get(0).getStatDate().with(java.time.DayOfWeek.MONDAY);
+            LocalDate previousMonday = currentMonday.minusWeeks(1);
+            LocalDate previousSunday = previousMonday.plusDays(6);
+
+            List<DailyStatistics> previousWeek = statisticsMapper.selectByDateRange(previousMonday, previousSunday);
+
+            int currentTotal = currentWeek.stream().mapToInt(DailyStatistics::getActiveUserCount).sum();
+            int previousTotal = previousWeek.stream().mapToInt(DailyStatistics::getActiveUserCount).sum();
+
+            if (previousTotal == 0) {
+                return currentTotal > 0 ? 100 : 0;
+            }
+            return (int) ((currentTotal - previousTotal) * 100.0 / previousTotal);
+        } catch (Exception e) {
+            log.warn("计算周环比失败: {}", e.getMessage());
+            return 0;
+        }
+    }
+
+    private int calculateMonthOverMonthGrowth(LocalDate currentMonthFirstDay, int currentTotal) {
+        try {
+            LocalDate previousMonthFirstDay = currentMonthFirstDay.minusMonths(1);
+            LocalDate previousMonthLastDay = previousMonthFirstDay.plusMonths(1).minusDays(1);
+
+            List<DailyStatistics> previousStats = statisticsMapper.selectByDateRange(previousMonthFirstDay, previousMonthLastDay);
+            int previousTotal = previousStats.stream().mapToInt(DailyStatistics::getNewUserCount).sum();
+
+            if (previousTotal == 0) {
+                return currentTotal > 0 ? 100 : 0;
+            }
+            return (int) ((currentTotal - previousTotal) * 100.0 / previousTotal);
+        } catch (Exception e) {
+            log.warn("计算月环比失败: {}", e.getMessage());
+            return 0;
+        }
+    }
+
+    private int calculateYearOverYearGrowth(int currentYear, int currentTotal) {
+        try {
+            int previousYear = currentYear - 1;
+            List<DailyStatistics> previousStats = statisticsMapper.selectByYear(previousYear);
+            int previousTotal = previousStats.stream().mapToInt(DailyStatistics::getNewUserCount).sum();
+
+            if (previousTotal == 0) {
+                return currentTotal > 0 ? 100 : 0;
+            }
+            return (int) ((currentTotal - previousTotal) * 100.0 / previousTotal);
+        } catch (Exception e) {
+            log.warn("计算年同比失败: {}", e.getMessage());
+            return 0;
+        }
+    }
+
+    private int calculateMonthlyActiveUsers(LocalDate date) {
+        LocalDateTime startOfMonth = date.withDayOfMonth(1).atStartOfDay();
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
+        return countActiveUsers(startOfMonth, endOfMonth);
+    }
+
+    private int calculateYearlyActiveUsers(int year) {
+        LocalDateTime startOfYear = LocalDateTime.of(year, 1, 1, 0, 0);
+        LocalDateTime endOfYear = LocalDateTime.of(year + 1, 1, 1, 0, 0);
+        return countActiveUsers(startOfYear, endOfYear);
     }
 }
