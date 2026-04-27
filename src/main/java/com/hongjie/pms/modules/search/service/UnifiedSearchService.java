@@ -89,7 +89,6 @@ public class UnifiedSearchService {
 
                     // 过滤条件：只返回审核通过且未删除的
                     b.filter(f -> f.term(t -> t.field("auditStatus").value(1)));
-                    b.filter(f -> f.term(t -> t.field("status").value(1)));
 
                     // 类型过滤
                     if (types != null && !types.isEmpty()) {

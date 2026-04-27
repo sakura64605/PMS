@@ -17,7 +17,7 @@ import static com.hongjie.pms.common.utils.SecurityUtils.checkAdmin;
 
 @Slf4j
 @RestController
-@RequestMapping("/search")
+@RequestMapping("/pet-system/search")
 @RequiredArgsConstructor
 public class SearchController {
 

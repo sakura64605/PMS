@@ -22,78 +22,10 @@
 
       <!-- 搜索和排序 - 宠物相关 -->
       <div v-if="activeType !== '2'" class="search-sort-section">
-        <el-select
-          v-model="petType"
-          placeholder="选择品种"
-          class="filter-select"
-          @change="handlePetTypeChange"
-        >
-          <el-option label="全部" value=""></el-option>
-          <el-option label="猫" value="猫"></el-option>
-          <el-option label="狗" value="狗"></el-option>
-          <el-option label="兔子" value="兔子"></el-option>
-          <el-option label="仓鼠" value="仓鼠"></el-option>
-          <el-option label="其他" value="其他"></el-option>
-        </el-select>
-
-        <el-select
-          v-model="gender"
-          placeholder="选择性别"
-          class="filter-select"
-          @change="handleGenderChange"
-        >
-          <el-option label="全部" value="-1"></el-option>
-          <el-option label="公" value="1"></el-option>
-          <el-option label="母" value="2"></el-option>
-          <el-option label="未知" value="0"></el-option>
-        </el-select>
-
-        <!-- 用户搜索 -->
-        <div class="user-search-container">
-          <el-select
-            v-model="selectedUser"
-            placeholder="选择用户"
-            filterable
-            remote
-            :remote-method="handleUserSearch"
-            :loading="userLoading"
-            class="filter-select user-select"
-            @change="handleUserSelect"
-            value-key="userId"
-          >
-            <template #prefix>
-              <el-icon><User /></el-icon>
-            </template>
-            <el-option
-              v-for="user in userOptions"
-              :key="user.userId"
-              :label="user.nickname || user.username"
-              :value="user"
-            >
-              <div class="user-option">
-                <el-avatar :size="24" :src="user.avatar || ''">
-                  {{ (user.nickname || user.username || '用').charAt(0) }}
-                </el-avatar>
-                <div class="user-info">
-                  <div class="user-nickname">{{ user.nickname || user.username }}</div>
-                  <div class="user-username">{{ user.username }}</div>
-                </div>
-              </div>
-            </el-option>
-          </el-select>
-          <el-button
-            v-if="selectedUser"
-            type="text"
-            class="clear-user-button"
-            @click="clearUserFilter"
-          >
-            <el-icon><Close /></el-icon>
-          </el-button>
-        </div>
-
+        <!-- 全局搜索输入框 -->
         <el-input
           v-model="searchKeyword"
-          placeholder="搜索标题或内容"
+          placeholder="全局搜索（标题、内容）"
           class="search-input"
           clearable
           @keyup.enter="handleSearch"
@@ -105,13 +37,30 @@
           </template>
         </el-input>
 
+        <!-- 类型过滤 -->
         <el-select
-          v-model="sortOption"
-          class="sort-select"
-          @change="handleSortChange"
+          v-model="searchTypes"
+          placeholder="类型"
+          class="filter-select"
+          multiple
+          @change="handleSearch"
+          clearable
+          style="display: none"
         >
-          <el-option label="最新发布" value="createTime-desc"></el-option>
-          <el-option label="最多浏览" value="viewCount-desc"></el-option>
+          <el-option label="日常" value="daily"></el-option>
+          <el-option label="活动" value="activity"></el-option>
+          <el-option label="宠物" value="pet"></el-option>
+        </el-select>
+
+        <!-- 排序方式 -->
+        <el-select
+          v-model="sortBy"
+          class="sort-select"
+          @change="handleSearch"
+        >
+          <el-option label="相关度" value="relevance"></el-option>
+          <el-option label="最新发布" value="time"></el-option>
+          <el-option label="热度" value="hot"></el-option>
         </el-select>
 
         <el-button
@@ -173,57 +122,106 @@
           v-for="pet in pets"
           :key="pet.id"
           class="pet-card"
-          @click="handleCardClick(pet.id)"
+          @click="handleCardClick(pet.id, pet.type === 'activity' || pet.type === 2 ? 'activity' : undefined)"
         >
           <div v-if="pet.images && pet.images.length > 0" class="card-image">
             <img :src="pet.images[0]" alt="宠物图片" />
           </div>
           <div class="card-content">
-            <h3 class="card-title">{{ pet.title || '' }}</h3>
-            <div class="pet-info">
-              <div class="info-left">
-                <span class="pet-name">{{ pet.petName || '未知' }}</span>
-                <span class="info-divider">·</span>
-                <span class="pet-type">{{ pet.petType || '未知' }}</span>
-                <span class="info-divider">·</span>
-                <span class="pet-age">{{ pet.petAge || '未知' }}</span>
-                <span class="info-divider">·</span>
-                <span class="pet-gender">
-                  <el-icon v-if="pet.petGender === 1"><Male /></el-icon>
-                  <el-icon v-else-if="pet.petGender === 2"><Female /></el-icon>
-                  <el-icon v-else><QuestionFilled /></el-icon>
+            <!-- 活动卡片内容 -->
+            <template v-if="pet.type === 2 || pet.activityType === 'activity'">
+              <div class="title-with-status">
+                <h3 class="card-title">📌 {{ pet.title || '' }}</h3>
+                <el-tag type="primary" class="title-status-tag">活动</el-tag>
+              </div>
+              
+              <!-- 地点和时间 -->
+              <div class="location-time">
+                <span class="location">📍 {{ pet.location || '未知地点' }}</span>
+                <span class="time">⏰ {{ pet.startTime ? new Date(pet.startTime).toLocaleString('zh-CN') : '未知时间' }}</span>
+              </div>
+              
+              <!-- 报名进度 -->
+              <div class="progress-section">
+                <div class="progress-label">👥 报名进度：{{ pet.currentPeople || 0 }} / {{ pet.maxPeople || 0 }} 人</div>
+                <el-progress
+                  :percentage="pet.maxPeople && pet.maxPeople > 0 ? parseFloat(((pet.currentPeople || 0) / pet.maxPeople * 100).toFixed(2)) : 0"
+                  :stroke-width="6"
+                />
+              </div>
+              
+              <div class="card-footer">
+                <div class="stats">
+                  <div class="stat-item">
+                    <el-icon><View /></el-icon>
+                    <span>{{ pet.viewCount || 0 }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <el-icon><Top /></el-icon>
+                    <span>{{ pet.likeCount || 0 }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <el-icon><ChatLineSquare /></el-icon>
+                    <span>{{ pet.commentCount || 0 }}</span>
+                  </div>
+                </div>
+                <div class="user-info">
+                  <el-avatar :size="24" :src="pet.user?.avatar || ''">
+                    {{ (pet.user?.nickname || pet.user?.username || '用').charAt(0) }}
+                  </el-avatar>
+                  <span class="nickname">{{ pet.user?.nickname || pet.user?.username || '未知用户' }}</span>
+                </div>
+              </div>
+            </template>
+            
+            <!-- 宠物卡片内容 -->
+            <template v-else>
+              <h3 class="card-title">{{ pet.title || '' }}</h3>
+              <div class="pet-info">
+                <div class="info-left">
+                  <span class="pet-name">{{ pet.petName || '未知' }}</span>
+                  <span class="info-divider">·</span>
+                  <span class="pet-type">{{ pet.petType || '未知' }}</span>
+                  <span class="info-divider">·</span>
+                  <span class="pet-age">{{ pet.petAge || '未知' }}</span>
+                  <span class="info-divider">·</span>
+                  <span class="pet-gender">
+                    <el-icon v-if="pet.petGender === 1"><Male /></el-icon>
+                    <el-icon v-else-if="pet.petGender === 2"><Female /></el-icon>
+                    <el-icon v-else><QuestionFilled /></el-icon>
+                  </span>
+                </div>
+                <span class="type-tag" :class="pet.type === 0 ? 'adopt' : 'rescue'">
+                  {{ pet.type === 0 ? '领养' : '救助' }}
                 </span>
               </div>
-              <span class="type-tag" :class="pet.type === 0 ? 'adopt' : 'rescue'">
-                {{ pet.type === 0 ? '领养' : '救助' }}
-              </span>
-            </div>
-            <div class="card-footer">
-              <div class="stats">
-                <div class="stat-item">
-                  <el-icon><View /></el-icon>
-                  <span>{{ pet.viewCount || 0 }}</span>
+              <div class="card-footer">
+                <div class="stats">
+                  <div class="stat-item">
+                    <el-icon><View /></el-icon>
+                    <span>{{ pet.viewCount || 0 }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <el-icon><Top /></el-icon>
+                    <span>{{ pet.likeCount || 0 }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <el-icon><ChatLineSquare /></el-icon>
+                    <span>{{ pet.commentCount || 0 }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <el-icon><Share /></el-icon>
+                    <span>{{ pet.shareCount || 0 }}</span>
+                  </div>
                 </div>
-                <div class="stat-item">
-                  <el-icon><Top /></el-icon>
-                  <span>{{ pet.likeCount || 0 }}</span>
-                </div>
-                <div class="stat-item">
-                  <el-icon><ChatLineSquare /></el-icon>
-                  <span>{{ pet.commentCount || 0 }}</span>
-                </div>
-                <div class="stat-item">
-                  <el-icon><Share /></el-icon>
-                  <span>{{ pet.shareCount || 0 }}</span>
+                <div class="user-info">
+                  <el-avatar :size="24" :src="pet.user?.avatar || ''">
+                    {{ (pet.user?.nickname || pet.user?.username || '用').charAt(0) }}
+                  </el-avatar>
+                  <span class="nickname">{{ pet.user?.nickname || pet.user?.username || '未知用户' }}</span>
                 </div>
               </div>
-              <div class="user-info">
-                <el-avatar :size="24" :src="pet.user?.avatar || ''">
-                  {{ (pet.user?.nickname || pet.user?.username || '用').charAt(0) }}
-                </el-avatar>
-                <span class="nickname">{{ pet.user?.nickname || pet.user?.username || '未知用户' }}</span>
-              </div>
-            </div>
+            </template>
           </div>
         </div>
       </div>
@@ -392,7 +390,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { Search, View, Male, Female, QuestionFilled, User, Close, Star, ChatLineSquare, Share, Top } from '@element-plus/icons-vue';
-import { getPetList } from '../../api/pet';
+import { getPetList, globalSearch } from '../../api/pet';
 import { getActivityList, signupActivity, cancelSignup } from '../../api/activity';
 import request from '../../utils/request';
 
@@ -411,6 +409,9 @@ const pageSize = ref(10);
 const loading = ref(false);
 const pets = ref<any[]>([]);
 const total = ref(0);
+// 全局搜索相关
+const searchTypes = ref<string[]>([]);
+const sortBy = ref('relevance');
 // 用户搜索相关
 const selectedUser = ref<any>(null);
 const userOptions = ref<any[]>([]);
@@ -464,8 +465,8 @@ const handleCreate = () => {
   }
 };
 
-const handleCardClick = (id: number) => {
-  if (activeType.value === '2') {
+const handleCardClick = (id: number, itemType?: string) => {
+  if (itemType === 'activity' || activeType.value === '2') {
     router.push({ path: `/pets/activity/${id}`, query: { from: 'pets-index', type: activeType.value } });
   } else {
     router.push({ path: `/pets/${id}`, query: { from: 'pets-index', type: activeType.value } });
@@ -635,37 +636,122 @@ const submitCancelSignup = async () => {
 const fetchPetsWithType = async (type?: number) => {
   loading.value = true;
   try {
-    const [orderBy, order] = sortOption.value.split('-');
-    const requestParams = {
-      type,
-      gender: gender.value === '-1' ? undefined : parseInt(gender.value),
-      petType: petType.value || undefined,
-      userId: selectedUser.value?.userId || undefined,
-      keyword: searchKeyword.value || undefined,
-      orderBy,
-      order,
-      pageNum: pageNum.value,
-      pageSize: pageSize.value
-    };
-    
-    console.log('=== 发送请求 ===');
-    console.log('请求参数:', requestParams);
-    
-    const response = await getPetList(requestParams);
-    
-    if (response.code === 200 && response.data) {
-      pets.value = response.data.records || [];
-      total.value = response.data.total || 0;
-      console.log('返回数据数量:', response.data.total);
-      if (response.data.records?.length > 0) {
-        console.log('第一条数据type:', response.data.records[0]?.type);
-      }
+    if (searchKeyword.value) {
+      // 使用全局搜索
+      await fetchGlobalSearch();
     } else {
-      ElMessage.error(response.message || '获取宠物列表失败');
+      // 使用原有的宠物列表接口
+      const [orderBy, order] = sortOption.value.split('-');
+      const requestParams = {
+        type,
+        gender: gender.value === '-1' ? undefined : parseInt(gender.value),
+        petType: petType.value || undefined,
+        userId: selectedUser.value?.userId || undefined,
+        keyword: searchKeyword.value || undefined,
+        orderBy,
+        order,
+        pageNum: pageNum.value,
+        pageSize: pageSize.value
+      };
+      
+      console.log('=== 发送请求 ===');
+      console.log('请求参数:', requestParams);
+      
+      const response = await getPetList(requestParams);
+      
+      if (response.code === 200 && response.data) {
+        pets.value = response.data.records || [];
+        total.value = response.data.total || 0;
+        console.log('返回数据数量:', response.data.total);
+        if (response.data.records?.length > 0) {
+          console.log('第一条数据type:', response.data.records[0]?.type);
+        }
+      } else {
+        ElMessage.error(response.message || '获取宠物列表失败');
+      }
     }
   } catch (error) {
     ElMessage.error('获取宠物列表失败，请重试');
     console.error('获取宠物列表失败:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 全局搜索
+const fetchGlobalSearch = async () => {
+  loading.value = true;
+  try {
+    const response = await globalSearch({
+      keyword: searchKeyword.value,
+      pageNum: pageNum.value,
+      pageSize: pageSize.value,
+      types: searchTypes.value.length > 0 ? searchTypes.value : undefined,
+      sortBy: sortBy.value
+    });
+    console.log('全局搜索请求参数:', {
+      keyword: searchKeyword.value,
+      pageNum: pageNum.value,
+      pageSize: pageSize.value,
+      types: searchTypes.value.length > 0 ? searchTypes.value : undefined,
+      sortBy: sortBy.value
+    });
+    
+    if (response.code === 200 && response.data) {
+      // 转换全局搜索结果为宠物列表格式
+      const results = response.data.items || response.data.results || [];
+      console.log('全局搜索结果:', results);
+      pets.value = results.map((item: any) => {
+        // 根据不同类型转换数据结构
+        if (item.type === 'pet') {
+          return item;
+        } else if (item.type === 'daily') {
+          // 日常帖子转换为宠物贴格式
+          return {
+            id: item.id,
+            title: item.title,
+            content: item.content,
+            images: item.images || [],
+            viewCount: item.viewCount || 0,
+            likeCount: item.likeCount || 0,
+            commentCount: item.commentCount || 0,
+            shareCount: item.shareCount || 0,
+            createTime: item.createTime,
+            user: item.user,
+            type: 0 // 默认为领养类型
+          };
+        } else if (item.type === 'activity') {
+          // 活动转换为宠物贴格式
+          return {
+            id: item.id,
+            title: item.title,
+            content: item.content,
+            images: item.images || [],
+            viewCount: item.viewCount || 0,
+            likeCount: item.likeCount || 0,
+            commentCount: item.commentCount || 0,
+            shareCount: item.shareCount || 0,
+            createTime: item.createTime,
+            user: item.user,
+            type: 2, // 活动类型
+            activityType: item.type, // 标记为活动
+            location: item.location, // 活动地点
+            startTime: item.startTime, // 活动开始时间
+            endTime: item.endTime, // 活动结束时间
+            currentPeople: item.currentPeople || 0, // 当前报名人数
+            maxPeople: item.maxPeople || 0 // 最大报名人数
+          };
+        }
+        return item;
+      });
+      total.value = response.data.total || 0;
+      console.log('全局搜索返回数据数量:', response.data.total);
+    } else {
+      ElMessage.error(response.message || '搜索失败');
+    }
+  } catch (error) {
+    ElMessage.error('搜索失败，请重试');
+    console.error('搜索失败:', error);
   } finally {
     loading.value = false;
   }
@@ -704,23 +790,62 @@ const handleTypeChange = (tab: any) => {
 };
 
 const handleSearch = () => {
+  console.log('=== 处理搜索 ===');
+  console.log('搜索关键词:', searchKeyword.value);
+  console.log('已选类型:', searchTypes.value);
+  console.log('排序方式:', sortBy.value);
+  
   pageNum.value = 1;
-  fetchPetsWithType(activeType.value === '-1' ? undefined : parseInt(activeType.value));
+  if (searchKeyword.value || searchTypes.value.length > 0) {
+    // 使用全局搜索（有关键词或有类型过滤）
+    fetchGlobalSearch();
+  } else {
+    // 使用原有的搜索
+    fetchPetsWithType(activeType.value === '-1' ? undefined : parseInt(activeType.value));
+  }
 };
 
 const handleSortChange = () => {
+  console.log('=== 处理排序 ===');
+  console.log('排序方式:', sortBy.value);
+  console.log('已选类型:', searchTypes.value);
+  
   pageNum.value = 1;
-  fetchPetsWithType(activeType.value === '-1' ? undefined : parseInt(activeType.value));
+  if (searchKeyword.value || searchTypes.value.length > 0) {
+    // 使用全局搜索（有关键词或有类型过滤）
+    fetchGlobalSearch();
+  } else {
+    // 使用原有的搜索
+    fetchPetsWithType(activeType.value === '-1' ? undefined : parseInt(activeType.value));
+  }
 };
 
 const handleSizeChange = (size: number) => {
+  console.log('=== 处理分页大小变化 ===');
+  console.log('分页大小:', size);
+  console.log('已选类型:', searchTypes.value);
+  
   pageSize.value = size;
-  fetchPetsWithType(activeType.value === '-1' ? undefined : parseInt(activeType.value));
+  if (searchKeyword.value || searchTypes.value.length > 0) {
+    // 使用全局搜索（有关键词或有类型过滤）
+    fetchGlobalSearch();
+  } else {
+    fetchPetsWithType(activeType.value === '-1' ? undefined : parseInt(activeType.value));
+  }
 };
 
 const handleCurrentChange = (current: number) => {
+  console.log('=== 处理页码变化 ===');
+  console.log('页码:', current);
+  console.log('已选类型:', searchTypes.value);
+  
   pageNum.value = current;
-  fetchPetsWithType(activeType.value === '-1' ? undefined : parseInt(activeType.value));
+  if (searchKeyword.value || searchTypes.value.length > 0) {
+    // 使用全局搜索（有关键词或有类型过滤）
+    fetchGlobalSearch();
+  } else {
+    fetchPetsWithType(activeType.value === '-1' ? undefined : parseInt(activeType.value));
+  }
 };
 
 const handlePetTypeChange = () => {
@@ -779,6 +904,8 @@ const handleReset = () => {
   gender.value = '-1';
   selectedUser.value = null;
   searchKeyword.value = '';
+  searchTypes.value = [];
+  sortBy.value = 'relevance';
   pageNum.value = 1;
   // 刷新列表
   fetchPetsWithType(activeType.value === '-1' ? undefined : parseInt(activeType.value));
@@ -1073,6 +1200,52 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 活动卡片样式 */
+.title-with-status {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.title-status-tag {
+  border-radius: 12px;
+  font-size: 12px;
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+
+.location-time {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 8px;
+}
+
+.location {
+  display: block;
+}
+
+.time {
+  display: block;
+  margin-top: 2px;
+}
+
+.progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.progress-label {
+  font-size: 14px;
+  color: #606266;
 }
 
 .loading-container {

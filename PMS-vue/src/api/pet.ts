@@ -177,3 +177,18 @@ export const completePet = (id: number) => {
     params: { id }
   })
 };
+
+// 全局搜索
+export const globalSearch = (params: {
+  keyword: string
+  pageNum?: number
+  pageSize?: number
+  types?: string[]
+  sortBy?: string
+}) => {
+  return request({
+    url: '/search/global',
+    method: 'get',
+    params
+  })
+};
