@@ -21,11 +21,14 @@ import com.hongjie.pms.modules.daily.mapper.TopicMapper;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
 import com.hongjie.pms.modules.like.entity.LikeRecord;
 import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
+import com.hongjie.pms.modules.search.event.DailyPostPublishedEvent;
+import com.hongjie.pms.modules.search.event.DailyPostUpdatedEvent;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +51,7 @@ public class DailyPostService {
     private final FollowMapper followMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final AuditService auditService;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final String RECOMMEND_KEY = "rec:daily:";
 
@@ -88,6 +92,7 @@ public class DailyPostService {
 
         // 清除推荐缓存
         redisTemplate.delete(RECOMMEND_KEY + userId);
+        eventPublisher.publishEvent(new DailyPostPublishedEvent(this, dailyPost, topicIds));
 
         return convertToDto(dailyPost, userId);
     }
@@ -216,6 +221,7 @@ public class DailyPostService {
         );
 
         redisTemplate.delete(RECOMMEND_KEY + userId);
+        eventPublisher.publishEvent(new DailyPostUpdatedEvent(this, id));
 
         if (likeRecord != null) {
             likeRecordMapper.deleteById(likeRecord);

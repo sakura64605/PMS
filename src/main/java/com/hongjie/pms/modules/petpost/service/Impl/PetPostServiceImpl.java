@@ -19,6 +19,7 @@ import com.hongjie.pms.modules.following.entity.Follow;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
 import com.hongjie.pms.modules.petpost.dto.PetDetailDto;
 import com.hongjie.pms.modules.petpost.service.PetPostService;
+import com.hongjie.pms.modules.search.event.PetPostPublishedEvent;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import com.hongjie.pms.modules.petpost.dto.request.PetPostRequestDto;
 import com.hongjie.pms.modules.petpost.dto.request.PetQueryRequestDto;
@@ -36,6 +37,7 @@ import com.hongjie.pms.modules.user.mapper.UserMapper;
 import com.hongjie.pms.common.enums.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,6 +63,7 @@ public class PetPostServiceImpl implements PetPostService {
     private final FeedService feedService;
     private final AuditService auditService;
     private final DistributedCache distributedCache;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public PetListResponseDto post(PetPostRequestDto request) {
@@ -115,6 +118,8 @@ public class PetPostServiceImpl implements PetPostService {
                     petPost.getCreateTime()
             );
         }
+
+        eventPublisher.publishEvent(new PetPostPublishedEvent(this, petPost));
 
         return PetListResponseDto.builder()
                 .id(petPost.getId())

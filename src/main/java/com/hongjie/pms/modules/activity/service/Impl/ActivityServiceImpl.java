@@ -31,6 +31,7 @@ import com.hongjie.pms.modules.like.entity.LikeRecord;
 import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
 import com.hongjie.pms.modules.message.service.MessageService;
 import com.hongjie.pms.common.punishment.scheduler.DelayTaskService;
+import com.hongjie.pms.modules.search.event.ActivityPublishedEvent;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
@@ -39,6 +40,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -66,6 +68,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final FeedService feedService;
     private final AuditService auditService;
     private final RedissonClient redissonClient;
+    private final ApplicationEventPublisher eventPublisher;
 
 
     @Override
@@ -143,6 +146,7 @@ public class ActivityServiceImpl implements ActivityService {
                 user.getAvatar(),
                 activity.getCreateTime()
         );
+        eventPublisher.publishEvent(new ActivityPublishedEvent(this, activity));
 
         return response;
     }

@@ -1,0 +1,160 @@
+{
+  "settings": {
+    "number_of_shards": 3,
+    "number_of_replicas": 1,
+    "analysis": {
+      "analyzer": {
+        "ik_max_word": {
+          "type": "ik_max_word"
+        },
+        "ik_smart": {
+          "type": "ik_smart"
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "type": {
+        "type": "keyword"
+      },
+      "businessId": {
+        "type": "long"
+      },
+      "title": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "content": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
+      },
+      "topics": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
+      },
+      "location": {
+        "type": "text",
+        "analyzer": "ik_smart",
+        "search_analyzer": "ik_smart",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "images": {
+        "type": "keyword"
+      },
+      "userId": {
+        "type": "long"
+      },
+      "userName": {
+        "type": "text",
+        "analyzer": "ik_smart",
+        "search_analyzer": "ik_smart",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "userAvatar": {
+        "type": "keyword"
+      },
+      "likeCount": {
+        "type": "integer"
+      },
+      "commentCount": {
+        "type": "integer"
+      },
+      "viewCount": {
+        "type": "integer"
+      },
+      "status": {
+        "type": "integer"
+      },
+      "auditStatus": {
+        "type": "integer"
+      },
+      "createTime": {
+        "type": "date",
+        "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd'T'HH:mm:ss||yyyy-MM-dd'T'HH:mm:ss.SSSZ||epoch_millis"
+      },
+      "updateTime": {
+        "type": "date",
+        "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd'T'HH:mm:ss||yyyy-MM-dd'T'HH:mm:ss.SSSZ||epoch_millis"
+      },
+      "videoUrl": {
+        "type": "keyword"
+      },
+      "petName": {
+        "type": "text",
+        "analyzer": "ik_smart",
+        "search_analyzer": "ik_smart",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "petType": {
+        "type": "text",
+        "analyzer": "ik_smart",
+        "search_analyzer": "ik_smart",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "petAge": {
+        "type": "keyword"
+      },
+      "petGender": {
+        "type": "integer"
+      },
+      "address": {
+        "type": "text",
+        "analyzer": "ik_smart",
+        "search_analyzer": "ik_smart",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "maxPeople": {
+        "type": "integer"
+      },
+      "currentPeople": {
+        "type": "integer"
+      },
+      "startTime": {
+        "type": "date",
+        "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
+      },
+      "endTime": {
+        "type": "date",
+        "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
+      }
+    }
+  }
+}
