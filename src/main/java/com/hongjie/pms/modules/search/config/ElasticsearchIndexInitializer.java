@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
@@ -25,9 +26,9 @@ public class ElasticsearchIndexInitializer {
     private static final String INDEX_NAME = "unified_search";
 
     @EventListener(ApplicationReadyEvent.class)
+    @Async
     public void initIndex() {
         try {
-            // 检查索引是否存在
             ExistsRequest existsRequest = ExistsRequest.of(e -> e.index(INDEX_NAME));
             boolean exists = esClient.indices().exists(existsRequest).value();
 

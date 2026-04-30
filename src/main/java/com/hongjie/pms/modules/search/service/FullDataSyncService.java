@@ -1,6 +1,7 @@
 package com.hongjie.pms.modules.search.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.modules.activity.entity.Activity;
 import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
 import com.hongjie.pms.modules.daily.entity.DailyPost;
@@ -59,10 +60,8 @@ public class FullDataSyncService {
 
         while (true) {
             try {
-                com.baomidou.mybatisplus.extension.plugins.pagination.Page<DailyPost> page =
-                        new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(currentPage, pageSize);
-                com.baomidou.mybatisplus.extension.plugins.pagination.Page<DailyPost> dailyPage =
-                        dailyPostMapper.selectPage(page, null);
+                Page<DailyPost> page = new Page<>(currentPage, pageSize);
+                Page<DailyPost> dailyPage = dailyPostMapper.selectPage(page, null);
 
                 List<DailyPost> dailyPosts = dailyPage.getRecords();
                 if (dailyPosts == null || dailyPosts.isEmpty()) {
@@ -77,7 +76,7 @@ public class FullDataSyncService {
                         log.debug("同步日记成功: id={}", post.getId());
                     } catch (Exception e) {
                         log.error("同步日记失败: id={}, error={}", post.getId(), e.getMessage(), e);
-                        failCount.incrementAndGet();  // ✅ 关键修复：增加失败计数
+                        failCount.incrementAndGet();
                     }
                 }
 
@@ -112,10 +111,8 @@ public class FullDataSyncService {
 
         while (true) {
             try {
-                com.baomidou.mybatisplus.extension.plugins.pagination.Page<Activity> page =
-                        new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(currentPage, pageSize);
-                com.baomidou.mybatisplus.extension.plugins.pagination.Page<Activity> activityPage =
-                        activityMapper.selectPage(page, null);
+                Page<Activity> page = new Page<>(currentPage, pageSize);
+                Page<Activity> activityPage = activityMapper.selectPage(page, null);
 
                 List<Activity> activities = activityPage.getRecords();
                 if (activities == null || activities.isEmpty()) {
@@ -164,10 +161,8 @@ public class FullDataSyncService {
 
         while (true) {
             try {
-                com.baomidou.mybatisplus.extension.plugins.pagination.Page<PetPost> page =
-                        new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(currentPage, pageSize);
-                com.baomidou.mybatisplus.extension.plugins.pagination.Page<PetPost> petPage =
-                        petPostMapper.selectPage(page, null);
+                Page<PetPost> page = new Page<>(currentPage, pageSize);
+                Page<PetPost> petPage = petPostMapper.selectPage(page, null);
 
                 List<PetPost> petPosts = petPage.getRecords();
                 if (petPosts == null || petPosts.isEmpty()) {

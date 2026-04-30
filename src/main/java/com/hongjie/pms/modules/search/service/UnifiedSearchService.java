@@ -1,4 +1,3 @@
-// modules/search/service/UnifiedSearchService.java
 package com.hongjie.pms.modules.search.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;

@@ -306,7 +306,6 @@ public class SearchDataSyncService {
                             .properties("viewCount", p -> p.integer(i2 -> i2))
                             .properties("status", p -> p.integer(i2 -> i2))
                             .properties("auditStatus", p -> p.integer(i2 -> i2))
-                            // ✅ 关键：支持多种日期格式
                             .properties("createTime", p -> p.date(d -> d.format(
                                     "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd'T'HH:mm:ss||yyyy-MM-dd'T'HH:mm:ss.SSSZ||epoch_millis"
                             )))
