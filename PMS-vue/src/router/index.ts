@@ -130,6 +130,11 @@ const routes: RouteRecordRaw[] = [
         name: 'DailyDetail',
         component: () => import('../views/daily/detail.vue')
       },
+      {
+        path: 'notice/:id',
+        name: 'NoticeDetail',
+        component: () => import('../views/notice/detail.vue')
+      }
 
     ]
   }

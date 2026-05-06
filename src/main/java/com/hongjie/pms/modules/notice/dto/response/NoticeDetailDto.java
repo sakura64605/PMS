@@ -1,11 +1,16 @@
 package com.hongjie.pms.modules.notice.dto.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class NoticeDetailDto {
     private Long id;
     private String title;

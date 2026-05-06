@@ -49,17 +49,31 @@ const notice = ref<any>(null)
 
 onMounted(() => {
   const id = Number(route.params.id)
+  console.log('=== 公告详情页加载 ===')
+  console.log('路由参数id:', route.params.id)
+  console.log('转换后的id:', id)
   if (id) {
     fetchNoticeDetail(id)
+  } else {
+    console.error('id为空，无法获取公告详情')
+    ElMessage.error('公告ID为空')
   }
 })
 
 // 获取公告详情
 const fetchNoticeDetail = async (id: number) => {
+  console.log('=== 开始获取公告详情 ===')
+  console.log('请求ID:', id)
   try {
+    console.log('发送请求:', `/pet-system/notice/${id}`)
     const response = await getNoticeDetail(id)
+    console.log('响应数据:', response)
     if (response.code === 200) {
       notice.value = response.data
+      console.log('公告数据:', notice.value)
+    } else {
+      console.error('响应码不为200:', response)
+      ElMessage.error(response.message || '获取公告详情失败')
     }
   } catch (error) {
     console.error('获取公告详情失败:', error)

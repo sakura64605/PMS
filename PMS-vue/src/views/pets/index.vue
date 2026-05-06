@@ -22,46 +22,110 @@
 
       <!-- 搜索和排序 - 宠物相关 -->
       <div v-if="activeType !== '2'" class="search-sort-section">
-        <!-- 全局搜索输入框 -->
-        <el-input
-          v-model="searchKeyword"
-          placeholder="全局搜索（标题、内容）"
-          class="search-input"
-          clearable
-          @keyup.enter="handleSearch"
-        >
-          <template #append>
-            <el-button @click="handleSearch">
-              <el-icon><Search /></el-icon>
-            </el-button>
-          </template>
-        </el-input>
+        <!-- 全部选项卡：使用ES全局搜索 -->
+        <template v-if="activeType === '-1'">
+          <el-input
+            v-model="searchKeyword"
+            placeholder="全局搜索（标题、内容）"
+            class="search-input"
+            clearable
+            @keyup.enter="handleSearch"
+          >
+            <template #append>
+              <el-button @click="handleSearch">
+                <el-icon><Search /></el-icon>
+              </el-button>
+            </template>
+          </el-input>
 
-        <!-- 类型过滤 -->
-        <el-select
-          v-model="searchTypes"
-          placeholder="类型"
-          class="filter-select"
-          multiple
-          @change="handleSearch"
-          clearable
-          style="display: none"
-        >
-          <el-option label="日常" value="daily"></el-option>
-          <el-option label="活动" value="activity"></el-option>
-          <el-option label="宠物" value="pet"></el-option>
-        </el-select>
+          <!-- 排序方式 -->
+          <el-select
+            v-model="sortBy"
+            class="sort-select"
+            @change="handleSortChange"
+          >
+            <el-option label="相关度" value="relevance"></el-option>
+            <el-option label="最新发布" value="time"></el-option>
+            <el-option label="热度" value="hot"></el-option>
+          </el-select>
+        </template>
 
-        <!-- 排序方式 -->
-        <el-select
-          v-model="sortBy"
-          class="sort-select"
-          @change="handleSearch"
-        >
-          <el-option label="相关度" value="relevance"></el-option>
-          <el-option label="最新发布" value="time"></el-option>
-          <el-option label="热度" value="hot"></el-option>
-        </el-select>
+        <!-- 领养/救助选项卡：使用普通搜索 -->
+        <template v-else>
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索（标题、内容）"
+            class="search-input"
+            clearable
+            @keyup.enter="handleSearch"
+          >
+            <template #append>
+              <el-button @click="handleSearch">
+                <el-icon><Search /></el-icon>
+              </el-button>
+            </template>
+          </el-input>
+
+          <!-- 品种筛选 -->
+          <el-select
+            v-model="petType"
+            placeholder="品种"
+            class="filter-select"
+            clearable
+            @change="handlePetTypeChange"
+          >
+            <el-option label="全部" value=""></el-option>
+            <el-option label="猫" value="猫"></el-option>
+            <el-option label="狗" value="狗"></el-option>
+            <el-option label="其他" value="其他"></el-option>
+          </el-select>
+
+          <!-- 性别筛选 -->
+          <el-select
+            v-model="gender"
+            placeholder="性别"
+            class="filter-select"
+            clearable
+            @change="handleGenderChange"
+          >
+            <el-option label="全部" value="-1"></el-option>
+            <el-option label="公" value="1">
+              <template #label>
+                <span><el-icon><Male /></el-icon> 公</span>
+              </template>
+            </el-option>
+            <el-option label="母" value="2">
+              <template #label>
+                <span><el-icon><Female /></el-icon> 母</span>
+              </template>
+            </el-option>
+          </el-select>
+
+          <!-- 状态筛选 -->
+          <el-select
+            v-model="status"
+            placeholder="状态"
+            class="filter-select"
+            clearable
+            @change="handlePetStatusChange"
+          >
+            <el-option label="全部" value="-1"></el-option>
+            <el-option label="待审核" value="0"></el-option>
+            <el-option label="已发布" value="1"></el-option>
+            <el-option label="已完成" value="2"></el-option>
+          </el-select>
+
+          <!-- 排序方式 -->
+          <el-select
+            v-model="sortOption"
+            class="sort-select"
+            @change="handleSearch"
+          >
+            <el-option label="最新发布" value="createTime-desc"></el-option>
+            <el-option label="最早发布" value="createTime-asc"></el-option>
+            <el-option label="最热" value="viewCount-desc"></el-option>
+          </el-select>
+        </template>
 
         <el-button
           type="default"
@@ -404,6 +468,7 @@ const searchKeyword = ref('');
 const sortOption = ref('createTime-desc');
 const petType = ref('');
 const gender = ref('-1');
+const status = ref('-1');
 const pageNum = ref(1);
 const pageSize = ref(10);
 const loading = ref(false);
@@ -636,39 +701,35 @@ const submitCancelSignup = async () => {
 const fetchPetsWithType = async (type?: number) => {
   loading.value = true;
   try {
-    if (searchKeyword.value) {
-      // 使用全局搜索
-      await fetchGlobalSearch();
-    } else {
-      // 使用原有的宠物列表接口
-      const [orderBy, order] = sortOption.value.split('-');
-      const requestParams = {
-        type,
-        gender: gender.value === '-1' ? undefined : parseInt(gender.value),
-        petType: petType.value || undefined,
-        userId: selectedUser.value?.userId || undefined,
-        keyword: searchKeyword.value || undefined,
-        orderBy,
-        order,
-        pageNum: pageNum.value,
-        pageSize: pageSize.value
-      };
-      
-      console.log('=== 发送请求 ===');
-      console.log('请求参数:', requestParams);
-      
-      const response = await getPetList(requestParams);
-      
-      if (response.code === 200 && response.data) {
-        pets.value = response.data.records || [];
-        total.value = response.data.total || 0;
-        console.log('返回数据数量:', response.data.total);
-        if (response.data.records?.length > 0) {
-          console.log('第一条数据type:', response.data.records[0]?.type);
-        }
-      } else {
-        ElMessage.error(response.message || '获取宠物列表失败');
+    // 使用原有的宠物列表接口
+    const [orderBy, order] = sortOption.value.split('-');
+    const requestParams = {
+      type,
+      gender: gender.value === '-1' ? undefined : parseInt(gender.value),
+      petType: petType.value || undefined,
+      status: status.value === '-1' ? undefined : parseInt(status.value),
+      userId: selectedUser.value?.userId || undefined,
+      keyword: searchKeyword.value || undefined,
+      orderBy,
+      order,
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
+    };
+    
+    console.log('=== 发送请求 ===');
+    console.log('请求参数:', requestParams);
+    
+    const response = await getPetList(requestParams);
+    
+    if (response.code === 200 && response.data) {
+      pets.value = response.data.records || [];
+      total.value = response.data.total || 0;
+      console.log('返回数据数量:', response.data.total);
+      if (response.data.records?.length > 0) {
+        console.log('第一条数据type:', response.data.records[0]?.type);
       }
+    } else {
+      ElMessage.error(response.message || '获取宠物列表失败');
     }
   } catch (error) {
     ElMessage.error('获取宠物列表失败，请重试');
@@ -676,6 +737,12 @@ const fetchPetsWithType = async (type?: number) => {
   } finally {
     loading.value = false;
   }
+};
+
+// 宠物状态变化处理
+const handlePetStatusChange = () => {
+  pageNum.value = 1;
+  fetchPetsWithType(activeType.value === '-1' ? undefined : parseInt(activeType.value));
 };
 
 // 全局搜索
@@ -785,22 +852,27 @@ const handleTypeChange = (tab: any) => {
     }
     
     console.log('请求的type:', newType === undefined ? '全部' : newType);
-    fetchPetsWithType(newType);
+    
+    // 只有在"全部"选项卡下有关键词时，才使用ES全局搜索
+    if (newType === undefined && searchKeyword.value) {
+      fetchGlobalSearch();
+    } else {
+      fetchPetsWithType(newType);
+    }
   }
 };
 
 const handleSearch = () => {
   console.log('=== 处理搜索 ===');
   console.log('搜索关键词:', searchKeyword.value);
-  console.log('已选类型:', searchTypes.value);
-  console.log('排序方式:', sortBy.value);
+  console.log('当前选项卡:', activeType.value);
   
   pageNum.value = 1;
-  if (searchKeyword.value || searchTypes.value.length > 0) {
-    // 使用全局搜索（有关键词或有类型过滤）
+  // 只有在"全部"选项卡下有关键词时，才使用ES全局搜索
+  if (activeType.value === '-1' && searchKeyword.value) {
     fetchGlobalSearch();
   } else {
-    // 使用原有的搜索
+    // 其他选项卡使用普通搜索
     fetchPetsWithType(activeType.value === '-1' ? undefined : parseInt(activeType.value));
   }
 };
@@ -808,14 +880,12 @@ const handleSearch = () => {
 const handleSortChange = () => {
   console.log('=== 处理排序 ===');
   console.log('排序方式:', sortBy.value);
-  console.log('已选类型:', searchTypes.value);
   
   pageNum.value = 1;
-  if (searchKeyword.value || searchTypes.value.length > 0) {
-    // 使用全局搜索（有关键词或有类型过滤）
+  // 只有在"全部"选项卡下有关键词时，才使用ES全局搜索
+  if (activeType.value === '-1' && searchKeyword.value) {
     fetchGlobalSearch();
   } else {
-    // 使用原有的搜索
     fetchPetsWithType(activeType.value === '-1' ? undefined : parseInt(activeType.value));
   }
 };
@@ -823,11 +893,10 @@ const handleSortChange = () => {
 const handleSizeChange = (size: number) => {
   console.log('=== 处理分页大小变化 ===');
   console.log('分页大小:', size);
-  console.log('已选类型:', searchTypes.value);
   
   pageSize.value = size;
-  if (searchKeyword.value || searchTypes.value.length > 0) {
-    // 使用全局搜索（有关键词或有类型过滤）
+  // 只有在"全部"选项卡下有关键词时，才使用ES全局搜索
+  if (activeType.value === '-1' && searchKeyword.value) {
     fetchGlobalSearch();
   } else {
     fetchPetsWithType(activeType.value === '-1' ? undefined : parseInt(activeType.value));
@@ -837,11 +906,10 @@ const handleSizeChange = (size: number) => {
 const handleCurrentChange = (current: number) => {
   console.log('=== 处理页码变化 ===');
   console.log('页码:', current);
-  console.log('已选类型:', searchTypes.value);
   
   pageNum.value = current;
-  if (searchKeyword.value || searchTypes.value.length > 0) {
-    // 使用全局搜索（有关键词或有类型过滤）
+  // 只有在"全部"选项卡下有关键词时，才使用ES全局搜索
+  if (activeType.value === '-1' && searchKeyword.value) {
     fetchGlobalSearch();
   } else {
     fetchPetsWithType(activeType.value === '-1' ? undefined : parseInt(activeType.value));
@@ -902,6 +970,7 @@ const handleReset = () => {
   // 重置所有筛选条件
   petType.value = '';
   gender.value = '-1';
+  status.value = '-1';
   selectedUser.value = null;
   searchKeyword.value = '';
   searchTypes.value = [];

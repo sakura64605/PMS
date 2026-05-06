@@ -85,17 +85,7 @@ public class AuditServiceImpl implements AuditService {
         record.setAuditStatus(AuditStatus.APPROVED.getCode());
         auditRecordMapper.updateById(record);
 
-        if (TargetType.HELP.name().equals(targetType) || TargetType.ADOPT.name().equals(targetType)) {
-            PetPost pet = petPostMapper.selectById(id);
-            pet.setAuditStatus(AuditStatus.APPROVED.getCode());
-            petPostMapper.updateById(pet);
-        } else if (TargetType.ACTIVITY.name().equals(targetType)) {
-            Activity activity = activityMapper.selectById(id);
-            activity.setAuditStatus(AuditStatus.APPROVED.getCode());
-        } else if (TargetType.DAILY.name().equals(targetType)) {
-            DailyPost daily = dailyPostMapper.selectById(id);
-            daily.setAuditStatus(AuditStatus.APPROVED.getCode());
-        }
+        updateTargetAuditStatus(targetType, id, AuditStatus.REJECTED.getCode(), null);
 
         clearCache(targetType, id);
 
@@ -131,7 +121,7 @@ public class AuditServiceImpl implements AuditService {
             try {
                 approve(id, targetType);
             } catch (Exception e) {
-                log.error("批量审核通过失败: id={}, error={}", id, e.getMessage());
+                log.error("批量审核通过失败: targetType={}, id={}, error={}", targetType, id, e.getMessage());
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "批量审核失败：" + e.getMessage());
             }
         }

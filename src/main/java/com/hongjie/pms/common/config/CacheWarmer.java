@@ -3,10 +3,16 @@ package com.hongjie.pms.common.config;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hongjie.pms.modules.activity.entity.Activity;
 import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
+import com.hongjie.pms.modules.notice.dto.response.NoticeDetailDto;
 import com.hongjie.pms.modules.notice.entity.Notice;
 import com.hongjie.pms.modules.notice.mapper.NoticeMapper;
+import com.hongjie.pms.modules.notice.mapper.NoticeReadRecordMapper;
+import com.hongjie.pms.modules.petpost.dto.PetDetailDto;
 import com.hongjie.pms.modules.petpost.entity.PetPost;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
+import com.hongjie.pms.modules.user.dto.UserSimpleDto;
+import com.hongjie.pms.modules.user.entity.User;
+import com.hongjie.pms.modules.user.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -14,9 +20,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -31,10 +36,16 @@ public class CacheWarmer {
     private NoticeMapper noticeMapper;
 
     @Autowired
+    private NoticeReadRecordMapper noticeReadRecordMapper;
+
+    @Autowired
     private PetPostMapper petPostMapper;
 
     @Autowired
     private ActivityMapper activityMapper;
+
+    @Autowired
+    private UserMapper userMapper;
 
     /**
      * 项目启动后预热缓存
@@ -43,6 +54,9 @@ public class CacheWarmer {
     public void warmUp() {
         log.info("========== 开始缓存预热 ==========");
         long startTime = System.currentTimeMillis();
+
+        // 先清理可能存在的脏缓存
+        cleanCorruptedCache();
 
         // 1. 预热公告
         warmUpNotices();
@@ -76,6 +90,105 @@ public class CacheWarmer {
     }
 
     /**
+     * 清理脏缓存（避免实体类型与DTO类型冲突）
+     */
+    private void cleanCorruptedCache() {
+        try {
+            // 清理公告缓存
+            Set<String> noticeKeys = redisTemplate.keys("notice:*");
+            if (noticeKeys != null && !noticeKeys.isEmpty()) {
+                redisTemplate.delete(noticeKeys);
+                log.info("清理公告缓存: {} 个", noticeKeys.size());
+            }
+
+            // 清理宠物详情缓存
+            Set<String> petKeys = redisTemplate.keys("pet:*");
+            if (petKeys != null && !petKeys.isEmpty()) {
+                // 过滤掉 pet:categories, pet:hot:list, pet:recommended 等列表缓存
+                Set<String> petDetailKeys = petKeys.stream()
+                        .filter(key -> key.matches("pet:\\d+"))
+                        .collect(Collectors.toSet());
+                if (!petDetailKeys.isEmpty()) {
+                    redisTemplate.delete(petDetailKeys);
+                    log.info("清理宠物详情缓存: {} 个", petDetailKeys.size());
+                }
+            }
+
+            // 清理活动详情缓存
+            Set<String> activityKeys = redisTemplate.keys("activity:*");
+            if (activityKeys != null && !activityKeys.isEmpty()) {
+                Set<String> activityDetailKeys = activityKeys.stream()
+                        .filter(key -> key.matches("activity:\\d+"))
+                        .collect(Collectors.toSet());
+                if (!activityDetailKeys.isEmpty()) {
+                    redisTemplate.delete(activityDetailKeys);
+                    log.info("清理活动详情缓存: {} 个", activityDetailKeys.size());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("清理脏缓存失败", e);
+        }
+    }
+
+    /**
+     * 将 Notice 转换为 NoticeDetailDto
+     */
+    private NoticeDetailDto convertToDetailDto(Notice notice, boolean isRead) {
+        return NoticeDetailDto.builder()
+                .id(notice.getId())
+                .title(notice.getTitle())
+                .content(notice.getContent())
+                .type(notice.getType())
+                .priority(notice.getPriority())
+                .status(notice.getStatus())
+                .isTop(notice.getIsTop())
+                .publishTime(notice.getPublishTime())
+                .expireTime(notice.getExpireTime())
+                .createTime(notice.getCreateTime())
+                .isRead(isRead)
+                .build();
+    }
+
+    /**
+     * 将 PetPost 转换为 PetDetailDto
+     */
+    private PetDetailDto convertToPetDetailDto(PetPost pet, Long currentUserId) {
+        User user = userMapper.selectById(pet.getUserId());
+        UserSimpleDto userSimpleDto = null;
+        if (user != null) {
+            userSimpleDto = UserSimpleDto.builder()
+                    .userId(user.getId())
+                    .username(user.getUserName())
+                    .nickname(user.getNickName())
+                    .avatar(user.getAvatar())
+                    .build();
+        }
+
+        return PetDetailDto.builder()
+                .id(pet.getId())
+                .type(pet.getType())
+                .title(pet.getTitle())
+                .content(pet.getContent())
+                .images(pet.getImages())
+                .petGender(pet.getPetGender())
+                .petAge(pet.getPetAge())
+                .petType(pet.getPetType())
+                .petName(pet.getPetName())
+                .contactPhone(pet.getContactPhone())
+                .contactWechat(pet.getContactWechat())
+                .address(pet.getAddress())
+                .viewCount(pet.getViewCount())
+                .status(pet.getStatus())
+                .createTime(pet.getCreateTime())
+                .updateTime(pet.getUpdateTime())
+                .user(userSimpleDto)
+                .shareCount(pet.getShareCount())
+                .commentCount(pet.getCommentCount())
+                .likeCount(pet.getLikeCount())
+                .build();
+    }
+
+    /**
      * 1. 预热公告（最新5条 + 全部有效公告）
      */
     private void warmUpNotices() {
@@ -88,18 +201,23 @@ public class CacheWarmer {
                             .last("limit 5")
             );
             if (latestNotices != null && !latestNotices.isEmpty()) {
-                redisTemplate.opsForValue().set("notice:latest", latestNotices, 10, TimeUnit.MINUTES);
-                log.info("预热公告缓存: 最新{}条", latestNotices.size());
+                // 转换为 DTO 列表缓存
+                List<NoticeDetailDto> latestNoticeDtos = latestNotices.stream()
+                        .map(notice -> convertToDetailDto(notice, false))
+                        .collect(Collectors.toList());
+                redisTemplate.opsForValue().set("notice:latest", latestNoticeDtos, 10, TimeUnit.MINUTES);
+                log.info("预热公告缓存: 最新{}条", latestNoticeDtos.size());
             }
 
-            // 所有有效公告（按ID缓存）
+            // 所有有效公告（按ID缓存）- 使用 DTO 而不是实体
             List<Notice> allNotices = noticeMapper.selectList(
                     new LambdaQueryWrapper<Notice>()
                             .eq(Notice::getStatus, 1)
             );
             for (Notice notice : allNotices) {
                 String key = "notice:" + notice.getId();
-                redisTemplate.opsForValue().set(key, notice, 30, TimeUnit.MINUTES);
+                NoticeDetailDto dto = convertToDetailDto(notice, false);
+                redisTemplate.opsForValue().set(key, dto, 30, TimeUnit.MINUTES);
             }
             log.info("预热公告缓存: 共{}条", allNotices.size());
 
@@ -130,20 +248,25 @@ public class CacheWarmer {
             List<PetPost> hotPets = petPostMapper.selectList(
                     new LambdaQueryWrapper<PetPost>()
                             .eq(PetPost::getStatus, 1)
+                            .eq(PetPost::getAuditStatus, 1)
                             .orderByDesc(PetPost::getViewCount)
                             .last("limit 20")
             );
 
             if (hotPets != null && !hotPets.isEmpty()) {
-                // 缓存列表
-                redisTemplate.opsForValue().set("pet:hot:list", hotPets, 5, TimeUnit.MINUTES);
+                // 转换为 DTO 列表缓存
+                List<PetDetailDto> hotPetDtos = hotPets.stream()
+                        .map(pet -> convertToPetDetailDto(pet, null))
+                        .collect(Collectors.toList());
+                redisTemplate.opsForValue().set("pet:hot:list", hotPetDtos, 5, TimeUnit.MINUTES);
+                log.info("预热热门宠物缓存: {}条", hotPetDtos.size());
 
-                // 同时缓存每个宠物的详情
+                // 同时缓存每个宠物的详情 - 使用 DTO
                 for (PetPost pet : hotPets) {
                     String key = "pet:" + pet.getId();
-                    redisTemplate.opsForValue().set(key, pet, 30, TimeUnit.MINUTES);
+                    PetDetailDto dto = convertToPetDetailDto(pet, null);
+                    redisTemplate.opsForValue().set(key, dto, 30, TimeUnit.MINUTES);
                 }
-                log.info("预热热门宠物缓存: {}条", hotPets.size());
             }
         } catch (Exception e) {
             log.warn("预热热门宠物失败", e);
@@ -155,16 +278,21 @@ public class CacheWarmer {
      */
     private void warmUpLatestPets() {
         try {
-            // 首页第1页
             List<PetPost> latestPets = petPostMapper.selectList(
                     new LambdaQueryWrapper<PetPost>()
                             .eq(PetPost::getStatus, 1)
+                            .eq(PetPost::getAuditStatus, 1)
                             .orderByDesc(PetPost::getCreateTime)
                             .last("limit 20")
             );
 
             if (latestPets != null && !latestPets.isEmpty()) {
-                redisTemplate.opsForValue().set("pet:latest:page:1:size:20", latestPets, 2, TimeUnit.MINUTES);
+                // 转换为 DTO 列表缓存（宠物列表可以使用简化的 DTO，这里用 PetListResponseDto 更合适）
+                // 简化处理：直接存储宠物ID列表，或者使用专门的列表DTO
+                List<Long> petIds = latestPets.stream()
+                        .map(PetPost::getId)
+                        .collect(Collectors.toList());
+                redisTemplate.opsForValue().set("pet:latest:page:1:size:20", petIds, 2, TimeUnit.MINUTES);
                 log.info("预热最新宠物缓存: {}条", latestPets.size());
             }
         } catch (Exception e) {
@@ -180,13 +308,18 @@ public class CacheWarmer {
             List<PetPost> recommendedPets = petPostMapper.selectList(
                     new LambdaQueryWrapper<PetPost>()
                             .eq(PetPost::getStatus, 1)
+                            .eq(PetPost::getAuditStatus, 1)
                             .orderByDesc(PetPost::getLikeCount)
                             .last("limit 10")
             );
 
             if (recommendedPets != null && !recommendedPets.isEmpty()) {
-                redisTemplate.opsForValue().set("pet:recommended", recommendedPets, 10, TimeUnit.MINUTES);
-                log.info("预热推荐宠物缓存: {}条", recommendedPets.size());
+                // 转换为 DTO 列表缓存
+                List<PetDetailDto> recommendedPetDtos = recommendedPets.stream()
+                        .map(pet -> convertToPetDetailDto(pet, null))
+                        .collect(Collectors.toList());
+                redisTemplate.opsForValue().set("pet:recommended", recommendedPetDtos, 10, TimeUnit.MINUTES);
+                log.info("预热推荐宠物缓存: {}条", recommendedPetDtos.size());
             }
         } catch (Exception e) {
             log.warn("预热推荐宠物失败", e);
@@ -214,13 +347,18 @@ public class CacheWarmer {
             List<Activity> latestActivities = activityMapper.selectList(
                     new LambdaQueryWrapper<Activity>()
                             .eq(Activity::getStatus, 1)
+                            .eq(Activity::getAuditStatus, 1)
                             .ge(Activity::getEndTime, java.time.LocalDateTime.now())
                             .orderByDesc(Activity::getCreateTime)
                             .last("limit 10")
             );
 
             if (latestActivities != null && !latestActivities.isEmpty()) {
-                redisTemplate.opsForValue().set("activity:latest", latestActivities, 5, TimeUnit.MINUTES);
+                // 简化处理：缓存活动ID列表
+                List<Long> activityIds = latestActivities.stream()
+                        .map(Activity::getId)
+                        .collect(Collectors.toList());
+                redisTemplate.opsForValue().set("activity:latest", activityIds, 5, TimeUnit.MINUTES);
                 log.info("预热最新活动缓存: {}条", latestActivities.size());
             }
         } catch (Exception e) {
@@ -233,17 +371,21 @@ public class CacheWarmer {
      */
     private void warmUpHotActivities() {
         try {
-            // 注意：这里需要关联报名表统计，简化处理
             List<Activity> hotActivities = activityMapper.selectList(
                     new LambdaQueryWrapper<Activity>()
                             .eq(Activity::getStatus, 1)
+                            .eq(Activity::getAuditStatus, 1)
                             .ge(Activity::getEndTime, java.time.LocalDateTime.now())
                             .orderByDesc(Activity::getCurrentPeople)
                             .last("limit 10")
             );
 
             if (hotActivities != null && !hotActivities.isEmpty()) {
-                redisTemplate.opsForValue().set("activity:hot", hotActivities, 5, TimeUnit.MINUTES);
+                // 简化处理：缓存活动ID列表
+                List<Long> activityIds = hotActivities.stream()
+                        .map(Activity::getId)
+                        .collect(Collectors.toList());
+                redisTemplate.opsForValue().set("activity:hot", activityIds, 5, TimeUnit.MINUTES);
                 log.info("预热热门活动缓存: {}条", hotActivities.size());
             }
         } catch (Exception e) {

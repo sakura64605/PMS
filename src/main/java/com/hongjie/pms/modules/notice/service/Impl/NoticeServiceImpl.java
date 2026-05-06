@@ -330,10 +330,29 @@ public class NoticeServiceImpl implements NoticeService {
     public NoticeDetailDto getByIdForUser(Long id) {
         // 1. 查缓存
         String cacheKey = "notice:" + id;
-        NoticeDetailDto cached = (NoticeDetailDto) redisTemplate.opsForValue().get(cacheKey);
+        Object cached = redisTemplate.opsForValue().get(cacheKey);
+
         if (cached != null) {
-            log.info("从缓存获取公告详情: id={}", id);
-            return cached;
+            // 兼容处理：如果缓存的是 Notice 实体，则转换并重新缓存 DTO
+            if (cached instanceof Notice) {
+                log.warn("缓存中发现旧格式的Notice实体，正在迁移: id={}", id);
+                Notice oldNotice = (Notice) cached;
+                NoticeDetailDto converted = convertToDetailDto(oldNotice,
+                        noticeReadRecordMapper.exists(id, UserContext.getUserId()));
+                // 更新为正确格式
+                redisTemplate.opsForValue().set(cacheKey, converted, 1800, TimeUnit.SECONDS);
+                return converted;
+            }
+
+            // 正常情况：直接返回 DTO
+            if (cached instanceof NoticeDetailDto) {
+                log.info("从缓存获取公告详情: id={}", id);
+                return (NoticeDetailDto) cached;
+            }
+
+            // 其他意外类型：删除脏缓存
+            log.warn("缓存中存在异常类型: id={}, type={}", id, cached.getClass().getName());
+            redisTemplate.delete(cacheKey);
         }
 
         // 2. 查数据库

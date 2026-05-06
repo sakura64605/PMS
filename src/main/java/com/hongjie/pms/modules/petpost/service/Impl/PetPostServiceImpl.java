@@ -83,7 +83,7 @@ public class PetPostServiceImpl implements PetPostService {
                 .contactPhone(request.getContactPhone())
                 .contactWechat(request.getContactWechat())
                 .address(request.getAddress())
-                .status(1)
+                .status(0)
                 .auditStatus(0)
                 .viewCount(0)
                 .build();
@@ -306,7 +306,7 @@ public class PetPostServiceImpl implements PetPostService {
     @Override
     public PetDetailDto detail(Long id, Long currentUserId) {
         String cacheKey = CacheUtil.buildKey("pet", String.valueOf(id));
-        
+
         // 尝试从缓存获取
         PetDetailDto cachedDetail = distributedCache.get(cacheKey, PetDetailDto.class);
         if (cachedDetail != null) {
@@ -322,7 +322,7 @@ public class PetPostServiceImpl implements PetPostService {
             }
             return cachedDetail;
         }
-        
+
         // 缓存未命中，从数据库查询
         // 1. 查询宠物信息
         PetPost pet = petPostMapper.selectById(id);
