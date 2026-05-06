@@ -11,7 +11,7 @@
 
     <!-- 日记列表 -->
     <div class="daily-list">
-      <el-card v-for="item in dailyList" :key="item.id" class="daily-card">
+      <el-card v-for="item in dailyList" :key="item.id" class="daily-card" @click="goToDetail(item.id)">
         <!-- 作者信息 -->
         <div class="daily-header-info">
           <el-avatar :size="40" :src="item.user.avatar || 'https://via.placeholder.com/40'">
@@ -58,17 +58,17 @@
 
         <!-- 操作栏 -->
         <div class="daily-actions">
-          <div class="action-item" @click="handleLike(item)">
+          <div class="action-item" @click.stop="handleLike(item)">
             <el-icon :class="(item.isLiked || false) ? 'liked' : ''">
               <component :is="(item.isLiked || false) ? 'StarFilled' : 'Star'" />
             </el-icon>
             <span>{{ item.likeCount }}</span>
           </div>
-          <div class="action-item" @click="goToDetail(item.id)">
+          <div class="action-item" @click.stop="goToDetail(item.id)">
             <el-icon><ChatDotRound /></el-icon>
             <span>{{ item.commentCount }}</span>
           </div>
-          <div class="action-item" @click="handleShare(item.id)">
+          <div class="action-item" @click.stop="handleShare(item.id)">
             <el-icon><Share /></el-icon>
             <span>分享</span>
           </div>
@@ -262,6 +262,7 @@ onMounted(() => {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
   background-color: #ffffff;
+  cursor: pointer;
 }
 
 .daily-card:hover {

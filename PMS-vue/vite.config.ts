@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
-    allowedHosts: ['637621ee.xq0.cn', '192.168.157.195'],
+    allowedHosts: ['pmstest.w1.luyouxia.net', '192.168.157.195'],
     proxy: {
       '/pet-system': {
         target: 'http://localhost:8080',

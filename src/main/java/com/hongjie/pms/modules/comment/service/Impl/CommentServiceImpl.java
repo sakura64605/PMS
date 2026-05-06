@@ -15,6 +15,8 @@ import com.hongjie.pms.modules.comment.dto.response.CommentRespDto;
 import com.hongjie.pms.modules.comment.entity.Comment;
 import com.hongjie.pms.modules.comment.mapper.CommentMapper;
 import com.hongjie.pms.modules.comment.service.CommentService;
+import com.hongjie.pms.modules.daily.entity.DailyPost;
+import com.hongjie.pms.modules.daily.mapper.DailyPostMapper;
 import com.hongjie.pms.modules.message.service.MessageService;
 import com.hongjie.pms.modules.petpost.entity.PetPost;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
@@ -38,6 +40,7 @@ public class CommentServiceImpl implements CommentService {
     private final PetPostMapper petPostMapper;
     private final ActivityMapper activityMapper;
     private final MessageService messageService;
+    private final DailyPostMapper dailyPostMapper;
 
     @CircuitBreaker(
             value = "createComment",
@@ -108,6 +111,22 @@ public class CommentServiceImpl implements CommentService {
                         request.getContent(),          // 评论内容
                         request.getTargetId(),         // 业务ID
                         "/activity/" + request.getTargetId()  // 链接
+                );
+            }
+        } else if (request.getTargetType().equals(CommentLikeTypes.DAILY)) {
+            dailyPostMapper.incrementCommentCount(request.getTargetId());
+
+            // 发送评论通知
+            DailyPost dailyPost = dailyPostMapper.selectById(request.getTargetId());
+            if (dailyPost != null && !userId.equals(dailyPost.getUserId())) {
+                messageService.sendCommentNotification(
+                        dailyPost.getUserId(),
+                        userId,
+                        CommentLikeTypes.DAILY,
+                        dailyPost.getContent(),           // 标题
+                        request.getContent(),          // 评论内容
+                        request.getTargetId(),         // 业务ID
+                        "/daily/" + request.getTargetId()
                 );
             }
         }
