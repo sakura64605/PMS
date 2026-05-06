@@ -191,7 +191,11 @@ const queryTopics = async (query: string, callback: (data: any[]) => void) => {
   if (query) {
     try {
       const response = await searchTopics({ keyword: query });
-      callback(response.data || []);
+      const topics = (response.data || []).map((item: any) => ({
+        ...item,
+        value: item.name
+      }));
+      callback(topics);
     } catch (error) {
       console.error('搜索话题失败:', error);
       callback([]);

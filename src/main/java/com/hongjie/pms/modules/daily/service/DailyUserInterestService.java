@@ -1,5 +1,6 @@
 package com.hongjie.pms.modules.daily.service;
 
+import com.hongjie.pms.modules.daily.entity.DailyUserBehavior;
 import com.hongjie.pms.modules.daily.entity.DailyUserInterest;
 import com.hongjie.pms.modules.daily.entity.Topic;
 import com.hongjie.pms.modules.daily.mapper.DailyTopicRelMapper;
@@ -15,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -48,7 +50,7 @@ public class DailyUserInterestService {
         redisTemplate.expire(redisKey, 7, TimeUnit.DAYS);
 
         // 异步更新MySQL
-        asyncUpdateMysql(userId);
+        asyncUpdateMysql(userId, targetId, actionType);
     }
 
     /**
@@ -103,7 +105,46 @@ public class DailyUserInterestService {
         return defaultInterest;
     }
 
-    private void asyncUpdateMysql(Long userId) {
-        // 简化：可以定时任务批量更新
+    private void asyncUpdateMysql(Long userId, Long targetId, String actionType) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 1. 插入用户行为记录
+                DailyUserBehavior behavior = new DailyUserBehavior();
+                behavior.setUserId(userId);
+                behavior.setTargetId(targetId);
+                behavior.setActionType(actionType);
+                behavior.setActionTime(LocalDateTime.now());
+                behaviorMapper.insert(behavior);
+
+                // 2. 同步用户兴趣画像
+                String redisKey = INTEREST_KEY + userId;
+                Map<Object, Object> entries = redisTemplate.opsForHash().entries(redisKey);
+
+                if (entries.isEmpty()) {
+                    return;
+                }
+
+                Map<String, Double> interestMap = new HashMap<>();
+                for (Map.Entry<Object, Object> entry : entries.entrySet()) {
+                    interestMap.put((String) entry.getKey(), ((Number) entry.getValue()).doubleValue());
+                }
+
+                String interestJson = com.alibaba.fastjson2.JSON.toJSONString(interestMap);
+
+                DailyUserInterest interest = new DailyUserInterest();
+                interest.setUserId(userId);
+                interest.setInterestJson(interestJson);
+                interest.setUpdateTime(LocalDateTime.now());
+
+                DailyUserInterest existing = interestMapper.selectById(userId);
+                if (existing != null) {
+                    interestMapper.updateById(interest);
+                } else {
+                    interestMapper.insert(interest);
+                }
+            } catch (Exception e) {
+                log.error("异步更新用户兴趣到MySQL失败, userId={}", userId, e);
+            }
+        });
     }
 }

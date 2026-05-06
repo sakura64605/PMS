@@ -308,6 +308,15 @@ const handleLike = async () => {
     if (response.data) {
       dailyDetail.value.isLiked = !dailyDetail.value.isLiked;
       dailyDetail.value.likeCount += dailyDetail.value.isLiked ? 1 : -1;
+      // 记录点赞行为
+      if (dailyDetail.value.isLiked) {
+        recordDailyAction({
+          targetId: Number(id),
+          actionType: 'like'
+        }).catch(error => {
+          console.error('记录点赞行为失败:', error);
+        });
+      }
       ElMessage.success(dailyDetail.value.isLiked ? '点赞成功' : '取消点赞成功');
     }
   } catch (error) {

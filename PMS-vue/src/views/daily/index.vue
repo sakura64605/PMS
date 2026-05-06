@@ -176,6 +176,15 @@ const handleLike = async (item: any) => {
       // 更新本地状态
       item.isLiked = !item.isLiked;
       item.likeCount += item.isLiked ? 1 : -1;
+      // 记录点赞行为
+      if (item.isLiked) {
+        recordDailyAction({
+          targetId: item.id,
+          actionType: 'like'
+        }).catch(error => {
+          console.error('记录点赞行为失败:', error);
+        });
+      }
       ElMessage.success(item.isLiked ? '点赞成功' : '取消点赞成功');
     }
   } catch (error) {
