@@ -15,6 +15,7 @@ import com.hongjie.pms.modules.audit.entity.AuditRecord;
 import com.hongjie.pms.modules.audit.mapper.AuditRecordMapper;
 import com.hongjie.pms.modules.comment.entity.Comment;
 import com.hongjie.pms.modules.comment.mapper.CommentMapper;
+import com.hongjie.pms.common.utils.RedisScanUtil;
 import com.hongjie.pms.modules.daily.entity.DailyPost;
 import com.hongjie.pms.modules.daily.mapper.DailyPostMapper;
 import com.hongjie.pms.modules.following.entity.Follow;
@@ -68,6 +69,7 @@ public class StatisticsService {
     private final ReportRecordMapper reportRecordMapper;
     private final PrivateMessageMapper privateMessageMapper;
     private final DistributedCache distributedCache;
+    private final RedisScanUtil redisScanUtil;
 
     /**
      * 获取日报数据
@@ -391,11 +393,10 @@ public class StatisticsService {
      */
     public void clearAllStatisticsCache() {
         try {
-            RedisTemplate<String, Object> redisTemplate = (RedisTemplate<String, Object>) distributedCache.getInstance();
-            Set<String> keys = redisTemplate.keys("statistics:*");
-            if (keys != null && !keys.isEmpty()) {
-                redisTemplate.delete(keys);
-                log.info("清理统计缓存完成，共清理 {} 个缓存", keys.size());
+            // 使用 SCAN 替代 keys()，避免阻塞 Redis
+            long deleted = redisScanUtil.scanAndDelete("statistics:*");
+            if (deleted > 0) {
+                log.info("清理统计缓存完成，共清理 {} 个缓存", deleted);
             }
         } catch (Exception e) {
             log.warn("清理统计缓存失败: {}", e.getMessage());

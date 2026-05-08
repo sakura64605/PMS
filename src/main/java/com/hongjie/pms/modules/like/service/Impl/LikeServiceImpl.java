@@ -10,6 +10,7 @@ import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
 import com.hongjie.pms.modules.comment.entity.Comment;
 import com.hongjie.pms.modules.comment.mapper.CommentMapper;
 import com.hongjie.pms.modules.like.dto.request.LikeRequest;
+import com.hongjie.pms.common.utils.RedisScanUtil;
 import com.hongjie.pms.modules.like.entity.LikeRecord;
 import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
 import com.hongjie.pms.modules.like.service.LikeService;
@@ -23,7 +24,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Set;
 
 @Slf4j
 @Service
@@ -36,6 +36,7 @@ public class LikeServiceImpl implements LikeService {
     private final ActivityMapper activityMapper;
     private final MessageService messageService;
     private final RedisTemplate redisTemplate;
+    private final RedisScanUtil redisScanUtil;
 
     @Override
     public LikeResponseDto like(LikeRequest request) {
@@ -145,11 +146,8 @@ public class LikeServiceImpl implements LikeService {
                 String activityCacheKey = "activity:" + request.getTargetId();
                 redisTemplate.delete(activityCacheKey);
 
-                // 2. 更新活动列表缓存（清空所有活动列表缓存）
-                Set<String> activityListKeys = redisTemplate.keys("activityList:*");
-                if (activityListKeys != null && !activityListKeys.isEmpty()) {
-                    redisTemplate.delete(activityListKeys);
-                }
+                // 2. 更新活动列表缓存（使用 SCAN 替代 keys()，避免阻塞 Redis）
+                redisScanUtil.scanAndDelete("activityList:*");
 
                 // 3. 更新用户报名的活动列表缓存
                 String userActivityKey = "userActivity:" + currentUserId;

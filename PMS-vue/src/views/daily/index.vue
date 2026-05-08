@@ -158,14 +158,6 @@ const goToPublish = () => {
 // 跳转到详情页面
 const goToDetail = (id: number) => {
   router.push(`/daily/${id}`);
-  
-  // 记录浏览行为
-  recordDailyAction({
-    targetId: id,
-    actionType: 'view'
-  }).catch(error => {
-    console.error('记录浏览行为失败:', error);
-  });
 };
 
 // 点赞/取消点赞

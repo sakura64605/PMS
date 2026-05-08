@@ -11,6 +11,7 @@ import com.hongjie.pms.modules.petpost.dto.PetDetailDto;
 import com.hongjie.pms.modules.petpost.entity.PetPost;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
+import com.hongjie.pms.common.utils.RedisScanUtil;
 import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,9 @@ public class CacheWarmer {
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private RedisScanUtil redisScanUtil;
 
     @Autowired
     private NoticeMapper noticeMapper;
@@ -94,17 +98,15 @@ public class CacheWarmer {
      */
     private void cleanCorruptedCache() {
         try {
-            // 清理公告缓存
-            Set<String> noticeKeys = redisTemplate.keys("notice:*");
-            if (noticeKeys != null && !noticeKeys.isEmpty()) {
-                redisTemplate.delete(noticeKeys);
-                log.info("清理公告缓存: {} 个", noticeKeys.size());
+            // 清理公告缓存（使用 SCAN 替代 keys()，避免阻塞 Redis）
+            long noticeDeleted = redisScanUtil.scanAndDelete("notice:*");
+            if (noticeDeleted > 0) {
+                log.info("清理公告缓存: {} 个", noticeDeleted);
             }
 
-            // 清理宠物详情缓存
-            Set<String> petKeys = redisTemplate.keys("pet:*");
-            if (petKeys != null && !petKeys.isEmpty()) {
-                // 过滤掉 pet:categories, pet:hot:list, pet:recommended 等列表缓存
+            // 清理宠物详情缓存（仅清理 pet:<数字> 格式的详情缓存，保留列表缓存）
+            Set<String> petKeys = redisScanUtil.scanKeys("pet:*");
+            if (!petKeys.isEmpty()) {
                 Set<String> petDetailKeys = petKeys.stream()
                         .filter(key -> key.matches("pet:\\d+"))
                         .collect(Collectors.toSet());
@@ -114,9 +116,9 @@ public class CacheWarmer {
                 }
             }
 
-            // 清理活动详情缓存
-            Set<String> activityKeys = redisTemplate.keys("activity:*");
-            if (activityKeys != null && !activityKeys.isEmpty()) {
+            // 清理活动详情缓存（仅清理 activity:<数字> 格式的详情缓存）
+            Set<String> activityKeys = redisScanUtil.scanKeys("activity:*");
+            if (!activityKeys.isEmpty()) {
                 Set<String> activityDetailKeys = activityKeys.stream()
                         .filter(key -> key.matches("activity:\\d+"))
                         .collect(Collectors.toSet());

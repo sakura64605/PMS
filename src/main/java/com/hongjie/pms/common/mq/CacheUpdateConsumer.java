@@ -2,15 +2,13 @@ package com.hongjie.pms.common.mq;
 
 import com.alibaba.fastjson2.JSON;
 import com.hongjie.pms.common.mq.CacheUpdateMessage;
+import com.hongjie.pms.common.utils.RedisScanUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
-
-import java.util.Set;
 
 @Slf4j
 @Component
@@ -23,7 +21,8 @@ import java.util.Set;
 public class CacheUpdateConsumer implements RocketMQListener<String> {
     
     private final RedisTemplate<String, Object> redisTemplate;
-    
+    private final RedisScanUtil redisScanUtil;
+
     @Override
     public void onMessage(String message) {
         try {
@@ -37,13 +36,10 @@ public class CacheUpdateConsumer implements RocketMQListener<String> {
             
             if ("EVICT".equals(msg.getOperation())) {
                 if (msg.isAllEntries()) {
-                    // 清除整个缓存区域
+                    // 清除整个缓存区域（使用 SCAN 替代 keys()，避免阻塞 Redis）
                     String pattern = msg.getCacheName() + ":*";
-                    Set<String> keys = redisTemplate.keys(pattern);
-                    if (keys != null && !keys.isEmpty()) {
-                        redisTemplate.delete(keys);
-                        log.info("清除缓存区域: {}, 共{}个key", msg.getCacheName(), keys.size());
-                    }
+                    long deleted = redisScanUtil.scanAndDelete(pattern);
+                    log.info("清除缓存区域: {}, 共{}个key", msg.getCacheName(), deleted);
                 } else {
                     // 清除单个缓存
                     String key = msg.getCacheName() + ":" + msg.getCacheKey();
