@@ -258,19 +258,14 @@ public class DailyPostService {
     }
 
     /**
-     * 转换DTO
+     * 转换DTO（单条查询，用于详情等单条记录场景）
      */
     public DailyPostDto convertToDto(DailyPost post, Long currentUserId) {
         User user = userMapper.selectById(post.getUserId());
-        UserSimpleDto userDto = UserSimpleDto.builder()
-                .userId(user.getId())
-                .username(user.getUserName())
-                .nickname(user.getNickName())
-                .avatar(user.getAvatar())
-                .build();
+        UserSimpleDto userDto = buildUserSimpleDto(user);
 
         // 是否点赞
-        LikeRecord likeRecord = likeRecordMapper.selectOne(
+        boolean isLiked = likeRecordMapper.exists(
                 new LambdaQueryWrapper<LikeRecord>()
                         .eq(LikeRecord::getUserId, currentUserId)
                         .eq(LikeRecord::getTargetId, post.getId())
@@ -285,20 +280,7 @@ public class DailyPostService {
         );
 
         // 获取话题
-        List<Long> topicIds = dailyTopicRelMapper.getTopicIdsByDailyId(post.getId());
-        List<TopicDto> topics = new ArrayList<>();
-        if (!topicIds.isEmpty()) {
-            List<Topic> topicList = topicMapper.selectBatchIds(topicIds);
-            topics = topicList.stream()
-                    .map(t -> TopicDto.builder()
-                            .id(t.getId())
-                            .name(t.getName())
-                            .description(t.getDescription())
-                            .postCount(t.getPostCount())
-                            .hotScore(t.getHotScore())
-                            .build())
-                    .collect(Collectors.toList());
-        }
+        List<TopicDto> topics = loadTopicsForDaily(post.getId());
 
         return DailyPostDto.builder()
                 .id(post.getId())
@@ -310,10 +292,140 @@ public class DailyPostService {
                 .viewCount(post.getViewCount())
                 .likeCount(post.getLikeCount())
                 .commentCount(post.getCommentCount())
-                .isLiked(likeRecord != null)
+                .isLiked(isLiked)
                 .isFollowed(isFollowed)
                 .topics(topics)
                 .createTime(post.getCreateTime())
                 .build();
+    }
+
+    /**
+     * 批量转换DTO（用于列表场景，预加载所有关联数据，避免N+1查询）
+     *
+     * @param posts         帖子列表
+     * @param currentUserId 当前用户ID
+     * @return DTO列表
+     */
+    public List<DailyPostDto> batchConvertToDto(List<DailyPost> posts, Long currentUserId) {
+        if (posts == null || posts.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> postIds = posts.stream().map(DailyPost::getId).collect(Collectors.toList());
+        List<Long> authorIds = posts.stream().map(DailyPost::getUserId).distinct().collect(Collectors.toList());
+
+        // 1. 批量查询用户信息（1次SQL）
+        Map<Long, User> userMap = new HashMap<>();
+        if (!authorIds.isEmpty()) {
+            userMapper.selectBatchIds(authorIds).forEach(u -> userMap.put(u.getId(), u));
+        }
+
+        // 2. 批量查询点赞记录（1次SQL）
+        Set<Long> likedPostIds = new HashSet<>();
+        if (currentUserId != null && !postIds.isEmpty()) {
+            likeRecordMapper.selectByUserAndTargetIds(currentUserId, postIds, "daily")
+                    .forEach(lr -> likedPostIds.add(lr.getTargetId()));
+        }
+
+        // 3. 批量查询关注关系（1次SQL）
+        Set<Long> followedUserIds = new HashSet<>();
+        if (currentUserId != null && !authorIds.isEmpty()) {
+            followedUserIds.addAll(followMapper.selectFollowedIds(currentUserId, authorIds));
+        }
+
+        // 4. 批量查询话题关联（1次SQL）
+        Map<Long, List<TopicDto>> topicMap = batchLoadTopics(postIds);
+
+        // 5. 组装DTO
+        List<DailyPostDto> result = new ArrayList<>();
+        for (DailyPost post : posts) {
+            User user = userMap.get(post.getUserId());
+            UserSimpleDto userDto = user != null ? buildUserSimpleDto(user) : null;
+
+            result.add(DailyPostDto.builder()
+                    .id(post.getId())
+                    .content(post.getContent())
+                    .images(post.getImages())
+                    .videoUrl(post.getVideoUrl())
+                    .location(post.getLocation())
+                    .user(userDto)
+                    .viewCount(post.getViewCount())
+                    .likeCount(post.getLikeCount())
+                    .commentCount(post.getCommentCount())
+                    .isLiked(likedPostIds.contains(post.getId()))
+                    .isFollowed(followedUserIds.contains(post.getUserId()))
+                    .topics(topicMap.getOrDefault(post.getId(), new ArrayList<>()))
+                    .createTime(post.getCreateTime())
+                    .build());
+        }
+        return result;
+    }
+
+    // ==================== 私有辅助方法 ====================
+
+    private UserSimpleDto buildUserSimpleDto(User user) {
+        if (user == null) return null;
+        return UserSimpleDto.builder()
+                .userId(user.getId())
+                .username(user.getUserName())
+                .nickname(user.getNickName())
+                .avatar(user.getAvatar())
+                .build();
+    }
+
+    private List<TopicDto> loadTopicsForDaily(Long dailyId) {
+        List<Long> topicIds = dailyTopicRelMapper.getTopicIdsByDailyId(dailyId);
+        if (topicIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return topicMapper.selectBatchIds(topicIds).stream()
+                .map(t -> TopicDto.builder()
+                        .id(t.getId())
+                        .name(t.getName())
+                        .description(t.getDescription())
+                        .postCount(t.getPostCount())
+                        .hotScore(t.getHotScore())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    private Map<Long, List<TopicDto>> batchLoadTopics(List<Long> dailyIds) {
+        if (dailyIds.isEmpty()) {
+            return new HashMap<>();
+        }
+        // 批量查询关联关系
+        List<DailyTopicRel> rels = dailyTopicRelMapper.selectByDailyIds(dailyIds);
+
+        // 按dailyId分组
+        Map<Long, List<Long>> dailyToTopicIds = new HashMap<>();
+        Set<Long> allTopicIds = new HashSet<>();
+        for (DailyTopicRel rel : rels) {
+            dailyToTopicIds.computeIfAbsent(rel.getDailyId(), k -> new ArrayList<>()).add(rel.getTopicId());
+            allTopicIds.add(rel.getTopicId());
+        }
+
+        // 批量查询所有话题（1次SQL）
+        Map<Long, Topic> topicEntityMap = new HashMap<>();
+        if (!allTopicIds.isEmpty()) {
+            topicMapper.selectBatchIds(allTopicIds).forEach(t -> topicEntityMap.put(t.getId(), t));
+        }
+
+        // 组装结果
+        Map<Long, List<TopicDto>> result = new HashMap<>();
+        for (Map.Entry<Long, List<Long>> entry : dailyToTopicIds.entrySet()) {
+            List<TopicDto> topics = entry.getValue().stream()
+                    .map(topicEntityMap::get)
+                    .filter(Objects::nonNull)
+                    .map(t -> TopicDto.builder()
+                            .id(t.getId())
+                            .name(t.getName())
+                            .description(t.getDescription())
+                            .postCount(t.getPostCount())
+                            .hotScore(t.getHotScore())
+                            .build())
+                    .collect(Collectors.toList());
+            result.put(entry.getKey(), topics);
+        }
+        return result;
     }
 }

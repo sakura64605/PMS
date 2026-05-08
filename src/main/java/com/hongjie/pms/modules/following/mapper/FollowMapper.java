@@ -22,4 +22,21 @@ public interface FollowMapper extends BaseMapper<Follow> {
                                    @Param("offset") int offset,
                                    @Param("limit") int limit);
 
+    /**
+     * 批量查询当前用户是否关注了多个用户
+     * @param followerId 当前用户ID
+     * @param followingIds 目标用户ID列表
+     * @return 已关注的用户ID列表
+     */
+    @Select({
+            "<script>",
+            "SELECT following_id FROM follow WHERE follower_id = #{followerId} AND following_id IN",
+            "<foreach collection='followingIds' item='id' open='(' separator=',' close=')'>",
+            "#{id}",
+            "</foreach>",
+            "</script>"
+    })
+    List<Long> selectFollowedIds(@Param("followerId") Long followerId,
+                                  @Param("followingIds") List<Long> followingIds);
+
 }
