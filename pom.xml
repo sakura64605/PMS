@@ -33,6 +33,32 @@
         <lombok.version>1.18.24</lombok.version>
     </properties>
     <dependencies>
+
+        <!-- OpenAI 客户端（支持通义千问、DeepSeek等） -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>0.36.0</version>
+        </dependency>
+        <!-- 支持OpenAI兼容接口 -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai</artifactId>
+            <version>0.36.0</version>
+        </dependency>
+        <!-- 支持通义千问（通过OpenAI兼容接口） -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai</artifactId>
+            <version>0.36.0</version>
+        </dependency>
+        <!-- 向量存储（本地FAISS） -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-embeddings-all-minilm-l6-v2</artifactId>
+            <version>0.36.0</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
