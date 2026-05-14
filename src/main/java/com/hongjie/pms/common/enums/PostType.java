@@ -3,6 +3,7 @@ package com.hongjie.pms.common.enums;
 public enum PostType {
     HELP("help", "救助"),
     ADOPT("adopt", "领养"),
+    PET("pet", "宠物"),
     ACTIVITY("activity", "活动");
 
     private final String code;

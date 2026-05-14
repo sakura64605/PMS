@@ -89,4 +89,15 @@ public class ChatSessionService {
     public void submitFeedback(String messageId, Integer score) {
         messageMapper.updateFeedback(messageId, score);
     }
+
+    public boolean checkSessionOwner(String sessionId, Long userId) {
+        AiChatSession session = sessionMapper.selectBySessionId(sessionId);
+        if (session == null) {
+            throw new BusinessException(404, "会话不存在");
+        }
+        if (session.getUserId().equals(userId)) {
+            return true;
+        }
+        return false;
+    }
 }

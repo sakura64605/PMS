@@ -51,6 +51,10 @@ public class AIAgentController {
      */
     @GetMapping("/history/{sessionId}")
     public CommonResult<List<AiChatMessage>> getHistory(@PathVariable String sessionId) {
+        Long userId = UserContext.getUserId();
+        if (!chatSessionService.checkSessionOwner(sessionId, userId)) {
+            return CommonResult.success(List.of());
+        }
         List<AiChatMessage> history = chatSessionService.getSessionHistory(sessionId);
         return CommonResult.success(history);
     }

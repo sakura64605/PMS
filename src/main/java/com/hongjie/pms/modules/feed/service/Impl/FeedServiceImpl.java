@@ -278,51 +278,21 @@ public class FeedServiceImpl extends ServiceImpl<UserInboxMapper, UserInbox> imp
                 .collect(Collectors.groupingBy(UserInbox::getPostType));
 
         // 处理宠物帖子
-        if (groupMap.containsKey(PostType.HELP.getCode())) {
-            List<Long> petIds = groupMap.get(PostType.HELP.getCode()).stream()
+        if (groupMap.containsKey(PostType.PET.getCode())) {
+            List<Long> petIds = groupMap.get(PostType.PET.getCode()).stream()
                     .map(UserInbox::getPostId)
                     .collect(Collectors.toList());
             List<PetPost> pets = petPostMapper.selectBatchIds(petIds);
             Map<Long, PetPost> petMap = pets.stream()
                     .collect(Collectors.toMap(PetPost::getId, p -> p));
 
-            for (UserInbox inbox : groupMap.get(PostType.HELP.getCode())) {
+            for (UserInbox inbox : groupMap.get(PostType.PET.getCode())) {
                 PetPost pet = petMap.get(inbox.getPostId());
                 if (pet != null && pet.getStatus() == 1) {
                     result.add(FeedDto.builder()
                             .id(pet.getId())
                             .postId(pet.getId())
-                            .postType(PostType.HELP.getCode())
-                            .title(pet.getTitle())
-                            .content(pet.getContent())
-                            .coverImage(inbox.getCoverImage())
-                            .viewCount(pet.getViewCount())
-                            .likeCount(pet.getLikeCount())
-                            .commentCount(pet.getCommentCount())
-                            .posterId(pet.getUserId())
-                            .posterName(inbox.getPosterName())
-                            .posterAvatar(inbox.getPosterAvatar())
-                            .createTime(inbox.getCreateTime())
-                            .build());
-                }
-            }
-        }
-
-        if (groupMap.containsKey(PostType.ADOPT.getCode())) {
-            List<Long> petIds = groupMap.get(PostType.ADOPT.getCode()).stream()
-                    .map(UserInbox::getPostId)
-                    .collect(Collectors.toList());
-            List<PetPost> pets = petPostMapper.selectBatchIds(petIds);
-            Map<Long, PetPost> petMap = pets.stream()
-                    .collect(Collectors.toMap(PetPost::getId, p -> p));
-
-            for (UserInbox inbox : groupMap.get(PostType.ADOPT.getCode())) {
-                PetPost pet = petMap.get(inbox.getPostId());
-                if (pet != null && pet.getStatus() == 1) {
-                    result.add(FeedDto.builder()
-                            .id(pet.getId())
-                            .postId(pet.getId())
-                            .postType(PostType.ADOPT.getCode())
+                            .postType(PostType.PET.getCode())
                             .title(pet.getTitle())
                             .content(pet.getContent())
                             .coverImage(inbox.getCoverImage())
