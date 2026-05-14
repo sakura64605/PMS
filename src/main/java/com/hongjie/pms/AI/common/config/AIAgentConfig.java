@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "ai.agent")
 public class AIAgentConfig {
     /** API Key */
-    private String apiKey = "your-api-key";
+    private String apiKey = "CHANGE_API_KEY";
 
     /** 模型名称 - 通义千问可选：qwen-turbo, qwen-plus, qwen-max */
     private String modelName = "qwen-turbo";

@@ -52,6 +52,9 @@ public class AuthInterceptor implements HandlerInterceptor {
             "/pet-system/daily/topics/search",
             "/pet-system/search/global",
             "/pet-system/search/suggest",
+            // WebSocket 路径（通过 URL 参数传递 token）
+            "/pet-system/ws/**",
+            "/pet-system/ai/ws/**",
             // 系统路径
             "/error",
             "/swagger-ui/**",

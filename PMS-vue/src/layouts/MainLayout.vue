@@ -38,6 +38,10 @@
             <el-icon><Link /></el-icon>
             <template #title>关注</template>
           </el-menu-item>
+          <el-menu-item index="/ai-chat">
+            <el-icon><ChatDotRound /></el-icon>
+            <template #title>AI客服</template>
+          </el-menu-item>
           <el-menu-item index="/audit" v-if="userInfo?.role === 1">
             <el-icon><Check /></el-icon>
             <template #title>管理员后台</template>
@@ -139,6 +143,11 @@ const goToMessage = () => {
 // 跳转到私信页面
 const goToPrivateMessage = () => {
   router.push('/private-message')
+}
+
+// 跳转到AI客服
+const goToAIChat = () => {
+  router.push('/ai-chat')
 }
 
 // 跳转到登录页面

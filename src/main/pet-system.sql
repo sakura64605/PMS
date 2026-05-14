@@ -510,71 +510,64 @@ CREATE TABLE `daily_statistics` (
                                     KEY `idx_stat_date` (`stat_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='每日统计数据表';
 
--- 1. AI会话记录表
+-- 会话表
 CREATE TABLE `ai_chat_session` (
                                    `id` bigint NOT NULL AUTO_INCREMENT,
-                                   `session_id` varchar(64) NOT NULL COMMENT '会话唯一标识',
-                                   `user_id` bigint DEFAULT NULL COMMENT '用户ID（未登录为空）',
-                                   `title` varchar(200) DEFAULT NULL COMMENT '会话标题',
-                                   `status` tinyint DEFAULT '1' COMMENT '1-进行中 2-已结束 3-转人工',
-                                   `message_count` int DEFAULT '0' COMMENT '消息总数',
-                                   `source` varchar(20) DEFAULT 'web' COMMENT '来源：web/app/mini',
+                                   `session_id` varchar(64) NOT NULL,
+                                   `user_id` bigint DEFAULT NULL,
+                                   `title` varchar(200) DEFAULT NULL,
+                                   `status` tinyint DEFAULT '1',
+                                   `message_count` int DEFAULT '0',
+                                   `source` varchar(20) DEFAULT 'web',
                                    `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
                                    `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                    PRIMARY KEY (`id`),
                                    UNIQUE KEY `uk_session_id` (`session_id`),
-                                   KEY `idx_user_id` (`user_id`),
-                                   KEY `idx_created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI客服会话表';
+                                   KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 2. AI消息记录表
+-- 消息表
 CREATE TABLE `ai_chat_message` (
                                    `id` bigint NOT NULL AUTO_INCREMENT,
                                    `session_id` varchar(64) NOT NULL,
-                                   `message_id` varchar(64) NOT NULL COMMENT '消息唯一标识',
-                                   `role` varchar(20) NOT NULL COMMENT 'user/assistant/system/tool',
-                                   `content` text COMMENT '消息内容',
-                                   `tool_calls` json DEFAULT NULL COMMENT '工具调用记录',
-                                   `tool_call_id` varchar(64) DEFAULT NULL COMMENT '工具调用ID',
-                                   `tokens_used` int DEFAULT '0' COMMENT '消耗的token数',
-                                   `latency_ms` int DEFAULT '0' COMMENT '响应延迟(ms)',
-                                   `feedback` tinyint DEFAULT NULL COMMENT '用户反馈：1-有用 2-无用',
+                                   `message_id` varchar(64) NOT NULL,
+                                   `role` varchar(20) NOT NULL,
+                                   `content` text,
+                                   `tool_calls` json DEFAULT NULL,
+                                   `tool_call_id` varchar(64) DEFAULT NULL,
+                                   `tokens_used` int DEFAULT '0',
+                                   `latency_ms` int DEFAULT '0',
+                                   `feedback` tinyint DEFAULT NULL,
                                    `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
                                    PRIMARY KEY (`id`),
-                                   KEY `idx_session_id` (`session_id`),
-                                   KEY `idx_created_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI消息记录表';
+                                   KEY `idx_session_id` (`session_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 3. 知识库表（RAG用）
+-- 知识库表
 CREATE TABLE `ai_knowledge_base` (
                                      `id` bigint NOT NULL AUTO_INCREMENT,
-                                     `doc_id` varchar(64) NOT NULL COMMENT '文档唯一标识',
-                                     `title` varchar(500) NOT NULL COMMENT '文档标题',
-                                     `content` text NOT NULL COMMENT '文档内容',
-                                     `content_type` varchar(50) DEFAULT 'faq' COMMENT '类型：faq/guide/announcement',
-                                     `category` varchar(100) DEFAULT NULL COMMENT '分类',
-                                     `tags` json DEFAULT NULL COMMENT '标签',
-                                     `embedding` blob COMMENT '向量存储（可选）',
+                                     `doc_id` varchar(64) NOT NULL,
+                                     `title` varchar(500) NOT NULL,
+                                     `content` text NOT NULL,
+                                     `content_type` varchar(50) DEFAULT 'faq',
+                                     `category` varchar(100) DEFAULT NULL,
+                                     `tags` json DEFAULT NULL,
                                      `status` tinyint DEFAULT '1',
                                      `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
                                      `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                      PRIMARY KEY (`id`),
-                                     UNIQUE KEY `uk_doc_id` (`doc_id`),
-                                     KEY `idx_content_type` (`content_type`),
-                                     FULLTEXT KEY `ft_content` (`title`, `content`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI知识库表';
+                                     UNIQUE KEY `uk_doc_id` (`doc_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 4. 人工转接记录表
+-- 人工转接表
 CREATE TABLE `ai_human_transfer` (
                                      `id` bigint NOT NULL AUTO_INCREMENT,
                                      `session_id` varchar(64) NOT NULL,
                                      `user_id` bigint NOT NULL,
-                                     `admin_id` bigint DEFAULT NULL COMMENT '接管的客服ID',
-                                     `reason` varchar(500) DEFAULT NULL COMMENT '转接原因',
-                                     `status` tinyint DEFAULT '1' COMMENT '1-等待中 2-已接听 3-已结束',
+                                     `admin_id` bigint DEFAULT NULL,
+                                     `reason` varchar(500) DEFAULT NULL,
+                                     `status` tinyint DEFAULT '1',
                                      `transferred_at` datetime DEFAULT CURRENT_TIMESTAMP,
                                      `closed_at` datetime DEFAULT NULL,
-                                     PRIMARY KEY (`id`),
-                                     KEY `idx_session_id` (`session_id`),
-                                     KEY `idx_user_id` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='人工转接记录表';
+                                     PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
