@@ -8,12 +8,26 @@ export const createSession = () => {
   })
 }
 
+// 获取用户会话列表
+export const getUserSessions = () => {
+  return request({
+    url: '/ai/sessions',
+    method: 'get'
+  })
+}
+
+// 删除会话
+export const deleteSession = (sessionId: string) => {
+  return request({
+    url: `/ai/session/${sessionId}`,
+    method: 'delete'
+  })
+}
+
 // 发送消息
 export const sendChatMessage = (data: {
-  sessionId: string
+  sessionId?: string
   message: string
-  stream?: boolean
-  history?: Array<{ role: string; content: string }>
 }) => {
   return request({
     url: '/ai/chat',

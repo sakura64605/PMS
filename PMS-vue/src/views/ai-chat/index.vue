@@ -1,15 +1,54 @@
 <template>
   <div class="ai-chat-container">
+    <!-- 会话列表侧边栏 -->
+    <div class="session-sidebar" :class="{ collapsed: !showSessionList }">
+      <div class="sidebar-header">
+        <h3>历史对话</h3>
+      </div>
+      <div class="session-list">
+        <div
+          v-for="session in sessionList"
+          :key="session.sessionId"
+          :class="['session-item', { active: session.sessionId === sessionId }]"
+          @click="switchSession(session.sessionId)"
+        >
+          <div class="session-info">
+            <el-icon><ChatLineRound /></el-icon>
+            <div class="session-detail">
+              <p class="session-title">对话 {{ formatSessionTime(session.updatedAt || session.createdAt) }}</p>
+              <span class="session-time">{{ formatDateTime(session.updatedAt || session.createdAt) }}</span>
+            </div>
+          </div>
+          <el-button
+            @click.stop="handleDeleteSession(session.sessionId)"
+            :icon="Delete"
+            size="small"
+            type="danger"
+            text
+          />
+        </div>
+        <el-empty v-if="sessionList.length === 0" description="暂无历史对话" :image-size="80" />
+      </div>
+    </div>
+
+    <!-- 主聊天区域 -->
+    <div class="chat-main">
     <!-- 聊天头部 -->
     <div class="chat-header">
       <div class="header-info">
         <el-icon :size="24" color="#409EFF"><ChatDotRound /></el-icon>
         <div class="header-text">
-          <h3>AI 客服助手 - 宠小伴</h3>
+          <h3>AI助手 - 宠小伴</h3>
           <p class="status">{{ isConnected ? '在线' : '连接中...' }}</p>
         </div>
       </div>
       <div class="header-actions">
+        <el-button @click="toggleSessionList" :icon="showSessionList ? Fold : Expand" size="small">
+          {{ showSessionList ? '隐藏会话' : '显示会话' }}
+        </el-button>
+        <el-button @click="handleNewChat" :icon="Plus" size="small">
+          新对话
+        </el-button>
         <el-button @click="handleClearMemory" :icon="Delete" size="small">
           清除记忆
         </el-button>
@@ -23,7 +62,7 @@
     <div class="chat-messages" ref="messagesRef">
       <div v-if="messages.length === 0" class="welcome-message">
         <el-icon :size="48" color="#409EFF"><ChatDotRound /></el-icon>
-        <h3>您好！我是 AI 客服助手宠小伴 😊</h3>
+        <h3>您好！我是 AI助手宠小伴 😊</h3>
         <p>有什么可以帮您的吗？</p>
         <div class="suggestions" v-if="suggestions.length > 0">
           <p>您可以尝试提问：</p>
@@ -112,14 +151,15 @@
         circle
       />
     </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ChatDotRound, User, Promotion, Loading, Delete, Check, Close } from '@element-plus/icons-vue'
-import { createSession, sendChatMessage, getChatHistory, clearMemory, transferToHuman, submitFeedback, getSuggestions } from '../../api/ai'
+import { ChatDotRound, User, Promotion, Loading, Delete, Check, Close, Plus, Fold, Expand, ChatLineRound } from '@element-plus/icons-vue'
+import { sendChatMessage, getChatHistory, clearMemory, transferToHuman, submitFeedback, getSuggestions, getUserSessions, deleteSession as deleteSessionApi } from '../../api/ai'
 import { aiWebSocket } from '../../utils/aiWebSocket'
 
 interface Message {
@@ -137,11 +177,26 @@ const isConnected = ref(false)
 const sessionId = ref('')
 const suggestions = ref<string[]>([])
 const messagesRef = ref<HTMLElement>()
+const sessionList = ref<any[]>([])
+const showSessionList = ref(true)
+const useWebSocket = ref(false)
 
 // 初始化
 onMounted(async () => {
-  await initSession()
+  await loadSessionList()
+  
+  // 尝试从 localStorage 恢复 sessionId
+  const savedSessionId = localStorage.getItem('ai_chat_session_id')
+  if (savedSessionId) {
+    sessionId.value = savedSessionId
+    // 加载历史消息
+    await loadHistory()
+  }
+  
+  // 注意：不自动创建会话，首次发送消息时后端会自动创建
   await loadSuggestions()
+  
+  // 连接 WebSocket
   connectWebSocket()
 })
 
@@ -149,29 +204,21 @@ onUnmounted(() => {
   aiWebSocket.disconnect()
 })
 
-// 初始化会话
-const initSession = async () => {
-  try {
-    const res: any = await createSession()
-    sessionId.value = res.data
-    // 加载历史消息
-    await loadHistory()
-  } catch (error) {
-    ElMessage.error('创建会话失败')
-  }
-}
-
 // 加载历史消息
 const loadHistory = async () => {
+  if (!sessionId.value) return
+  
   try {
     const res: any = await getChatHistory(sessionId.value)
-    messages.value = res.data.map((msg: any) => ({
-      role: msg.role === 'user' ? 'user' : 'ai',
-      content: msg.content,
-      time: formatTime(msg.createTime),
-      messageId: msg.id
-    }))
-    scrollToBottom()
+    if (res.data && res.data.length > 0) {
+      messages.value = res.data.map((msg: any) => ({
+        role: msg.role === 'user' ? 'user' : 'ai',
+        content: msg.content,
+        time: formatTime(msg.createTime),
+        messageId: msg.messageId || msg.id
+      }))
+      scrollToBottom()
+    }
   } catch (error) {
     console.error('加载历史消息失败:', error)
   }
@@ -192,6 +239,8 @@ const connectWebSocket = () => {
   aiWebSocket.connect({
     onOpen: () => {
       isConnected.value = true
+      useWebSocket.value = true
+      console.log('WebSocket 连接成功')
     },
     onMessage: (data) => {
       isLoading.value = false
@@ -206,10 +255,13 @@ const connectWebSocket = () => {
     },
     onClose: () => {
       isConnected.value = false
+      useWebSocket.value = false
+      console.log('WebSocket 连接关闭')
     },
     onError: () => {
       isConnected.value = false
-      ElMessage.error('连接失败，请稍后重试')
+      useWebSocket.value = false
+      console.log('WebSocket 连接失败，将使用 HTTP 方式')
     }
   })
 }
@@ -229,14 +281,27 @@ const handleSendMessage = async () => {
   isLoading.value = true
   scrollToBottom()
 
+  console.log('=== 发送消息 ===')
+  console.log('sessionId:', sessionId.value)
+  console.log('message:', message)
+
   // 使用 HTTP 方式发送
   try {
     const res: any = await sendChatMessage({
-      sessionId: sessionId.value,
+      sessionId: sessionId.value || undefined,
       message: message
     })
 
     isLoading.value = false
+    
+    // 首次发送时，保存后端返回的 sessionId
+    if (!sessionId.value && res.data.sessionId) {
+      sessionId.value = res.data.sessionId
+      localStorage.setItem('ai_chat_session_id', sessionId.value)
+      // 刷新会话列表
+      await loadSessionList()
+    }
+
     messages.value.push({
       role: 'ai',
       content: res.data.content || res.data.answer,
@@ -245,6 +310,12 @@ const handleSendMessage = async () => {
       needHuman: res.data.needHuman,
       suggestions: res.data.suggestions
     })
+    
+    // 更新建议问题
+    if (res.data.suggestions && res.data.suggestions.length > 0) {
+      suggestions.value = res.data.suggestions
+    }
+    
     scrollToBottom()
   } catch (error) {
     isLoading.value = false
@@ -258,10 +329,76 @@ const handleSuggestionClick = (item: string) => {
   handleSendMessage()
 }
 
+// 加载会话列表
+const loadSessionList = async () => {
+  try {
+    const res: any = await getUserSessions()
+    sessionList.value = res.data || []
+  } catch (error) {
+    console.error('加载会话列表失败:', error)
+  }
+}
+
+// 切换会话列表显示
+const toggleSessionList = () => {
+  showSessionList.value = !showSessionList.value
+}
+
+// 切换会话
+const switchSession = async (newSessionId: string) => {
+  if (newSessionId === sessionId.value) return
+  
+  sessionId.value = newSessionId
+  localStorage.setItem('ai_chat_session_id', newSessionId)
+  messages.value = []
+  
+  await loadHistory()
+}
+
+// 删除会话
+const handleDeleteSession = async (sessionIdToDelete: string) => {
+  try {
+    await ElMessageBox.confirm('确定要删除这个对话吗？', '提示', {
+      type: 'warning'
+    })
+    
+    await deleteSessionApi(sessionIdToDelete)
+    ElMessage.success('对话已删除')
+    
+    // 如果删除的是当前会话，清空聊天区域并重置sessionId
+    if (sessionIdToDelete === sessionId.value) {
+      sessionId.value = ''
+      localStorage.removeItem('ai_chat_session_id')
+      messages.value = []
+    }
+    
+    // 刷新会话列表
+    await loadSessionList()
+  } catch (error) {
+    // 用户取消
+  }
+}
+
+// 新对话
+const handleNewChat = async () => {
+  try {
+    await ElMessageBox.confirm('确定要开始新对话吗？当前对话记录将保存。', '提示', {
+      type: 'info'
+    })
+    // 清空聊天区域，不调用后端接口，下次发送消息时自动创建会话
+    sessionId.value = ''
+    localStorage.removeItem('ai_chat_session_id')
+    messages.value = []
+    ElMessage.success('已开始新对话')
+  } catch (error) {
+    // 用户取消
+  }
+}
+
 // 清除记忆
 const handleClearMemory = async () => {
   try {
-    await ElMessageBox.confirm('确定要清除会话记忆吗？', '提示', {
+    await ElMessageBox.confirm('确定要清除当前会话的所有记忆吗？此操作不可恢复。', '提示', {
       type: 'warning'
     })
     await clearMemory(sessionId.value)
@@ -304,7 +441,35 @@ const scrollToBottom = async () => {
   }
 }
 
-// 格式化时间
+// 格式化时间（用于会话列表）
+const formatSessionTime = (time: string) => {
+  const date = new Date(time)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  
+  // 今天
+  if (diff < 24 * 60 * 60 * 1000) {
+    return `今天 ${formatTime(date)}`
+  }
+  // 昨天
+  if (diff < 48 * 60 * 60 * 1000) {
+    return `昨天 ${formatTime(date)}`
+  }
+  // 其他
+  return formatDateTime(time)
+}
+
+const formatDateTime = (time: string) => {
+  const date = new Date(time)
+  const year = date.getFullYear()
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const day = date.getDate().toString().padStart(2, '0')
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
+}
+
+// 格式化时间（用于消息）
 const formatTime = (time: string | Date) => {
   const date = new Date(time)
   const hours = date.getHours().toString().padStart(2, '0')
@@ -316,9 +481,99 @@ const formatTime = (time: string | Date) => {
 <style scoped lang="scss">
 .ai-chat-container {
   display: flex;
-  flex-direction: column;
   height: 100vh;
   background: #f5f7fa;
+  position: relative;
+
+  .session-sidebar {
+    width: 280px;
+    background: #fff;
+    border-right: 1px solid #e4e7ed;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s;
+
+    &.collapsed {
+      width: 0;
+      overflow: hidden;
+      border-right: none;
+    }
+
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid #e4e7ed;
+
+      h3 {
+        margin: 0;
+        font-size: 16px;
+        color: #303133;
+      }
+    }
+
+    .session-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+
+      .session-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: #f8f9fa;
+
+        &:hover {
+          background: #ecf5ff;
+        }
+
+        &.active {
+          background: #409EFF;
+          color: #fff;
+
+          .session-title,
+          .session-time {
+            color: #fff;
+          }
+        }
+
+        .session-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex: 1;
+
+          .session-detail {
+            flex: 1;
+
+            .session-title {
+              margin: 0 0 4px;
+              font-size: 14px;
+              color: #303133;
+              font-weight: 500;
+            }
+
+            .session-time {
+              font-size: 12px;
+              color: #909399;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
 
   .chat-header {
     display: flex;

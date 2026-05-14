@@ -40,7 +40,7 @@
           </el-menu-item>
           <el-menu-item index="/ai-chat">
             <el-icon><ChatDotRound /></el-icon>
-            <template #title>AI客服</template>
+            <template #title>AI助手</template>
           </el-menu-item>
           <el-menu-item index="/audit" v-if="userInfo?.role === 1">
             <el-icon><Check /></el-icon>

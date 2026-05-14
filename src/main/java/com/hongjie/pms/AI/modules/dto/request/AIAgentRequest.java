@@ -12,7 +12,6 @@ import java.util.List;
 @AllArgsConstructor
 public class AIAgentRequest {
     
-    @NotBlank(message = "会话ID不能为空")
     private String sessionId;
     
     @NotBlank(message = "消息内容不能为空")
