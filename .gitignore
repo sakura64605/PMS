@@ -41,5 +41,11 @@ dist/
 target/
 *.class
 
+# 临时文件
+new-pms/
+effective-settings.txt
+evidence.txt
+草稿
+
 # Claude
 .claude/
