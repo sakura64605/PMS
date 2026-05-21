@@ -10,7 +10,7 @@ export default defineConfig({
     allowedHosts: ['pmstest.w1.luyouxia.net', '192.168.157.195'],
     proxy: {
       '/pet-system': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:8081',
         ws: true,
         changeOrigin: true
       }

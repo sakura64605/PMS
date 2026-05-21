@@ -9,6 +9,7 @@ import com.hongjie.pms.AI.modules.service.ChatSessionService;
 import com.hongjie.pms.AI.modules.service.HumanTransferService;
 import com.hongjie.pms.common.annotation.RedisRateLimit;
 import com.hongjie.pms.common.base.core.UserContext;
+import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.pojo.CommonResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +68,9 @@ public class AIAgentController {
     @PostMapping("/chat")
     public CommonResult<AIAgentResponse> chat(@Valid @RequestBody AIAgentRequest request) {
         Long userId = UserContext.getUserId();
+//        if (userId != request.getUserId()) {
+//            throw new BusinessException("用户ID不匹配");
+//        }
         request.setUserId(userId);
 
         // 关键逻辑：如果没有 sessionId，自动创建

@@ -7,7 +7,7 @@ import dev.langchain4j.data.message.AiMessage;
 
 public class QuickTest {
     public static void main(String[] args) {
-        String apiKey = "CHANGE_API_KEY";
+        String apiKey = System.getenv().getOrDefault("DASHSCOPE_API_KEY", "");
 
         OpenAiChatModel model = OpenAiChatModel.builder()
                 .apiKey(apiKey)

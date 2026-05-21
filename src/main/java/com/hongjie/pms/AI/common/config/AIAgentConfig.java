@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "ai.agent")
 public class AIAgentConfig {
-    /** API Key */
-    private String apiKey = "CHANGE_API_KEY";
+    /** API Key — 必须在 application.yaml 中配置 ai.agent.api-key */
+    private String apiKey;
 
     /** 模型名称 - 通义千问可选：qwen-turbo, qwen-plus, qwen-max */
     private String modelName = "qwen-turbo";

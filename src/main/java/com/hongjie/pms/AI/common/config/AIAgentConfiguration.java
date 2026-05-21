@@ -5,6 +5,7 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2.AllMiniLmL6V2EmbeddingModel;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,22 +14,23 @@ import java.time.Duration;
 
 @Slf4j
 @Configuration
+@RequiredArgsConstructor
 public class AIAgentConfiguration {
 
-    // API Key 从配置类读取，也可以直接写
-    private static final String API_KEY = "CHANGE_API_KEY";
+    private final AIAgentConfig aiAgentConfig;
 
     @Bean
     public ChatLanguageModel chatLanguageModel() {
-        log.info("初始化 ChatLanguageModel...");
+        log.info("初始化 ChatLanguageModel, model={}, temperature={}, maxTokens={}",
+                aiAgentConfig.getModelName(), aiAgentConfig.getTemperature(), aiAgentConfig.getMaxTokens());
 
         return OpenAiChatModel.builder()
-                .apiKey(API_KEY)
+                .apiKey(aiAgentConfig.getApiKey())
                 .baseUrl("https://dashscope.aliyuncs.com/compatible-mode/v1")
-                .modelName("qwen-turbo")
-                .temperature(0.7)
-                .maxTokens(2048)
-                .timeout(Duration.ofSeconds(30))
+                .modelName(aiAgentConfig.getModelName())
+                .temperature(aiAgentConfig.getTemperature())
+                .maxTokens(aiAgentConfig.getMaxTokens())
+                .timeout(Duration.ofSeconds(aiAgentConfig.getTimeout()))
                 .logRequests(true)
                 .logResponses(true)
                 .build();

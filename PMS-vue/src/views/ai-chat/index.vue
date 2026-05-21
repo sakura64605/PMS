@@ -88,7 +88,7 @@
         </div>
         <div class="message-content">
           <div class="message-bubble">
-            <p>{{ msg.content }}</p>
+            <div class="markdown-content" v-html="renderMarkdown(msg.content)"></div>
           </div>
           <div class="message-meta">
             <span class="message-time">{{ msg.time }}</span>
@@ -161,6 +161,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ChatDotRound, User, Promotion, Loading, Delete, Check, Close, Plus, Fold, Expand, ChatLineRound } from '@element-plus/icons-vue'
 import { sendChatMessage, getChatHistory, clearMemory, transferToHuman, submitFeedback, getSuggestions, getUserSessions, deleteSession as deleteSessionApi } from '../../api/ai'
 import { aiWebSocket } from '../../utils/aiWebSocket'
+import { marked } from 'marked'
 
 interface Message {
   role: 'user' | 'ai'
@@ -441,6 +442,12 @@ const scrollToBottom = async () => {
   }
 }
 
+// Markdown 渲染
+const renderMarkdown = (content: string) => {
+  if (!content) return ''
+  return marked(content, { breaks: true })
+}
+
 // 格式化时间（用于会话列表）
 const formatSessionTime = (time: string) => {
   const date = new Date(time)
@@ -692,9 +699,42 @@ const formatTime = (time: string | Date) => {
           word-wrap: break-word;
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
-          p {
-            margin: 0;
-            line-height: 1.6;
+          /* Markdown 渲染样式 */
+          .markdown-content {
+            line-height: 1.7;
+            font-size: 14px;
+
+            p { margin: 0 0 8px; &:last-child { margin-bottom: 0; } }
+            h1, h2, h3, h4 { margin: 12px 0 6px; font-weight: 600; }
+            h1 { font-size: 17px; }
+            h2 { font-size: 16px; }
+            h3 { font-size: 15px; }
+            strong { font-weight: 600; }
+            em { font-style: italic; }
+            ul, ol { margin: 4px 0 8px; padding-left: 20px; }
+            li { margin-bottom: 4px; line-height: 1.6; }
+            code {
+              background: rgba(0,0,0,0.06);
+              padding: 2px 6px;
+              border-radius: 4px;
+              font-size: 13px;
+              font-family: 'Consolas', monospace;
+            }
+            pre {
+              background: rgba(0,0,0,0.06);
+              padding: 12px;
+              border-radius: 8px;
+              overflow-x: auto;
+              margin: 8px 0;
+              code { background: none; padding: 0; }
+            }
+            blockquote {
+              border-left: 3px solid #409EFF;
+              padding-left: 12px;
+              margin: 8px 0;
+              color: #606266;
+            }
+            hr { border: none; border-top: 1px solid #e4e7ed; margin: 12px 0; }
           }
 
           &.loading {
