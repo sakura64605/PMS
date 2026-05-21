@@ -226,7 +226,8 @@ const refreshUserInfo = () => {
   const storedUserInfo = localStorage.getItem('userInfo')
   if (storedUserInfo) {
     userInfo.value = JSON.parse(storedUserInfo)
-    console.log('刷新用户信息:', userInfo.value)
+  } else {
+    userInfo.value = null
   }
 }
 
@@ -259,6 +260,13 @@ onMounted(() => {
     }
   })
   
+  // 监听token过期事件，立即清除用户信息
+  const handleAuthCleared = () => {
+    userInfo.value = null
+    websocketService.close()
+  }
+  window.addEventListener('auth-cleared', handleAuthCleared)
+
   // 监听头像更新事件
   const handleAvatarUpdated = () => {
     console.log('收到头像更新事件，刷新用户信息')
@@ -276,6 +284,7 @@ onMounted(() => {
   
   // 清理监听器
   onUnmounted(() => {
+    window.removeEventListener('auth-cleared', handleAuthCleared)
     emitter.off('avatar-updated', handleAvatarUpdated)
     emitter.off('refresh-unread-count', handleRefreshUnreadCount)
     // 关闭WebSocket连接

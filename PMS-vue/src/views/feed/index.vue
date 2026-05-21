@@ -42,7 +42,7 @@
         <!-- 活动卡片 -->
         <div v-if="item.type === 'activity'" class="feed-card activity-card">
           <div class="card-header">
-            <img :src="item.user?.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="用户头像" class="user-avatar" />
+            <img :src="item.user?.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="用户头像" class="user-avatar" loading="lazy" />
             <div class="user-info">
               <h3 class="user-name">{{ item.user?.nickname || '未知用户' }}</h3>
               <p class="post-time">{{ formatDate(item.createTime) }}</p>
@@ -52,7 +52,7 @@
           <h2 class="card-title">{{ item.title }}</h2>
           <p class="card-content">{{ item.content }}</p>
           <div v-if="item.images && item.images.length > 0" class="card-images">
-            <img v-for="(image, index) in item.images" :key="index" :src="image" alt="活动图片" class="card-image" />
+            <img v-for="(image, index) in item.images" :key="index" :src="image" alt="活动图片" class="card-image" loading="lazy" />
           </div>
           <div class="card-footer">
             <div class="card-info">
@@ -85,7 +85,7 @@
         <!-- 宠物卡片 -->
         <div v-else-if="item.type === 'pet'" class="feed-card pet-card">
           <div class="card-header">
-            <img :src="item.user?.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="用户头像" class="user-avatar" />
+            <img :src="item.user?.avatar || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=user%20avatar&image_size=square'" alt="用户头像" class="user-avatar" loading="lazy" />
             <div class="user-info">
               <h3 class="user-name">{{ item.user?.nickname || '未知用户' }}</h3>
               <p class="post-time">{{ formatDate(item.createTime) }}</p>
@@ -97,7 +97,7 @@
           <h2 class="card-title">{{ item.title }}</h2>
           <p class="card-content">{{ item.content }}</p>
           <div v-if="item.images && item.images.length > 0" class="card-images">
-            <img v-for="(image, index) in item.images" :key="index" :src="image" alt="宠物图片" class="card-image" />
+            <img v-for="(image, index) in item.images" :key="index" :src="image" alt="宠物图片" class="card-image" loading="lazy" />
           </div>
           <div class="card-footer">
             <div class="card-info">

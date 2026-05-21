@@ -189,7 +189,7 @@
           @click="handleCardClick(pet.id, pet.type === 'activity' || pet.type === 2 ? 'activity' : undefined)"
         >
           <div v-if="pet.images && pet.images.length > 0" class="card-image">
-            <img :src="pet.images[0]" alt="宠物图片" />
+            <img :src="pet.images[0]" alt="宠物图片" loading="lazy" />
           </div>
           <div class="card-content">
             <!-- 活动卡片内容 -->
@@ -316,7 +316,7 @@
         <div class="activity-card" v-for="activity in activityList" :key="activity.id" @click="navigateToDetail(activity.id)" style="cursor: pointer;">
           <!-- 活动封面图 -->
           <div v-if="activity.images" class="card-image">
-            <img :src="activity.images" alt="活动封面" />
+            <img :src="activity.images" alt="活动封面" loading="lazy" />
           </div>
           
           <!-- 卡片内容 -->

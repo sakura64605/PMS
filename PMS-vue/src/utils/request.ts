@@ -38,6 +38,15 @@ service.interceptors.response.use(
   },
   (error) => {
     console.error('响应错误:', error)
+
+    // token过期，清除登录状态，不提示错误（可能在公开页面）
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('userInfo')
+      window.dispatchEvent(new CustomEvent('auth-cleared'))
+      return Promise.reject(error)
+    }
+
     ElMessage.error(error.message || '网络错误')
     return Promise.reject(error)
   }

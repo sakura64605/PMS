@@ -33,6 +33,7 @@
             :src="image"
             class="daily-image"
             fit="cover"
+            lazy
             :preview-src-list="item.images"
           />
         </div>
