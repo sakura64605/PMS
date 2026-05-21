@@ -40,3 +40,6 @@ dist/
 # 后端
 target/
 *.class
+
+# Claude
+.claude/
