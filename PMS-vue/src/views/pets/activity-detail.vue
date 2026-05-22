@@ -43,8 +43,8 @@
           </div>
         </div>
         <div class="time-section">
-          <div v-if="activity.createTime" class="time-item">发布：{{ formatDate(activity.createTime) }}</div>
-          <div v-if="activity.updateTime" class="time-item">编辑：{{ formatDate(activity.updateTime) }}</div>
+          <div class="time-item">开始：{{ formatDate(activity.startTime) }}</div>
+          <div class="time-item">结束：{{ formatDate(activity.endTime) }}</div>
         </div>
       </div>
 

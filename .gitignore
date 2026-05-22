@@ -47,5 +47,8 @@ effective-settings.txt
 evidence.txt
 草稿
 
+# 部署脚本
+deploy.sh
+
 # Claude
 .claude/

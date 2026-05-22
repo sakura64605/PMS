@@ -99,6 +99,7 @@ public class DelayTaskHandler {
             return;
         } else {
             activity.setStatus(2);
+            activity.setUpdateTime(now);
             activityMapper.updateById(activity);
             String cacheKey = CacheUtil.buildKey("activity", String.valueOf(activityId));
             distributedCache.delete(cacheKey);
@@ -288,8 +289,21 @@ public class DelayTaskHandler {
     public void handleActivityStart(Long businessId) {
         log.info("执行活动开始: activityId={}", businessId);
         Activity activity = activityMapper.selectById(businessId);
+        if (activity == null) {
+            log.warn("活动不存在，跳过开始: activityId={}", businessId);
+            return;
+        }
+        if (activity.getStatus() != 0) {
+            log.warn("活动状态不是报名中，跳过开始: activityId={}, status={}", businessId, activity.getStatus());
+            return;
+        }
         activity.setStatus(1);
+        activity.setUpdateTime(LocalDateTime.now());
         activityMapper.updateById(activity);
+
+        String cacheKey = CacheUtil.buildKey("activity", String.valueOf(businessId));
+        distributedCache.delete(cacheKey);
+        log.info("活动已自动变更为进行中: activityId={}", businessId);
     }
 
     public void handleBannedEnd(Long businessId) {
