@@ -155,7 +155,7 @@ public class LikeServiceImpl implements LikeService {
                 break;
 
             default:
-                throw new BusinessException(ErrorCode.PARAM_ERROR, "不支持的点赞目标类型");
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "点赞失败，请稍后再试");
         }
 
         // 处理点赞记录

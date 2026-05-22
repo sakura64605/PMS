@@ -120,7 +120,7 @@ public class JWTUtils {
                     .getBody();
         } catch (ExpiredJwtException e) {
             log.error("JWT令牌已过期: {}", e.getMessage());
-            throw new BusinessException(401, "token已过期");
+            throw new BusinessException(401, "登录已过期，请重新登录");
         } catch (UnsupportedJwtException e) {
             log.error("JWT令牌格式不支持: {}", e.getMessage());
             throw new JwtException("token格式不支持");
@@ -154,7 +154,7 @@ public class JWTUtils {
         try {
             parseToken(token);
             return true;
-        } catch (JwtException e) {
+        } catch (Exception e) {
             return false;
         }
     }

@@ -96,7 +96,7 @@ public class AuditServiceImpl implements AuditService {
     @Transactional
     public void reject(Long id, String targetType, String reason) {
         if (!StringUtils.hasText(reason)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "拒绝理由不能为空");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请填写拒绝原因");
         }
 
         AuditRecord record = getPendingRecord(targetType, id);

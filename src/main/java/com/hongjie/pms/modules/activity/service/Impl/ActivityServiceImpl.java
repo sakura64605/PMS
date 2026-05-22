@@ -77,7 +77,7 @@ public class ActivityServiceImpl implements ActivityService {
         // 校验时间
         log.info("开始时间: {}", request.getStartTime(), "结束时间: {}", request.getEndTime(), "当前时间：{}", LocalDateTime.now());
         if (request.getStartTime().isBefore(LocalDateTime.now())) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "开始时间不能早于当前时间");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "开始时间不能早于现在");
         }
         if (request.getEndTime().isBefore(request.getStartTime())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "结束时间不能早于开始时间");
@@ -156,7 +156,7 @@ public class ActivityServiceImpl implements ActivityService {
     public void updateActivity(ActivityRequestDto activityRequestDto) {
         // 校验时间
         if (activityRequestDto.getStartTime().isBefore(LocalDateTime.now())) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "开始时间不能早于当前时间");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "开始时间不能早于现在");
         }
         if (activityRequestDto.getEndTime().isBefore(activityRequestDto.getStartTime())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "结束时间不能早于开始时间");
@@ -172,7 +172,7 @@ public class ActivityServiceImpl implements ActivityService {
             throw new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND);
         }
         if(activity.getStatus() == 2){
-            throw new BusinessException(ErrorCode.ACTIVITY_ENDED, "活动已结束，不可修改");
+            throw new BusinessException(ErrorCode.ACTIVITY_ENDED, "活动已结束，无法修改");
         }
 
         // 检测是否有重大变更
@@ -207,7 +207,7 @@ public class ActivityServiceImpl implements ActivityService {
             throw new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND);
         }
         if(activity.getStatus() == 2){
-            throw new BusinessException(ErrorCode.ACTIVITY_ENDED, "活动已结束，不可删除");
+            throw new BusinessException(ErrorCode.ACTIVITY_ENDED, "活动已结束，无法删除");
         }
         if(activity.getUserId() != UserContext.getUserId()){
             throw new BusinessException(ErrorCode.FORBIDDEN);
@@ -957,11 +957,11 @@ public class ActivityServiceImpl implements ActivityService {
         }
 
         if (signup.getStatus() == 4) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户已爽约，无法签到");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "您已爽约，无法签到");
         }
 
         if (signup.getCheckInTime() != null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户已签到");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "您已签到过了");
         }
 
         signup.setCheckInTime(LocalDateTime.now());

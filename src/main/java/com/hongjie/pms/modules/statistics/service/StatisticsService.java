@@ -270,6 +270,7 @@ public class StatisticsService {
 
     /**
      * 每天凌晨1点执行统计任务
+     * 失败时自动重试最多3次
      */
     @Scheduled(cron = "0 0 1 * * ?")
     @Transactional
@@ -279,32 +280,105 @@ public class StatisticsService {
 
         long startTime = System.currentTimeMillis();
 
+        DailyStatistics existing = statisticsMapper.selectByDate(statDate);
+        if (existing != null) {
+            log.info("{} 的数据统计已存在，跳过生成", statDate);
+            return;
+        }
+
+        int maxRetries = 3;
+        int retryDelayMs = 5000;
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                DailyStatistics stats = new DailyStatistics();
+                stats.setStatDate(statDate);
+
+                fillUserStatistics(stats, statDate);
+                fillContentStatistics(stats, statDate);
+                fillInteractionStatistics(stats, statDate);
+                fillActivityStatistics(stats, statDate);
+                fillAuditStatistics(stats, statDate);
+                fillReportStatistics(stats, statDate);
+                fillMessageStatistics(stats, statDate);
+
+                statisticsMapper.insert(stats);
+                clearAllStatisticsCache();
+
+                log.info("{} 的数据统计生成完成，耗时 {} ms", statDate, System.currentTimeMillis() - startTime);
+                return;
+
+            } catch (Exception e) {
+                log.error("生成统计数据失败 (第{}/{}次尝试)", attempt, maxRetries, e);
+                if (attempt < maxRetries) {
+                    try {
+                        Thread.sleep(retryDelayMs);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        log.error("重试被中断", ie);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 补偿任务：检查是否有遗漏的统计数据并自动补录
+     * 每天 3点、6点、9点、12点、15点、18点、21点执行
+     */
+    @Scheduled(cron = "0 0 3,6,9,12,15,18,21 * * ?")
+    @Transactional
+    public void compensateMissingStatistics() {
+        log.info("开始检查遗漏的统计数据...");
+        long startTime = System.currentTimeMillis();
+
         try {
-            DailyStatistics existing = statisticsMapper.selectByDate(statDate);
-            if (existing != null) {
-                log.info("{} 的数据统计已存在，跳过生成", statDate);
+            LocalDate maxDate = statisticsMapper.selectMaxStatDate();
+            LocalDate yesterday = LocalDate.now().minusDays(1);
+
+            if (maxDate == null) {
+                log.warn("统计数据为空，跳过补偿检查");
                 return;
             }
 
-            DailyStatistics stats = new DailyStatistics();
-            stats.setStatDate(statDate);
+            int compensated = 0;
+            LocalDate checkDate = maxDate.plusDays(1);
+            while (!checkDate.isAfter(yesterday)) {
+                DailyStatistics existing = statisticsMapper.selectByDate(checkDate);
+                if (existing == null) {
+                    log.info("发现遗漏的统计数据: {}", checkDate);
+                    try {
+                        DailyStatistics stats = new DailyStatistics();
+                        stats.setStatDate(checkDate);
 
-            fillUserStatistics(stats, statDate);
-            fillContentStatistics(stats, statDate);
-            fillInteractionStatistics(stats, statDate);
-            fillActivityStatistics(stats, statDate);
-            fillAuditStatistics(stats, statDate);
-            fillReportStatistics(stats, statDate);
-            fillMessageStatistics(stats, statDate);
+                        fillUserStatistics(stats, checkDate);
+                        fillContentStatistics(stats, checkDate);
+                        fillInteractionStatistics(stats, checkDate);
+                        fillActivityStatistics(stats, checkDate);
+                        fillAuditStatistics(stats, checkDate);
+                        fillReportStatistics(stats, checkDate);
+                        fillMessageStatistics(stats, checkDate);
 
-            statisticsMapper.insert(stats);
+                        statisticsMapper.insert(stats);
+                        compensated++;
+                        log.info("补录遗漏统计数据成功: {}", checkDate);
+                    } catch (Exception e) {
+                        log.error("补录遗漏统计数据失败: {}", checkDate, e);
+                    }
+                }
+                checkDate = checkDate.plusDays(1);
+            }
 
-            clearAllStatisticsCache();
-
-            log.info("{} 的数据统计生成完成，耗时 {} ms", statDate, System.currentTimeMillis() - startTime);
+            if (compensated > 0) {
+                clearAllStatisticsCache();
+                log.info("补偿检查完成，补录 {} 天数据，耗时 {} ms", compensated, System.currentTimeMillis() - startTime);
+            } else {
+                log.info("补偿检查完成，无遗漏数据，耗时 {} ms", System.currentTimeMillis() - startTime);
+            }
 
         } catch (Exception e) {
-            log.error("生成统计数据失败: {}", statDate, e);
+            log.error("补偿检查异常", e);
         }
     }
 
@@ -486,11 +560,19 @@ public class StatisticsService {
     }
 
     private void regenerateStatisticsByDate(DailyStatistics stats, LocalDateTime start, LocalDateTime end) {
+        // 用户统计
         stats.setNewUserCount(countNewUsers(start, end));
         stats.setTotalUserCount(Math.toIntExact(userMapper.selectCount(null)));
         stats.setActiveUserCount(countActiveUsers(start, end));
         stats.setDau(stats.getActiveUserCount());
 
+        LocalDateTime weekAgo = start.minusDays(7);
+        stats.setWau(countActiveUsers(weekAgo, end));
+
+        LocalDateTime monthAgo = start.minusDays(30);
+        stats.setMau(countActiveUsers(monthAgo, end));
+
+        // 内容统计
         stats.setNewPetPostCount(countNewPetPosts(start, end));
         stats.setTotalPetPostCount(Math.toIntExact(petPostMapper.selectCount(null)));
         stats.setNewActivityCount(countNewActivities(start, end));
@@ -500,18 +582,35 @@ public class StatisticsService {
         stats.setNewCommentCount(countNewComments(start, end));
         stats.setTotalCommentCount(Math.toIntExact(commentMapper.selectCount(null)));
 
+        // 互动统计
         stats.setNewLikeCount(countNewLikes(start, end));
         stats.setTotalLikeCount(Math.toIntExact(likeRecordMapper.selectCount(null)));
         stats.setNewFollowCount(countNewFollows(start, end));
         stats.setTotalFollowCount(Math.toIntExact(followMapper.selectCount(null)));
         stats.setNewFavoriteCount(countNewFavorites(start, end));
         stats.setTotalFavoriteCount(Math.toIntExact(favoriteRecordMapper.selectCount(null)));
+        stats.setNewShareCount(0);
+        stats.setTotalShareCount(0);
 
+        // 活动统计
         stats.setNewSignupCount(countNewSignups(start, end));
         stats.setTotalSignupCount(Math.toIntExact(activitySignupMapper.selectCount(null)));
+        stats.setNewCheckinCount(countNewCheckins(start, end));
+        stats.setTotalCheckinCount(countTotalCheckins());
 
+        // 审核统计
         stats.setPendingAuditCount(countPendingAudits());
+        stats.setApprovedCount(countAuditByStatus(start, end, 1));
+        stats.setRejectedCount(countAuditByStatus(start, end, 2));
+
+        // 举报统计
         stats.setNewReportCount(countNewReports(start, end));
+        stats.setPendingReportCount(countReportsByStatus(0));
+        stats.setHandledReportCount(countReportsByStatus(2));
+
+        // 私信统计
+        stats.setNewPrivateMessageCount(countNewPrivateMessages(start, end));
+        stats.setTotalPrivateMessageCount(Math.toIntExact(privateMessageMapper.selectCount(null)));
     }
 
     // ==================== 计数辅助方法 ====================

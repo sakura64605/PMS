@@ -215,7 +215,7 @@ const loadHistory = async () => {
       messages.value = res.data.map((msg: any) => ({
         role: msg.role === 'user' ? 'user' : 'ai',
         content: msg.content,
-        time: formatTime(msg.createTime),
+        time: formatTime(msg.createdAt),
         messageId: msg.messageId || msg.id
       }))
       scrollToBottom()
@@ -450,24 +450,27 @@ const renderMarkdown = (content: string) => {
 
 // 格式化时间（用于会话列表）
 const formatSessionTime = (time: string) => {
+  if (!time) return ''
   const date = new Date(time)
+  if (isNaN(date.getTime())) return ''
   const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  
-  // 今天
-  if (diff < 24 * 60 * 60 * 1000) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today.getTime() - 86400000)
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
+  if (target.getTime() === today.getTime()) {
     return `今天 ${formatTime(date)}`
   }
-  // 昨天
-  if (diff < 48 * 60 * 60 * 1000) {
+  if (target.getTime() === yesterday.getTime()) {
     return `昨天 ${formatTime(date)}`
   }
-  // 其他
   return formatDateTime(time)
 }
 
 const formatDateTime = (time: string) => {
+  if (!time) return ''
   const date = new Date(time)
+  if (isNaN(date.getTime())) return ''
   const year = date.getFullYear()
   const month = (date.getMonth() + 1).toString().padStart(2, '0')
   const day = date.getDate().toString().padStart(2, '0')
@@ -478,7 +481,9 @@ const formatDateTime = (time: string) => {
 
 // 格式化时间（用于消息）
 const formatTime = (time: string | Date) => {
+  if (!time) return ''
   const date = new Date(time)
+  if (isNaN(date.getTime())) return ''
   const hours = date.getHours().toString().padStart(2, '0')
   const minutes = date.getMinutes().toString().padStart(2, '0')
   return `${hours}:${minutes}`

@@ -45,12 +45,6 @@ public class AIAgentWebSocketHandler extends TextWebSocketHandler {
         String sessionId = session.getId();
         SESSIONS.put(sessionId, session);
         log.info("AI客服WebSocket连接建立: sessionId={}, userId={}", sessionId, userId);
-        
-        sendMessage(sessionId, AIAgentResponse.builder()
-                .messageId(UUID.randomUUID().toString())
-                .sessionId(sessionId)
-                .content("您好！我是AI客服助手😊 有什么可以帮您的吗？")
-                .build());
     }
     
     @Override

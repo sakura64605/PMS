@@ -8,15 +8,15 @@ public enum ErrorCode implements IErrorCode{
     // 通用错误 (1000-1999)
     SUCCESS(200, "操作成功"),
     FAIL(500, "操作失败"),
-    PARAM_ERROR(400, "参数错误"),
+    PARAM_ERROR(400, "请求参数有误"),
     UNAUTHORIZED(401, "未登录"),
     FORBIDDEN(403, "无权限"),
-    NOT_FOUND(404, "资源不存在"),
-    METHOD_NOT_ALLOWED(405, "请求方法不支持"),
+    NOT_FOUND(404, "内容不存在"),
+    METHOD_NOT_ALLOWED(405, "请求方式不支持"),
     MEDIA_TYPE_NOT_SUPPORTED(415, "不支持的媒体类型"),
 
-    IDEMPOTENT_TOKEN_NULL_ERROR(400, "幂等Token为空"),
-    IDEMPOTENT_TOKEN_DELETE_ERROR(400, "幂等Token已被使用或失效"),
+    IDEMPOTENT_TOKEN_NULL_ERROR(400, "请勿重复提交"),
+    IDEMPOTENT_TOKEN_DELETE_ERROR(400, "请勿重复提交"),
 
     // 限流错误 1020-1029
     RATE_LIMIT(1020, "请求过于频繁，请稍后再试"),
@@ -77,10 +77,10 @@ public enum ErrorCode implements IErrorCode{
     OSS_DELETE_FAIL(7002, "文件删除失败"),
     
     // 系统错误 (9000-9999)
-    DB_ERROR(9001, "数据库异常"),
+    DB_ERROR(9001, "系统繁忙，请稍后再试"),
     NETWORK_ERROR(9002, "网络异常"),
     SYSTEM_ERROR(9999, "系统繁忙，请稍后再试"),
-    THIRD_PARTY_ERROR(9003, "第三方服务异常");
+    THIRD_PARTY_ERROR(9003, "服务暂时不可用，请稍后再试");
     
     private final Integer code;
     private final String message;

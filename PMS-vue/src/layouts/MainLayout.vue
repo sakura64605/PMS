@@ -110,6 +110,7 @@ import { ElMessage } from 'element-plus'
 import { Menu, ArrowDown, User, House, Collection, Ticket, Setting, SwitchButton, Postcard, Check, Delete, Star, BellFilled, Link, ChatDotRound } from '@element-plus/icons-vue'
 import emitter from '../utils/eventBus'
 import { getUnreadCount, markAllMessagesAsRead } from '../api/message'
+import { getUserInfo } from '../api/user'
 import websocketService from '../utils/websocket'
 
 const router = useRouter()
@@ -238,6 +239,8 @@ onMounted(() => {
   // 检查用户是否登录
   const token = localStorage.getItem('token')
   if (token) {
+    // 验证token是否有效（过期token会触发401，自动清除登录状态）
+    getUserInfo().catch(() => {})
     // 加载未读消息数量
     loadUnreadCount()
     // 初始化WebSocket连接

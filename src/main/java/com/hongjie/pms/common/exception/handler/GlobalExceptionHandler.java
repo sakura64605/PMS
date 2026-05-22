@@ -95,15 +95,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public CommonResult<Void> handleMissingServletRequestParameterException(MissingServletRequestParameterException e) {
-        String message = "缺少必要参数: " + e.getParameterName();
-        log.warn(message);
+        String message = "请填写完整信息";
+        log.warn("缺少必要参数: {}", e.getParameterName());
         return CommonResult.error(ErrorCode.PARAM_ERROR.getCode(), message);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public CommonResult<Void> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
         log.warn("请求体解析失败: {}", e.getMessage());
-        return CommonResult.error(ErrorCode.PARAM_ERROR.getCode(), "请求参数格式错误");
+        return CommonResult.error(ErrorCode.PARAM_ERROR.getCode(), "参数格式错误，请检查后重试");
     }
 
     // ==================== 请求方式异常 ====================
@@ -123,7 +123,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoHandlerFoundException.class)
     public CommonResult<Void> handleNoHandlerFoundException(NoHandlerFoundException e) {
         log.warn("接口不存在: {} {}", e.getHttpMethod(), e.getRequestURL());
-        return CommonResult.error(ErrorCode.NOT_FOUND.getCode(), "接口不存在");
+        return CommonResult.error(ErrorCode.NOT_FOUND.getCode(), "页面不存在");
     }
 
     // ==================== 文件上传异常 ====================
@@ -139,13 +139,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SQLException.class)
     public CommonResult<Void> handleSQLException(SQLException e) {
         log.error("SQL异常: {}", e.getMessage(), e);
-        return CommonResult.error(ErrorCode.DB_ERROR.getCode(), "数据库操作失败");
+        return CommonResult.error(ErrorCode.DB_ERROR.getCode(), "系统繁忙，请稍后再试");
     }
 
     @ExceptionHandler(DataAccessException.class)
     public CommonResult<Void> handleDataAccessException(DataAccessException e) {
         log.error("数据访问异常: {}", e.getMessage(), e);
-        return CommonResult.error(ErrorCode.DB_ERROR.getCode(), "数据访问失败");
+        return CommonResult.error(ErrorCode.DB_ERROR.getCode(), "系统繁忙，请稍后再试");
     }
 
     // ==================== 其他异常 ====================
