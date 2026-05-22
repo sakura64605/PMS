@@ -1,0 +1,35 @@
+pipeline {
+    agent any
+
+    environment {
+        DEPLOY_PATH = '/var/www/html/pms'
+    }
+
+    stages {
+        stage('安装依赖') {
+            steps {
+                dir('PMS-vue前端') {
+                    sh 'npm install --registry=https://registry.npmmirror.com'
+                }
+            }
+        }
+
+        stage('打包') {
+            steps {
+                dir('PMS-vue前端') {
+                    sh 'npm run build'
+                }
+            }
+        }
+
+        stage('部署') {
+            steps {
+                sh '''
+                    sudo mkdir -p ${DEPLOY_PATH}
+                    sudo cp -r PMS-vue前端/dist/* ${DEPLOY_PATH}/
+                    sudo systemctl reload nginx
+                '''
+            }
+        }
+    }
+}

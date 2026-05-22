@@ -22,5 +22,14 @@ pipeline {
                 '''
             }
         }
+
+        stage('重启服务') {
+            steps {
+                sh '''
+                    ssh ubuntu@YOUR_SERVER_IP "pkill -f 'java.*pms.jar' || true"
+                    ssh ubuntu@YOUR_SERVER_IP "cd /opt/pms && nohup java -jar pms.jar > logs/console.log 2>&1 &"
+                '''
+            }
+        }
     }
 }
