@@ -513,7 +513,7 @@
                   v-model="weekDate"
                   type="week"
                   placeholder="选择周"
-                  format="yyyy年 w周"
+                  format="YYYY年 w周"
                   value-format="YYYY-MM-DD"
                   style="width: 200px"
                 />
@@ -529,7 +529,7 @@
                   v-model="monthDate"
                   type="month"
                   placeholder="选择月份"
-                  format="yyyy年 MM月"
+                  format="YYYY年 MM月"
                   value-format="YYYY-MM"
                   style="width: 200px"
                 />
@@ -545,7 +545,7 @@
                   v-model="yearDate"
                   type="year"
                   placeholder="选择年份"
-                  format="yyyy年"
+                  format="YYYY年"
                   value-format="YYYY"
                   style="width: 200px"
                 />
@@ -1441,6 +1441,8 @@ const handleTabChange = () => {
       fetchNoticeList()
     } else if (activeTab.value === 'report') {
       fetchReportList()
+    } else if (activeTab.value === 'stats') {
+      fetchOverviewData()
     }
   }, 0)
 }
@@ -1941,24 +1943,20 @@ onMounted(() => {
   
   // 设置默认日期
   const today = new Date()
-  
-  // 默认显示昨天的日期
-  const yesterday = new Date(today)
-  yesterday.setDate(today.getDate() - 1)
-  dayDate.value = yesterday.toISOString().split('T')[0]
-  
-  // 初始化其他周期的默认日期
-  const lastWeek = new Date(today)
-  lastWeek.setDate(today.getDate() - 7)
-  weekDate.value = lastWeek.toISOString().split('T')[0]
-  
-  const lastMonth = new Date(today)
-  lastMonth.setMonth(today.getMonth() - 1)
-  monthDate.value = lastMonth.toISOString().substring(0, 7)
-  
-  const lastYear = new Date(today)
-  lastYear.setFullYear(today.getFullYear() - 1)
-  yearDate.value = lastYear.getFullYear().toString()
+
+  // 日报：默认今天
+  dayDate.value = today.toISOString().split('T')[0]
+
+  // 周报：默认本周（Element Plus week 取周四）
+  const thursday = new Date(today)
+  thursday.setDate(today.getDate() + (4 - today.getDay()))
+  weekDate.value = thursday.toISOString().split('T')[0]
+
+  // 月报：默认本月
+  monthDate.value = today.toISOString().substring(0, 7)
+
+  // 年报：默认今年
+  yearDate.value = today.getFullYear().toString()
   
   const customStart = new Date(today)
   customStart.setDate(today.getDate() - 6)
@@ -2127,34 +2125,28 @@ const getEndDateForTrend = (): string => {
 const handlePeriodChange = () => {
   // 设置默认日期
   const today = new Date()
-  
+
   if (period.value === 'day') {
-    // 默认显示昨天的日期
-    const yesterday = new Date(today)
-    yesterday.setDate(today.getDate() - 1)
-    dayDate.value = yesterday.toISOString().split('T')[0]
+    // 默认今天
+    dayDate.value = today.toISOString().split('T')[0]
   } else if (period.value === 'week') {
-    // 默认显示上周
-    const lastWeek = new Date(today)
-    lastWeek.setDate(today.getDate() - 7)
-    weekDate.value = lastWeek.toISOString().split('T')[0]
+    // 默认本周（Element Plus week 取周四）
+    const thursday = new Date(today)
+    thursday.setDate(today.getDate() + (4 - today.getDay()))
+    weekDate.value = thursday.toISOString().split('T')[0]
   } else if (period.value === 'month') {
-    // 默认显示上个月
-    const lastMonth = new Date(today)
-    lastMonth.setMonth(today.getMonth() - 1)
-    monthDate.value = lastMonth.toISOString().substring(0, 7)
+    // 默认本月
+    monthDate.value = today.toISOString().substring(0, 7)
   } else if (period.value === 'year') {
-    // 默认显示去年
-    const lastYear = new Date(today)
-    lastYear.setFullYear(today.getFullYear() - 1)
-    yearDate.value = lastYear.getFullYear().toString()
+    // 默认今年
+    yearDate.value = today.getFullYear().toString()
   } else if (period.value === 'custom') {
-    // 默认显示最近7天
+    // 默认最近7天
     const startDate = new Date(today)
     startDate.setDate(today.getDate() - 6)
     customDateRange.value = [startDate, today]
   }
-  
+
   // 自动查询数据
   fetchOverviewData()
 }
