@@ -2,13 +2,14 @@ pipeline {
     agent any
 
     environment {
+        REMOTE_HOST = 'ubuntu@YOUR_SERVER_IP'
         DEPLOY_PATH = '/var/www/html/pms'
     }
 
     stages {
         stage('安装依赖') {
             steps {
-                dir('PMS-vue前端') {
+                dir('PMS-vue') {
                     sh 'npm install --registry=https://registry.npmmirror.com'
                 }
             }
@@ -16,7 +17,7 @@ pipeline {
 
         stage('打包') {
             steps {
-                dir('PMS-vue前端') {
+                dir('PMS-vue') {
                     sh 'npm run build'
                 }
             }
@@ -25,9 +26,9 @@ pipeline {
         stage('部署') {
             steps {
                 sh '''
-                    sudo mkdir -p ${DEPLOY_PATH}
-                    sudo cp -r PMS-vue前端/dist/* ${DEPLOY_PATH}/
-                    sudo systemctl reload nginx
+                    ssh ${REMOTE_HOST} "sudo mkdir -p ${DEPLOY_PATH}"
+                    scp -r PMS-vue/dist/* ${REMOTE_HOST}:${DEPLOY_PATH}/
+                    ssh ${REMOTE_HOST} "sudo systemctl reload nginx"
                 '''
             }
         }
