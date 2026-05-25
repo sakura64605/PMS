@@ -4,13 +4,15 @@ pipeline {
     environment {
         REMOTE_HOST = 'ubuntu@YOUR_SERVER_IP'
         DEPLOY_PATH = '/var/www/html/pms'
+        NODE_OPTIONS = '--max-old-space-size=2048'
     }
 
     stages {
         stage('安装依赖') {
             steps {
                 dir('PMS-vue') {
-                    sh 'npm install --registry=https://registry.npmmirror.com'
+                    // 优先使用 npm ci（更快更稳定），失败时用 npm install
+                    sh 'npm ci --registry=https://registry.npmmirror.com || npm install --registry=https://registry.npmmirror.com'
                 }
             }
         }
@@ -28,7 +30,7 @@ pipeline {
                 sh '''
                     ssh ${REMOTE_HOST} "sudo mkdir -p ${DEPLOY_PATH}"
                     scp -r PMS-vue/dist/* ${REMOTE_HOST}:${DEPLOY_PATH}/
-                    ssh ${REMOTE_HOST} "sudo systemctl reload nginx"
+                    ssh ${REMOTE_HOST} "sudo systemctl reload nginx || true"
                 '''
             }
         }
