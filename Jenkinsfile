@@ -18,7 +18,7 @@ pipeline {
             steps {
                 sh '''
                     scp target/PMS-0.0.1-SNAPSHOT.jar ubuntu@YOUR_SERVER_IP:/opt/pms/pms.jar
-                    ssh ubuntu@YOUR_SERVER_IP "sudo pkill -f 'java.*pms.jar' || true; cd /opt/pms && sudo nohup java -jar pms.jar > logs/console.log 2>&1 &"
+                    ssh ubuntu@YOUR_SERVER_IP "sudo systemctl restart pms"
                 '''
             }
         }
