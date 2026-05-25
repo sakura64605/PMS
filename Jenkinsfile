@@ -17,8 +17,16 @@ pipeline {
         stage('上传部署') {
             steps {
                 sh '''
-                    scp target/*.jar ubuntu@YOUR_SERVER_IP:/opt/pms/pms.jar
-                    ssh ubuntu@YOUR_SERVER_IP "sudo systemctl restart pms"
+                    scp target/PMS-0.0.1-SNAPSHOT.jar ubuntu@YOUR_SERVER_IP:/opt/pms/pms.jar
+
+                    ssh ubuntu@YOUR_SERVER_IP << 'EOF'
+                        sudo pkill -f 'java.*pms.jar' || true
+                        sleep 2
+                        cd /opt/pms
+                        sudo nohup java -jar pms.jar > logs/console.log 2>&1 &
+                        sleep 3
+                        ps aux | grep pms.jar | grep -v grep
+                    EOF
                 '''
             }
         }
