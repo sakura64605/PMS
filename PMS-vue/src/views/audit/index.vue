@@ -1026,7 +1026,7 @@ import { ref, onMounted, onUnmounted, nextTick, computed, reactive } from 'vue'
 import { ElMessage, ElMessageBox, ElDialog, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElRadioGroup, ElRadio, ElCheckbox, ElDatePicker, ElButton } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { getAuditList, batchApproveAudit, batchRejectAudit, getAuditHistory } from '../../api/audit'
-import { getAdminUserList, disableUser, enableUser, batchDisableUsers, batchEnableUsers, batchResetPassword } from '../../api/user'
+import { getAdminUserList, batchDisableUsers, batchEnableUsers, batchResetPassword } from '../../api/user'
 import { getAdminNoticeList, createNotice, updateNotice, deleteNotice, publishNotice, unpublishNotice } from '../../api/notice'
 import { getReportList, getReportDetail, handleReport } from '../../api/report'
 import { getStatistics, getRealtime, regenerateStatistics, clearStatisticsCache, regenerateStatisticsRange } from '../../api/statistics'
@@ -1476,11 +1476,11 @@ const handleToggleUserStatus = async (userId: number, isDisable: boolean) => {
   try {
     let response
     if (isDisable) {
-      // 当前是禁用状态，调用启用接口
-      response = await enableUser(userId)
+      // 当前是禁用状态，调用批量启用接口（传入单个用户ID）
+      response = await batchEnableUsers([userId])
     } else {
-      // 当前是正常状态，调用禁用接口
-      response = await disableUser(userId)
+      // 当前是正常状态，调用批量禁用接口（传入单个用户ID）
+      response = await batchDisableUsers([userId])
     }
     if (response.code === 200) {
       ElMessage.success(isDisable ? '启用成功' : '禁用成功')
