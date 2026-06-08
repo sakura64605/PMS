@@ -60,29 +60,20 @@ export const getAuditDetail = (params: {
   })
 }
 
-// 审核通过
+// 审核通过（单条，通过批量接口实现）
 export const approveAudit = (targetType: string, targetId: number) => {
   return request({
-    url: '/audit/approve',
+    url: `/admin/audit/batch-approve?targetType=${targetType}`,
     method: 'post',
-    params: { targetType, targetId }
+    data: { ids: [targetId] }
   })
 }
 
-// 审核拒绝
+// 审核拒绝（单条，通过批量接口实现）
 export const rejectAudit = (targetType: string, targetId: number, reason: string) => {
   return request({
-    url: '/audit/reject',
+    url: `/admin/audit/batch-reject?targetType=${targetType}`,
     method: 'post',
-    params: { targetType, targetId, reason }
-  })
-}
-
-// 提交审核
-export const submitAudit = (targetType: string, targetId: number) => {
-  return request({
-    url: '/audit/submit',
-    method: 'post',
-    params: { targetType, targetId }
+    data: { ids: [targetId], rejectReason: reason }
   })
 }

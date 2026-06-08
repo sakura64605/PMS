@@ -180,21 +180,21 @@ export const getAdminUserList = (params: {
   })
 }
 
-// 管理员禁用用户接口
+// 管理员禁用用户接口（通过批量禁用实现）
 export const disableUser = (userId: number) => {
   return request({
-    url: '/admin/users/disable',
+    url: '/admin/users/batch-disable',
     method: 'post',
-    params: { userId }
+    data: { userIds: [userId] }
   })
 }
 
-// 管理员启用用户接口
+// 管理员启用用户接口（通过批量启用实现）
 export const enableUser = (userId: number) => {
   return request({
-    url: '/admin/users/enable',
+    url: '/admin/users/batch-enable',
     method: 'post',
-    params: { userId }
+    data: { userIds: [userId] }
   })
 }
 
