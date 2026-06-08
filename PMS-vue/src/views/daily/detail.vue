@@ -67,7 +67,7 @@
       <div class="daily-actions">
         <div class="action-item" @click="handleLike">
           <el-icon :class="(dailyDetail.isLiked || false) ? 'liked' : ''">
-            <component :is="(dailyDetail.isLiked || false) ? 'StarFilled' : 'Star'" />
+            <Top />
           </el-icon>
           <span>{{ dailyDetail.likeCount }}</span>
         </div>
@@ -249,7 +249,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { getDailyDetail, likeDaily, recordDailyAction } from '../../api/daily';
 import { getCommentList, createComment } from '../../api/activity';
 import { ElMessage } from 'element-plus';
-import { ArrowLeft, Star, StarFilled, ChatDotRound, Share, Position, Top } from '@element-plus/icons-vue';
+import { ArrowLeft, Top, ChatDotRound, Share, Position } from '@element-plus/icons-vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -342,6 +342,13 @@ const handleShare = () => {
 
 // 关注用户
 const followUser = (userId: number) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    ElMessage.warning('请先登录');
+    router.push('/login');
+    return;
+  }
+
   ElMessage.success(isFollowed.value ? '取消关注成功' : '关注成功');
   isFollowed.value = !isFollowed.value;
 };

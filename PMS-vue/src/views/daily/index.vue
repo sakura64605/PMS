@@ -61,7 +61,7 @@
         <div class="daily-actions">
           <div class="action-item" @click.stop="handleLike(item)">
             <el-icon :class="(item.isLiked || false) ? 'liked' : ''">
-              <component :is="(item.isLiked || false) ? 'StarFilled' : 'Star'" />
+              <Top />
             </el-icon>
             <span>{{ item.likeCount }}</span>
           </div>
@@ -92,7 +92,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getDailyFeed, likeDaily, recordDailyAction } from '../../api/daily';
 import { ElMessage } from 'element-plus';
-import { Plus, Star, StarFilled, ChatDotRound, Share, Position } from '@element-plus/icons-vue';
+import { Plus, Top, ChatDotRound, Share, Position } from '@element-plus/icons-vue';
 
 const router = useRouter();
 const dailyList = ref<any[]>([]);

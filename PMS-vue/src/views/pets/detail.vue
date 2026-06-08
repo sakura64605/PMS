@@ -717,6 +717,13 @@ const navigateToUserInfo = (userId: number) => {
 
 // 关注用户
 const handleFollow = async (userId: number) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    ElMessage.warning('请先登录');
+    router.push('/login');
+    return;
+  }
+
   try {
     const response = await request({
       url: '/follow',

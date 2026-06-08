@@ -145,7 +145,14 @@
           </el-button>
           <div v-else>
             <el-button
-              v-if="activity.isSignUp !== 1"
+              v-if="isActivityEnded"
+              type="info"
+              disabled
+            >
+              已结束
+            </el-button>
+            <el-button
+              v-else-if="activity.isSignUp !== 1"
               type="primary"
               @click="handleJoinActivity"
             >
@@ -402,6 +409,12 @@ const isAdmin = computed(() => {
   }
 });
 
+// 活动是否已结束
+const isActivityEnded = computed(() => {
+  if (!activity.value?.endTime) return false;
+  return new Date(activity.value.endTime).getTime() < Date.now();
+});
+
 // 是否需要审核
 const needAudit = computed(() => {
   return isAdmin.value && activity.value && (activity.value.auditStatus === 0 || activity.value.auditStatus === undefined);
@@ -574,7 +587,14 @@ const navigateToUserInfo = (userId: number | undefined) => {
 // 关注用户
 const handleFollow = async (userId: number) => {
   if (!userId) return;
-  
+
+  const token = localStorage.getItem('token');
+  if (!token) {
+    ElMessage.warning('请先登录');
+    router.push('/login');
+    return;
+  }
+
   try {
     const response = await request({
       url: '/follow',

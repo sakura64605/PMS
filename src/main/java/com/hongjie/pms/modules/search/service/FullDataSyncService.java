@@ -34,7 +34,7 @@ public class FullDataSyncService {
      * 全量同步所有数据
      */
     @Async
-    // @EventListener(ApplicationReadyEvent.class)
+    @EventListener(ApplicationReadyEvent.class)
     public void syncAll() {
         log.info("========== 开始全量同步所有数据到ES ==========");
         long startTime = System.currentTimeMillis();

@@ -1790,8 +1790,7 @@ const handleSubmitReportHandle = async () => {
   }
   
   try {
-    const response = await handleReport({
-      id: currentReportId.value,
+    const response = await handleReport(currentReportId.value, {
       status: handleStatus.value,
       handleResult: handleResult.value
     })
