@@ -17,6 +17,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import com.hongjie.pms.common.utils.JWTUtils;
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -31,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 public class UserAuthController extends BaseController {
 
     private final UserService userService;
+    private final JWTUtils jwtUtils;
 
     /**
      * 登录
@@ -41,6 +45,16 @@ public class UserAuthController extends BaseController {
         LoginResponseDto response = userService.login(loginRequestDto);
         String message = "登录成功";
         return success(response, message);
+    }
+
+    /**
+     * 退出登录
+     */
+    @PostMapping("/logout")
+    public CommonResult<String> logout(HttpServletRequest request) {
+        String header = request.getHeader(jwtUtils.getHeader());
+        log.info("用户退出登录, userId={}", UserContext.getUserId());
+        return CommonResult.success("退出登录成功");
     }
 
     /**
