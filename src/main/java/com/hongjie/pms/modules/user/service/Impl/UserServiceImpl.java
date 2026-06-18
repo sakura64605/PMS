@@ -199,7 +199,6 @@ public class UserServiceImpl implements UserService {
     public UserInfoDto updateUserInfo(Long userId, UserUpdateRequestDto updateDto) {
 
         User user = new User();
-        user.setId(userId);
         user.setNickName(updateDto.getNickName());
         user.setAvatar(updateDto.getAvatar());
         user.setGender(updateDto.getGender());
@@ -221,13 +220,16 @@ public class UserServiceImpl implements UserService {
             avatarHistoryMapper.updateById(avatarHistory);
         }
 
-        if(EmailUtils.isEmail(updateDto.getEmail()) && updateDto.getEmail() != null) {
-            user.setEmail(updateDto.getEmail());
-        } else {
+        String email = updateDto.getEmail();
+        if (email != null && !email.isEmpty() && !EmailUtils.isEmail(email)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "邮箱格式错误");
         }
+        user.setEmail(email);
 
-        Integer result = userMapper.updateById(user);
+        LambdaUpdateWrapper<User> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(User::getId, userId);
+
+        int result = userMapper.update(user, updateWrapper);
         if(result > 0){
             // 清理缓存
             String cacheKey = CacheUtil.buildKey("user", String.valueOf(userId));

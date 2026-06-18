@@ -61,9 +61,9 @@ public class UserAuthController extends BaseController {
      * 注册
      */
     @RedisRateLimit(
-            key = "#request.phone",           // 按手机号限流
-            capacity = 1, 
-            refillRate = 1, 
+            key = "#registerRequestDto.phone",           // 按手机号限流
+            capacity = 1,
+            refillRate = 1,
             duration = 1,
             timeUnit = TimeUnit.DAYS,
             perUser = false,

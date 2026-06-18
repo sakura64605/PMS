@@ -206,9 +206,9 @@ const saveChanges = async () => {
       avatar: userInfo.value.avatar,
       tags: tags.value,
       privacySettings: {
-        tags: userInfo.value.privacySettings.tags,
-        phone: userInfo.value.privacySettings.phone,
-        email: userInfo.value.privacySettings.email
+        tags: userInfo.value.privacySettings?.tags ?? true,
+        phone: userInfo.value.privacySettings?.phone ?? true,
+        email: userInfo.value.privacySettings?.email ?? true
       },
       searchable: userInfo.value.searchable || 0
     };
