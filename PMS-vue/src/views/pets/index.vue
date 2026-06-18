@@ -186,14 +186,46 @@
           v-for="pet in pets"
           :key="pet.id"
           class="pet-card"
-          @click="handleCardClick(pet.id, pet.type === 'activity' || pet.type === 2 ? 'activity' : undefined)"
+          @click="handleCardClick(pet.id, pet.type)"
         >
           <div v-if="pet.images && pet.images.length > 0" class="card-image">
             <img :src="pet.images[0]" alt="宠物图片" loading="lazy" />
           </div>
           <div class="card-content">
+            <!-- 日记卡片内容 -->
+            <template v-if="pet.type === 'daily'">
+              <div class="title-with-status">
+                <h3 class="card-title">{{ pet.title || '' }}</h3>
+                <el-tag type="warning" class="title-status-tag">日记</el-tag>
+              </div>
+              <div class="daily-content">{{ pet.content }}</div>
+
+              <div class="card-footer">
+                <div class="stats">
+                  <div class="stat-item">
+                    <el-icon><View /></el-icon>
+                    <span>{{ pet.viewCount || 0 }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <el-icon><Top /></el-icon>
+                    <span>{{ pet.likeCount || 0 }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <el-icon><ChatLineSquare /></el-icon>
+                    <span>{{ pet.commentCount || 0 }}</span>
+                  </div>
+                </div>
+                <div class="user-info">
+                  <el-avatar :size="24" :src="pet.user?.avatar || ''">
+                    {{ (pet.user?.nickname || pet.user?.username || '用').charAt(0) }}
+                  </el-avatar>
+                  <span class="nickname">{{ pet.user?.nickname || pet.user?.username || '未知用户' }}</span>
+                </div>
+              </div>
+            </template>
+
             <!-- 活动卡片内容 -->
-            <template v-if="pet.type === 2 || pet.activityType === 'activity'">
+            <template v-else-if="pet.type === 2 || pet.activityType === 'activity'">
               <div class="title-with-status">
                 <h3 class="card-title">📌 {{ pet.title || '' }}</h3>
                 <el-tag type="primary" class="title-status-tag">活动</el-tag>
@@ -530,8 +562,10 @@ const handleCreate = () => {
   }
 };
 
-const handleCardClick = (id: number, itemType?: string) => {
-  if (itemType === 'activity' || activeType.value === '2') {
+const handleCardClick = (id: number, itemType?: any) => {
+  if (itemType === 'daily') {
+    router.push(`/daily/${id}`);
+  } else if (itemType === 'activity' || itemType === 2 || activeType.value === '2') {
     router.push({ path: `/pets/activity/${id}`, query: { from: 'pets-index', type: activeType.value } });
   } else {
     router.push({ path: `/pets/${id}`, query: { from: 'pets-index', type: activeType.value } });
@@ -773,7 +807,7 @@ const fetchGlobalSearch = async () => {
         if (item.type === 'pet') {
           return item;
         } else if (item.type === 'daily') {
-          // 日常帖子转换为宠物贴格式
+          // 日常帖子保持独立类型
           return {
             id: item.id,
             title: item.title,
@@ -785,7 +819,7 @@ const fetchGlobalSearch = async () => {
             shareCount: item.shareCount || 0,
             createTime: item.createTime,
             user: item.user,
-            type: 0 // 默认为领养类型
+            type: 'daily'
           };
         } else if (item.type === 'activity') {
           // 活动转换为宠物贴格式
@@ -1242,6 +1276,28 @@ onMounted(() => {
   align-items: center;
   font-size: 12px;
   color: #909399;
+}
+
+.daily-content {
+  padding: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #303133;
+  white-space: pre-wrap;
+}
+
+.daily-images {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 0 0 12px;
+}
+
+.daily-image {
+  width: 100%;
+  height: 120px;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
 .stats {
