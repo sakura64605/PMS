@@ -167,6 +167,8 @@ public class PetPostServiceImpl implements PetPostService {
         // 状态筛选
         if (queryDto.getStatus() != null) {
             wrapper.eq(PetPost::getStatus, queryDto.getStatus());
+        } else if (queryDto.getUserId() != null) {
+            wrapper.in(PetPost::getStatus, 0, 1, 2, 3);
         } else {
             wrapper.in(PetPost::getStatus, 1, 2, 3);
         }

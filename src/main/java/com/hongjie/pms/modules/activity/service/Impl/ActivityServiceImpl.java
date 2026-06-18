@@ -297,7 +297,9 @@ public class ActivityServiceImpl implements ActivityService {
         }
 
         wrapper.eq(Activity::getDeleted, 0);
-        wrapper.eq(Activity::getAuditStatus, 1);
+        if (request.getUserId() == null) {
+            wrapper.eq(Activity::getAuditStatus, 1);
+        }
 
         Page<Activity> page = new Page<>(request.getPageNum(), request.getPageSize());
         IPage<Activity> activityPage = activityMapper.selectPage(page, wrapper);
@@ -498,6 +500,7 @@ public class ActivityServiceImpl implements ActivityService {
         activityDetailRespDto.setStartTime(activity.getStartTime());
         activityDetailRespDto.setEndTime(activity.getEndTime());
         activityDetailRespDto.setStatus(activity.getStatus());
+        activityDetailRespDto.setAuditStatus(activity.getAuditStatus());
         activityDetailRespDto.setViewCount(activity.getViewCount());
         activityDetailRespDto.setLikeCount(activity.getLikeCount());
         activityDetailRespDto.setCommentCount(activity.getCommentCount());
@@ -696,7 +699,6 @@ public class ActivityServiceImpl implements ActivityService {
         }
         activitySignupMapper.deleteById(activitySignup);
         activityMapper.decrementCurrentPeople(id);
-        activityMapper.updateById(activity);
     }
 
     @Override

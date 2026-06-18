@@ -32,4 +32,28 @@ public class SearchDataSyncListener {
     public void onPetPostPublished(PetPostPublishedEvent event) {
         syncService.syncPetPost(event.getPetPost());
     }
+
+    @Async
+    @EventListener
+    public void onPetPostUpdated(PetPostUpdatedEvent event) {
+        if ("audit".equals(event.getUpdateType()) || "content".equals(event.getUpdateType())) {
+            syncService.syncPetPostById(event.getPetId());
+        }
+    }
+
+    @Async
+    @EventListener
+    public void onActivityUpdated(ActivityUpdatedEvent event) {
+        if ("audit".equals(event.getUpdateType()) || "content".equals(event.getUpdateType())) {
+            syncService.syncActivityById(event.getActivityId());
+        }
+    }
+
+    @Async
+    @EventListener
+    public void onDailyPostUpdated(DailyPostUpdatedEvent event) {
+        if ("audit".equals(event.getUpdateType()) || "content".equals(event.getUpdateType())) {
+            syncService.syncDailyPostById(event.getDailyId());
+        }
+    }
 }

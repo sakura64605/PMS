@@ -360,6 +360,31 @@
       <el-empty description="活动信息不存在" />
     </div>
   </div>
+
+  <!-- 报名弹窗 -->
+  <el-dialog
+    v-model="signupDialogVisible"
+    title="报名活动"
+    width="450px"
+  >
+    <el-form :model="signupForm" :rules="signupRules" ref="signupFormRef" label-width="80px">
+      <el-form-item label="真实姓名" prop="realName">
+        <el-input v-model="signupForm.realName" placeholder="请输入真实姓名" />
+      </el-form-item>
+      <el-form-item label="联系电话" prop="phone">
+        <el-input v-model="signupForm.phone" placeholder="请输入联系电话" />
+      </el-form-item>
+      <el-form-item label="备注">
+        <el-input v-model="signupForm.remark" type="textarea" placeholder="请输入备注信息" />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="signupDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitSignup">确认报名</el-button>
+      </span>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -384,6 +409,37 @@ const isCollected = ref(false);
 const isFollowing = ref(false);
 const commentContent = ref('');
 const reportVisible = ref(false);
+
+// 报名弹窗
+const signupDialogVisible = ref(false);
+const signupFormRef = ref();
+const signupForm = ref({ activityId: 0, realName: '', phone: '', remark: '' });
+const signupRules = {
+  realName: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
+  phone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }]
+};
+
+// 提交报名
+const submitSignup = async () => {
+  if (!signupFormRef.value) return;
+  signupFormRef.value.validate(async (valid: boolean) => {
+    if (valid) {
+      try {
+        const response = await signupActivity(signupForm.value);
+        if (response.code === 200) {
+          ElMessage.success('报名成功');
+          signupDialogVisible.value = false;
+          await fetchActivityDetail();
+        } else {
+          ElMessage.error(response.message || '报名失败');
+        }
+      } catch (error) {
+        ElMessage.error('报名失败');
+        console.error('报名失败:', error);
+      }
+    }
+  });
+};
 
 // 计算属性
 const isOwner = computed(() => {
@@ -500,54 +556,10 @@ const handleReject = async () => {
 };
 
 // 处理活动报名
-const handleJoinActivity = async () => {
+const handleJoinActivity = () => {
   if (!activity.value) return;
-  
-  // 弹出确认对话框
-  const { value: confirmed } = await ElMessageBox.confirm(
-    '确定要报名参加此活动吗？',
-    '活动报名',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  );
-  
-  if (confirmed) {
-    try {
-      // 尝试从本地存储获取用户信息
-      const userInfo = localStorage.getItem('userInfo');
-      let realName = '用户';
-      let phone = '';
-      
-      if (userInfo) {
-        try {
-          const user = JSON.parse(userInfo);
-          realName = user.nickname || realName;
-          phone = user.phone || phone;
-        } catch (e) {
-          console.error('解析用户信息失败:', e);
-        }
-      }
-      
-      const response = await signupActivity({
-        activityId: activity.value.id,
-        realName: realName,
-        phone: phone
-      });
-      if (response.code === 200) {
-        ElMessage.success('报名成功');
-        // 重新获取活动详情
-        await fetchActivityDetail();
-      } else {
-        ElMessage.error(response.message || '报名失败');
-      }
-    } catch (error) {
-      ElMessage.error('报名失败，请重试');
-      console.error('报名失败:', error);
-    }
-  }
+  signupForm.value = { activityId: activity.value.id, realName: '', phone: '', remark: '' };
+  signupDialogVisible.value = true;
 };
 
 const handleLike = async () => {

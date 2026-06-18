@@ -207,7 +207,8 @@ public class UserServiceImpl implements UserService {
         user.setPrivacySettings(updateDto.getPrivacySettings());
         user.setSearchable(updateDto.getSearchable());
 
-        String oldAvatar = avatarHistoryMapper.selectById(userId).getAvatarUrl();
+        AvatarHistory oldAvatarRecord = avatarHistoryMapper.selectOne(new LambdaQueryWrapper<AvatarHistory>().eq(AvatarHistory::getUserId, userId));
+        String oldAvatar = oldAvatarRecord != null ? oldAvatarRecord.getAvatarUrl() : "";
         String newAvatar = updateDto.getAvatar();
 
         if(!oldAvatar.equals(newAvatar)){

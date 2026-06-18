@@ -19,13 +19,14 @@
       <el-form-item label="图片">
         <el-upload
           class="upload-demo"
-          action="/pet-system/oss/upload"
+          action="/pet-system/pet/upload"
           :headers="{ 'Authorization': `Bearer ${token}` }"
           :on-success="handleImageUploadSuccess"
           :on-error="handleImageUploadError"
           :limit="9"
           :on-exceed="handleImageExceed"
           list-type="picture-card"
+          :file-list="uploadFileList"
         >
           <template #default>
             <el-icon><Plus /></el-icon>
@@ -34,8 +35,8 @@
           <template #file="{ file }">
             <div class="uploaded-file">
               <el-image
-                :src="file.response.data.url"
-                :preview-src-list="[file.response.data.url]"
+                :src="file.url"
+                :preview-src-list="[file.url]"
               />
               <el-button
                 type="text"
@@ -132,6 +133,9 @@ const form = reactive({
   topicIds: [] as number[]
 });
 
+// 上传文件列表
+const uploadFileList = ref<any[]>([]);
+
 // 表单验证规则
 const rules = {
   content: [
@@ -160,8 +164,10 @@ const hotTopics = ref<any[]>([]);
 
 // 处理图片上传成功
 const handleImageUploadSuccess = (response: any, uploadFile: any) => {
-  if (response.code === 200) {
-    form.images.push(response.data.url);
+  if (response.code === 200 && response.data?.avatarUrl) {
+    const url = response.data.avatarUrl;
+    form.images.push(url);
+    uploadFile.url = url;
     ElMessage.success('图片上传成功');
   } else {
     ElMessage.error('图片上传失败');
@@ -180,9 +186,13 @@ const handleImageExceed = () => {
 
 // 处理移除图片
 const handleRemoveImage = (file: any) => {
-  const index = form.images.findIndex(img => img === file.response.data.url);
+  const index = form.images.findIndex(img => img === file.url);
   if (index > -1) {
     form.images.splice(index, 1);
+  }
+  const fileIndex = uploadFileList.value.findIndex(f => f.uid === file.uid);
+  if (fileIndex > -1) {
+    uploadFileList.value.splice(fileIndex, 1);
   }
 };
 

@@ -3,11 +3,14 @@ package com.hongjie.pms.modules.search.service;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import com.hongjie.pms.modules.activity.entity.Activity;
+import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
 import com.hongjie.pms.modules.daily.entity.DailyPost;
 import com.hongjie.pms.modules.daily.entity.Topic;
+import com.hongjie.pms.modules.daily.mapper.DailyPostMapper;
 import com.hongjie.pms.modules.daily.mapper.DailyTopicRelMapper;
 import com.hongjie.pms.modules.daily.mapper.TopicMapper;
 import com.hongjie.pms.modules.petpost.entity.PetPost;
+import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
 import com.hongjie.pms.modules.search.document.UnifiedDoc;
 import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
@@ -27,6 +30,9 @@ public class SearchDataSyncService {
     private final UserMapper userMapper;
     private final TopicMapper topicMapper;
     private final DailyTopicRelMapper dailyTopicRelMapper;
+    private final PetPostMapper petPostMapper;
+    private final ActivityMapper activityMapper;
+    private final DailyPostMapper dailyPostMapper;
 
     private static final String INDEX_NAME = "unified_search";
 
@@ -80,8 +86,8 @@ public class SearchDataSyncService {
      * 同步活动到ES
      */
     public void syncActivity(Activity activity) {
-        if (activity == null || activity.getDeleted() == 1) {
-            deleteById("activity_" + activity.getId());
+        if (activity == null || Integer.valueOf(1).equals(activity.getDeleted())) {
+            if (activity != null) deleteById("activity_" + activity.getId());
             return;
         }
 
@@ -204,6 +210,44 @@ public class SearchDataSyncService {
             log.info("批量同步ES成功: count={}", docs.size());
         } catch (Exception e) {
             log.error("批量同步ES失败", e);
+        }
+    }
+
+    /**
+     * 根据ID重新同步宠物信息到ES（审核状态变更后使用）
+     */
+    public void syncPetPostById(Long petId) {
+        PetPost petPost = petPostMapper.selectById(petId);
+        if (petPost == null) {
+            deleteById("pet_" + petId);
+            return;
+        }
+        syncPetPost(petPost);
+    }
+
+    /**
+     * 根据ID重新同步活动到ES（审核状态变更后使用）
+     */
+    public void syncActivityById(Long activityId) {
+        Activity activity = activityMapper.selectById(activityId);
+        if (activity == null) {
+            deleteById("activity_" + activityId);
+            return;
+        }
+        syncActivity(activity);
+    }
+
+    /**
+     * 根据ID重新同步日记到ES（审核状态变更后使用）
+     */
+    public void syncDailyPostById(Long dailyId) {
+        DailyPost dailyPost = dailyPostMapper.selectById(dailyId);
+        if (dailyPost != null) {
+            List<Long> topicIds = dailyTopicRelMapper.selectList(
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.hongjie.pms.modules.daily.entity.DailyTopicRel>()
+                            .eq(com.hongjie.pms.modules.daily.entity.DailyTopicRel::getDailyId, dailyId)
+            ).stream().map(com.hongjie.pms.modules.daily.entity.DailyTopicRel::getTopicId).collect(Collectors.toList());
+            syncDailyPost(dailyPost, topicIds);
         }
     }
 

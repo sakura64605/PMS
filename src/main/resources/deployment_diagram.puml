@@ -1,0 +1,60 @@
+@startuml
+!theme plain
+
+skinparam node {
+  BackgroundColor #E8E8E8
+  BorderColor #A0A0A0
+}
+
+skinparam component {
+  BackgroundColor #F0F8FF
+  BorderColor #4A90D9
+}
+
+skinparam database {
+  BackgroundColor #FFFAF0
+  BorderColor #CD853F
+}
+
+cloud "公网" as PublicNet
+
+node "Web服务器" as WebServer {
+  [Nginx反向代理] as Nginx
+  component "PMS应用实例" as App
+}
+
+node "数据库服务器" as DBServer {
+  database "MySQL数据库" as MySQL
+}
+
+node "缓存服务器" as CacheServer {
+  database "Redis单节点" as Redis
+}
+
+node "搜索引擎" as SearchServer {
+  database "Elasticsearch单节点" as ES
+}
+
+node "消息队列" as MQServer {
+  database "RocketMQ Broker" as RocketMQ
+}
+
+cloud "阿里云OSS" as OSSCloud {
+  database "对象存储" as OSS
+}
+
+PublicNet --> Nginx : HTTP/HTTPS
+
+Nginx --> App : 反向代理
+
+App --> MySQL : JDBC读写
+
+App --> Redis : 缓存/限流/幂等
+
+App --> ES : 搜索查询
+
+App --> RocketMQ : 发送/消费消息
+
+App --> OSS : 上传/下载图片
+
+@enduml

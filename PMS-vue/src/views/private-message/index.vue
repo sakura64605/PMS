@@ -63,7 +63,6 @@
           </el-avatar>
           <div class="chat-header-details">
             <h3 class="chat-header-name">{{ activeConversation.otherUser.nickname || activeConversation.otherUser.username }}</h3>
-            <span class="chat-header-status">在线</span>
           </div>
         </div>
         <div class="chat-header-actions">

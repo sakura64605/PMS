@@ -109,8 +109,7 @@ public class PetPostController {
      */
     @RedisRateLimit(key = "getActivityDetail", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
     @GetMapping("/my-posts")
-    public CommonResult<IPage<PetListResponseDto>> myPosts() {
-        PetQueryRequestDto queryDto = new PetQueryRequestDto();
+    public CommonResult<IPage<PetListResponseDto>> myPosts(PetQueryRequestDto queryDto) {
         queryDto.setUserId(UserContext.getUserId());
         IPage<PetListResponseDto> response = petPostService.list(queryDto);
         return CommonResult.success(response);

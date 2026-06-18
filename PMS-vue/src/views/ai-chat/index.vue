@@ -39,7 +39,7 @@
         <el-icon :size="24" color="#409EFF"><ChatDotRound /></el-icon>
         <div class="header-text">
           <h3>AI助手 - 宠小伴</h3>
-          <p class="status">{{ isConnected ? '在线' : '连接中...' }}</p>
+          <p class="status">{{ isConnected ? '在线' : '' }}</p>
         </div>
       </div>
       <div class="header-actions">

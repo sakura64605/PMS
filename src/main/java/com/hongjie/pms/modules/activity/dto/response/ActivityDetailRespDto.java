@@ -109,6 +109,11 @@ public class ActivityDetailRespDto {
     private Integer deleted;
 
     /**
+     * 审核状态
+     */
+    private Integer auditStatus;
+
+    /**
      * 是否报名
      */
     private Integer isSignUp;

@@ -49,7 +49,7 @@ public class UnifiedSearchService {
                     .size(pageSize);
 
             // 构建查询条件
-            buildQuery(searchBuilder, keyword, types);
+            buildQuery(searchBuilder, keyword, types, currentUserId);
 
             // 构建高亮
             buildHighlight(searchBuilder);
@@ -73,7 +73,7 @@ public class UnifiedSearchService {
     /**
      * 构建查询条件
      */
-    private void buildQuery(SearchRequest.Builder builder, String keyword, List<String> types) {
+    private void buildQuery(SearchRequest.Builder builder, String keyword, List<String> types, Long currentUserId) {
         builder.query(q -> q
                 .bool(b -> {
                     // 主查询：多字段匹配
@@ -86,8 +86,17 @@ public class UnifiedSearchService {
                             )
                     );
 
-                    // 过滤条件：只返回审核通过且未删除的
-                    b.filter(f -> f.term(t -> t.field("auditStatus").value(1)));
+                    // 可见性过滤：审核通过的 + 用户自己的内容
+                    b.filter(f -> f
+                            .bool(bb -> {
+                                bb.should(s -> s.term(t -> t.field("auditStatus").value(1)));
+                                if (currentUserId != null) {
+                                    bb.should(s -> s.term(t -> t.field("userId").value(currentUserId)));
+                                }
+                                bb.minimumShouldMatch("1");
+                                return bb;
+                            })
+                    );
 
                     // 类型过滤
                     if (types != null && !types.isEmpty()) {

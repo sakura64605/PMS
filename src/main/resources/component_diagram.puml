@@ -1,0 +1,87 @@
+@startuml
+!theme plain
+
+skinparam componentStyle uml2
+
+component "前端应用" as Frontend {
+  component "用户界面" as UI
+  component "API调用层" as API
+  component "WebSocket客户端" as WSClient
+  component "状态管理" as State
+}
+
+component "后端服务" as Backend {
+  component "认证服务" as Auth
+  component "用户服务" as UserService
+  component "宠物帖子服务" as PetService
+  component "活动服务" as ActivityService
+  component "日常动态服务" as DailyService
+  component "互动服务" as InteractionService
+  component "Feed流服务" as FeedService
+  component "消息服务" as MessageService
+  component "搜索服务" as SearchService
+  component "审核服务" as AuditService
+  component "举报服务" as ReportService
+  component "AI助手服务" as AIService
+  component "统计服务" as StatsService
+}
+
+database "MySQL数据库" as MySQL {
+  folder "用户数据" as UserDB
+  folder "宠物帖子数据" as PetDB
+  folder "活动数据" as ActivityDB
+  folder "日常动态数据" as DailyDB
+  folder "互动数据" as InteractionDB
+  folder "消息数据" as MessageDB
+  folder "审核数据" as AuditDB
+  folder "AI数据" as AIDB
+}
+
+database "Redis缓存" as Redis {
+  folder "用户会话" as SessionCache
+  folder "热点数据" as HotCache
+  folder "限流数据" as RateLimitCache
+  folder "幂等令牌" as IdempotentCache
+}
+
+database "Elasticsearch" as ES {
+  folder "统一搜索索引" as SearchIndex
+}
+
+cloud "阿里云OSS" as OSS {
+  folder "头像图片" as AvatarStorage
+  folder "帖子图片" as PostStorage
+  folder "活动图片" as ActivityStorage
+}
+
+cloud "RocketMQ" as MQ {
+  queue "消息推送队列" as MsgQueue
+  queue "缓存更新队列" as CacheQueue
+}
+
+Frontend --> Auth : REST API
+Frontend --> UserService : REST API
+Frontend --> PetService : REST API
+Frontend --> ActivityService : REST API
+Frontend --> DailyService : REST API
+Frontend --> InteractionService : REST API
+Frontend --> FeedService : REST API
+Frontend --> MessageService : REST API
+Frontend --> SearchService : REST API
+Frontend --> AuditService : REST API
+Frontend --> ReportService : REST API
+Frontend --> StatsService : REST API
+
+Frontend -[hidden]-> WSClient : 使用
+WSClient --> MessageService : WebSocket
+WSClient --> AIService : WebSocket
+
+Backend --> MySQL : JDBC
+Backend --> Redis : Redis协议
+Backend --> ES : HTTP/REST
+Backend --> OSS : HTTP/REST
+
+Backend --> MQ : 发送消息
+MQ --> Backend : 消费消息
+
+@enduml

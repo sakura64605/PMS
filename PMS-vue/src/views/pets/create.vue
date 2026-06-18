@@ -429,7 +429,11 @@ const handleSubmit = async () => {
         
         if (response.code === 200) {
           ElMessage.success('发布成功');
-          router.push(`/pets/${response.data.id}`);
+          if (isActivity.value) {
+            router.push(`/pets/activity/${response.data.id}`);
+          } else {
+            router.push(`/pets/${response.data.id}`);
+          }
         } else {
           ElMessage.error(response.message || '发布失败');
         }
