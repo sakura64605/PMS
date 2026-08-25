@@ -9,29 +9,24 @@ import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.enums.TargetType;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.cache.DistributedCache;
-import com.hongjie.pms.common.cache.toolkit.CacheUtil;
 import com.hongjie.pms.modules.activity.entity.Activity;
 import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
 import com.hongjie.pms.modules.audit.dto.AuditHistoryDto;
 import com.hongjie.pms.modules.audit.dto.AuditListDto;
 import com.hongjie.pms.modules.audit.entity.AuditRecord;
+import com.hongjie.pms.modules.audit.handler.AuditTargetHandler;
+import com.hongjie.pms.modules.audit.handler.AuditTargetHandlerFactory;
 import com.hongjie.pms.modules.audit.mapper.AuditRecordMapper;
 import com.hongjie.pms.modules.audit.service.AuditService;
 import com.hongjie.pms.modules.daily.entity.DailyPost;
 import com.hongjie.pms.modules.daily.mapper.DailyPostMapper;
-import com.hongjie.pms.modules.message.service.MessageService;
 import com.hongjie.pms.modules.petpost.entity.PetPost;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
-import com.hongjie.pms.modules.search.event.ActivityUpdatedEvent;
-import com.hongjie.pms.modules.search.event.DailyPostUpdatedEvent;
-import com.hongjie.pms.modules.search.event.PetPostUpdatedEvent;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -49,10 +44,9 @@ public class AuditServiceImpl implements AuditService {
     private final PetPostMapper petPostMapper;
     private final ActivityMapper activityMapper;
     private final UserMapper userMapper;
-    private final MessageService messageService;
-    private final DistributedCache distributedCache;
     private final DailyPostMapper dailyPostMapper;
-    private final ApplicationEventPublisher eventPublisher;
+    private final DistributedCache distributedCache;
+    private final AuditTargetHandlerFactory handlerFactory;
 
     // ==================== 提交审核 ====================
 
@@ -90,7 +84,7 @@ public class AuditServiceImpl implements AuditService {
         record.setAuditStatus(AuditStatus.APPROVED.getCode());
         auditRecordMapper.updateById(record);
 
-        updateTargetAuditStatus(targetType, id, AuditStatus.APPROVED.getCode(), null);
+        handlerFactory.getHandler(targetType).updateAuditStatus(id, AuditStatus.APPROVED.getCode(), null);
 
         clearCache(targetType, id);
 
@@ -111,7 +105,7 @@ public class AuditServiceImpl implements AuditService {
         record.setAuditTime(LocalDateTime.now());
         auditRecordMapper.updateById(record);
 
-        updateTargetAuditStatus(targetType, id, AuditStatus.REJECTED.getCode(), reason);
+        handlerFactory.getHandler(targetType).updateAuditStatus(id, AuditStatus.REJECTED.getCode(), reason);
         clearCache(targetType, id);
 
         log.info("审核拒绝: targetType={}, targetId={}, reason={}", targetType, id, reason);
@@ -277,20 +271,7 @@ public class AuditServiceImpl implements AuditService {
 
     @Override
     public Object getDetail(Long id, String targetType) {
-        if (TargetType.ADOPT.getCode().equals(targetType) || TargetType.HELP.getCode().equals(targetType)) {
-            PetPost pet = petPostMapper.selectById(id);
-            if (pet == null) {
-                throw new BusinessException(ErrorCode.NOT_FOUND, "宠物信息不存在");
-            }
-            return pet;
-        } else if (TargetType.ACTIVITY.getCode().equals(targetType)) {
-            Activity activity = activityMapper.selectById(id);
-            if (activity == null) {
-                throw new BusinessException(ErrorCode.NOT_FOUND, "活动不存在");
-            }
-            return activity;
-        }
-        throw new BusinessException(ErrorCode.PARAM_ERROR, "无效的类型");
+        return handlerFactory.getHandler(targetType).getDetail(id);
     }
 
     // ==================== 私有方法 ====================
@@ -306,6 +287,12 @@ public class AuditServiceImpl implements AuditService {
         }
         return record;
     }
+
+    private void clearCache(String targetType, Long targetId) {
+        handlerFactory.getHandler(targetType).clearCache(targetId);
+    }
+
+    // ==================== DTO 转换（用于待审核列表，保留查询逻辑） ====================
 
     private AuditListDto convertDailyToDto(DailyPost daily) {
         User user = userMapper.selectById(daily.getUserId());
@@ -331,72 +318,6 @@ public class AuditServiceImpl implements AuditService {
                 .auditStatusDesc(AuditStatus.getDescByCode(daily.getAuditStatus()))
                 .location(daily.getLocation())
                 .build();
-    }
-
-    private void updateTargetAuditStatus(String targetType, Long targetId, Integer auditStatus, String rejectReason) {
-        if (TargetType.ADOPT.getCode().equals(targetType) || TargetType.HELP.getCode().equals(targetType)) {
-            PetPost pet = petPostMapper.selectById(targetId);
-            if (pet != null) {
-                pet.setAuditStatus(auditStatus);
-                pet.setStatus(AuditStatus.APPROVED.getCode().equals(auditStatus) ? 1 : 0);
-                if (AuditStatus.APPROVED.getCode().equals(auditStatus)) {
-                    messageService.sendAuditPassNotification(
-                            pet.getUserId(), pet.getTitle(), pet.getId(), "pet_post");
-                } else if (AuditStatus.REJECTED.getCode().equals(auditStatus)) {
-                    messageService.sendAuditRejectNotification(
-                            pet.getUserId(), pet.getTitle(), pet.getId(), "pet_post", rejectReason);
-                }
-                petPostMapper.updateById(pet);
-                eventPublisher.publishEvent(new PetPostUpdatedEvent(this, targetId, "audit"));
-            }
-        } else if (TargetType.ACTIVITY.getCode().equals(targetType)) {
-            Activity activity = activityMapper.selectById(targetId);
-            if (activity != null) {
-                activity.setAuditStatus(auditStatus);
-                if (AuditStatus.APPROVED.getCode().equals(auditStatus)) {
-                    activity.setStatus(0);
-                    messageService.sendAuditPassNotification(
-                            activity.getUserId(), activity.getTitle(), activity.getId(), "activity");
-                } else if (AuditStatus.REJECTED.getCode().equals(auditStatus)) {
-                    activity.setStatus(3);
-                    messageService.sendAuditRejectNotification(
-                            activity.getUserId(), activity.getTitle(), activity.getId(), "activity", rejectReason);
-                }
-                activityMapper.updateById(activity);
-                eventPublisher.publishEvent(new ActivityUpdatedEvent(this, targetId, "audit"));
-            }
-        } else if (TargetType.DAILY.getCode().equals(targetType)) {
-            DailyPost daily = dailyPostMapper.selectById(targetId);
-            if (daily != null) {
-                daily.setAuditStatus(auditStatus);
-                daily.setStatus(AuditStatus.APPROVED.getCode().equals(auditStatus) ? 1 : 0);
-                dailyPostMapper.updateById(daily);
-                eventPublisher.publishEvent(new DailyPostUpdatedEvent(this, targetId, "audit"));
-            }
-        }
-    }
-
-    private void clearCache(String targetType, Long targetId) {
-        if (TargetType.ADOPT.getCode().equals(targetType) || TargetType.HELP.getCode().equals(targetType)) {
-            // 清除宠物详情缓存
-            String petCacheKey = CacheUtil.buildKey("pet", String.valueOf(targetId));
-            distributedCache.delete(petCacheKey);
-            
-            // 清除宠物列表缓存
-            String petListCacheKey = CacheUtil.buildKey("petList", "1", "10");
-            distributedCache.delete(petListCacheKey);
-        } else if (TargetType.ACTIVITY.getCode().equals(targetType)) {
-            // 清除活动详情缓存
-            String activityCacheKey = CacheUtil.buildKey("activity", String.valueOf(targetId));
-            distributedCache.delete(activityCacheKey);
-            
-            // 清除活动列表缓存
-            String activityListCacheKey = CacheUtil.buildKey("activityList", "1", "10");
-            distributedCache.delete(activityListCacheKey);
-        } else if (TargetType.DAILY.getCode().equals(targetType)) {
-            String dailyCacheKey = CacheUtil.buildKey("daily", String.valueOf(targetId));
-            distributedCache.delete(dailyCacheKey);
-        }
     }
 
     private AuditListDto convertPetToDto(PetPost pet, String targetType) {
@@ -457,29 +378,9 @@ public class AuditServiceImpl implements AuditService {
     }
 
     private AuditHistoryDto convertRecordToHistoryDto(AuditRecord record, String keyword) {
-        String title = null;
-        Long userId = null;
-
-        if (TargetType.ADOPT.getCode().equals(record.getTargetType()) ||
-                TargetType.HELP.getCode().equals(record.getTargetType())) {
-            PetPost pet = petPostMapper.selectById(record.getTargetId());
-            if (pet != null) {
-                title = pet.getTitle();
-                userId = pet.getUserId();
-            }
-        } else if (TargetType.ACTIVITY.getCode().equals(record.getTargetType())) {
-            Activity activity = activityMapper.selectById(record.getTargetId());
-            if (activity != null) {
-                title = activity.getTitle();
-                userId = activity.getUserId();
-            }
-        } else if (TargetType.DAILY.getCode().equals(record.getTargetType())) {
-            DailyPost daily = dailyPostMapper.selectById(record.getTargetId());
-            if (daily != null) {
-                title = daily.getContent();
-                userId = daily.getUserId();
-            }
-        }
+        AuditTargetHandler handler = handlerFactory.getHandler(record.getTargetType());
+        String title = handler.getTitle(record.getTargetId());
+        Long userId = handler.getUserId(record.getTargetId());
 
         if (title == null) return null;
         if (StringUtils.hasText(keyword) && !title.contains(keyword)) return null;
@@ -497,7 +398,7 @@ public class AuditServiceImpl implements AuditService {
         return AuditHistoryDto.builder()
                 .id(record.getId())
                 .targetType(record.getTargetType())
-                .targetTypeDesc(getTargetTypeDesc(record.getTargetType()))
+                .targetTypeDesc(handler.getTargetTypeDesc(record.getTargetType()))
                 .targetId(record.getTargetId())
                 .title(title)
                 .user(userDto)
@@ -508,13 +409,6 @@ public class AuditServiceImpl implements AuditService {
                 .auditTime(record.getAuditTime())
                 .createTime(record.getCreateTime())
                 .build();
-    }
-
-    private String getTargetTypeDesc(String targetType) {
-        if (TargetType.ADOPT.getCode().equals(targetType)) return "领养";
-        if (TargetType.HELP.getCode().equals(targetType)) return "救助";
-        if (TargetType.ACTIVITY.getCode().equals(targetType)) return "活动";
-        return targetType;
     }
 
     private LocalDateTime parseDateRange(String dateRange) {
