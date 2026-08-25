@@ -54,12 +54,16 @@ public class WebSocketHandler extends TextWebSocketHandler {
         if (session != null && session.isOpen()) {
             try {
                 String json = JSON.toJSONString(message);
-                session.sendMessage(new TextMessage(json));
+                // 并发推送同一 session 会抛 "Concurrent access"，加锁串行化
+                synchronized (session) {
+                    session.sendMessage(new TextMessage(json));
+                }
                 log.debug("推送成功: userId={}", userId);
                 return true;
             } catch (Exception e) {
                 log.error("推送失败: userId={}", userId, e);
-                SESSIONS.remove(userId);
+                // 按 session 匹配移除：只删这个失效连接，避免误删重连后的新连接（旧做法 remove(userId) 会误删）
+                SESSIONS.entrySet().removeIf(entry -> entry.getValue().equals(session));
             }
         }
         return false;

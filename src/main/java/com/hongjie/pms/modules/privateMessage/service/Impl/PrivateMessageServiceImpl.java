@@ -68,6 +68,7 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
         // 3. 更新会话
         conversation.setLastMessage(request.getContent());
         conversation.setLastMessageTime(LocalDateTime.now());
+        conversationMapper.updateById(conversation);   // 落库，否则会话列表最后一条永远不变
 
         // 增加接收者的未读数
         if (conversation.getUserA().equals(toUserId)) {
