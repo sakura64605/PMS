@@ -19,6 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -217,24 +219,14 @@ public class SearchDataSyncService {
      * 根据ID重新同步宠物信息到ES（审核状态变更后使用）
      */
     public void syncPetPostById(Long petId) {
-        PetPost petPost = petPostMapper.selectById(petId);
-        if (petPost == null) {
-            deleteById("pet_" + petId);
-            return;
-        }
-        syncPetPost(petPost);
+        syncById(petId, "pet_", petPostMapper::selectById, this::syncPetPost);
     }
 
     /**
      * 根据ID重新同步活动到ES（审核状态变更后使用）
      */
     public void syncActivityById(Long activityId) {
-        Activity activity = activityMapper.selectById(activityId);
-        if (activity == null) {
-            deleteById("activity_" + activityId);
-            return;
-        }
-        syncActivity(activity);
+        syncById(activityId, "activity_", activityMapper::selectById, this::syncActivity);
     }
 
     /**
@@ -242,13 +234,27 @@ public class SearchDataSyncService {
      */
     public void syncDailyPostById(Long dailyId) {
         DailyPost dailyPost = dailyPostMapper.selectById(dailyId);
-        if (dailyPost != null) {
-            List<Long> topicIds = dailyTopicRelMapper.selectList(
-                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.hongjie.pms.modules.daily.entity.DailyTopicRel>()
-                            .eq(com.hongjie.pms.modules.daily.entity.DailyTopicRel::getDailyId, dailyId)
-            ).stream().map(com.hongjie.pms.modules.daily.entity.DailyTopicRel::getTopicId).collect(Collectors.toList());
-            syncDailyPost(dailyPost, topicIds);
+        if (dailyPost == null) {
+            deleteById("daily_" + dailyId);
+            return;
         }
+        List<Long> topicIds = dailyTopicRelMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.hongjie.pms.modules.daily.entity.DailyTopicRel>()
+                        .eq(com.hongjie.pms.modules.daily.entity.DailyTopicRel::getDailyId, dailyId)
+        ).stream().map(com.hongjie.pms.modules.daily.entity.DailyTopicRel::getTopicId).collect(Collectors.toList());
+        syncDailyPost(dailyPost, topicIds);
+    }
+
+    /**
+     * 通用方法：根据ID查询实体，若不存在则删除ES文档，否则同步到ES
+     */
+    private <T> void syncById(Long id, String docPrefix, Function<Long, T> fetcher, Consumer<T> syncer) {
+        T entity = fetcher.apply(id);
+        if (entity == null) {
+            deleteById(docPrefix + id);
+            return;
+        }
+        syncer.accept(entity);
     }
 
     private String extractTitleFromContent(String content) {
