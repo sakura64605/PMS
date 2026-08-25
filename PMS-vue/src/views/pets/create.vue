@@ -202,6 +202,7 @@ import { ElMessage } from 'element-plus';
 import { Plus, View, Delete } from '@element-plus/icons-vue';
 import { createPet } from '../../api/pet';
 import { createActivity } from '../../api/activity';
+import { useImageUpload } from '../../composables/useImageUpload';
 
 // 路由
 const router = useRouter();
@@ -306,6 +307,13 @@ const rules = computed(() => {
   }
 });
 
+// 图片上传
+const fileList = ref<any[]>([]);
+const { uploadHeaders, handleUploadSuccess, handleUploadError, handleRemove, beforeUpload, handlePreview, previewVisible, previewImage } = useImageUpload({
+  images: form.images,
+  fileList
+});
+
 // 生命周期
 onMounted(() => {
   // 如果是活动类型，设置type为2
@@ -313,83 +321,6 @@ onMounted(() => {
     form.type = 2;
   }
 });
-
-// 图片上传
-const fileList = ref<any[]>([]);
-const previewVisible = ref(false);
-const previewImage = ref('');
-
-// 上传请求头
-const uploadHeaders = computed(() => ({
-  'Authorization': `Bearer ${localStorage.getItem('token')}`
-}));
-
-// 方法
-const handlePreview = (file: any) => {
-  previewImage.value = file.url || file.response?.data?.avatarUrl;
-  previewVisible.value = true;
-};
-
-const handleRemove = (file: any) => {
-  const index = fileList.value.findIndex(f => f.uid === file.uid);
-  if (index !== -1) {
-    fileList.value.splice(index, 1);
-    // 从 form.images 中移除对应的URL
-    const url = file.url;
-    const urlIndex = form.images.findIndex(img => img === url);
-    if (urlIndex !== -1) {
-      form.images.splice(urlIndex, 1);
-    }
-    console.log('删除后图片URL列表:', form.images);
-  }
-};
-
-const handleUploadSuccess = (response: any, file: any, uploadFileList: any[]) => {
-  if (response.code === 200 && response.data?.avatarUrl) {
-    // 去除可能的多余引号
-    const imageUrl = response.data.avatarUrl.replace(/^"|"$/g, '');
-    // 将URL存入 form.images
-    form.images.push(imageUrl);
-    // 更新 fileList 中的 url 用于显示
-    const targetFile = fileList.value.find(f => f.uid === file.uid);
-    if (targetFile) {
-      targetFile.url = imageUrl;
-    }
-    console.log('图片URL列表:', form.images);
-    ElMessage.success('图片上传成功');
-  } else {
-    ElMessage.error(response.message || '上传失败');
-    // 上传失败，移除该文件
-    const index = fileList.value.findIndex(f => f.uid === file.uid);
-    if (index !== -1) {
-      fileList.value.splice(index, 1);
-    }
-  }
-};
-
-const handleUploadError = (error: any, file: any, uploadFileList: any[]) => {
-  ElMessage.error('上传失败，请重试');
-  // 上传失败，移除该文件
-  const index = fileList.value.findIndex(f => f.uid === file.uid);
-  if (index !== -1) {
-    fileList.value.splice(index, 1);
-  }
-};
-
-const beforeUpload = (file: any) => {
-  // 可以添加文件类型和大小验证
-  const isImage = file.type.startsWith('image/');
-  if (!isImage) {
-    ElMessage.error('只能上传图片文件');
-    return false;
-  }
-  const isLt2M = file.size / 1024 / 1024 < 2;
-  if (!isLt2M) {
-    ElMessage.error('图片大小不能超过2MB');
-    return false;
-  }
-  return true;
-};
 
 const handleSubmit = async () => {
   if (!formRef.value) return;
@@ -400,7 +331,6 @@ const handleSubmit = async () => {
       try {
         let response;
         if (isActivity.value) {
-          // 发布活动
           response = await createActivity({
             title: form.title,
             content: form.content,
@@ -411,7 +341,6 @@ const handleSubmit = async () => {
             maxPeople: parseInt(form.maxPeople) || 0
           });
         } else {
-          // 发布宠物信息
           response = await createPet({
             type: form.type,
             title: form.title,
@@ -426,7 +355,7 @@ const handleSubmit = async () => {
             images: form.images
           });
         }
-        
+
         if (response.code === 200) {
           ElMessage.success('发布成功');
           if (isActivity.value) {

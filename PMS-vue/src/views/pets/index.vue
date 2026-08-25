@@ -192,7 +192,6 @@
             <img :src="pet.images[0]" alt="宠物图片" loading="lazy" />
           </div>
           <div class="card-content">
-            <!-- 日记卡片内容 -->
             <template v-if="pet.type === 'daily'">
               <div class="title-with-status">
                 <h3 class="card-title">{{ pet.title || '' }}</h3>
@@ -224,7 +223,6 @@
               </div>
             </template>
 
-            <!-- 活动卡片内容 -->
             <template v-else-if="pet.type === 2 || pet.activityType === 'activity'">
               <div class="title-with-status">
                 <h3 class="card-title">📌 {{ pet.title || '' }}</h3>
@@ -562,7 +560,7 @@ const handleCreate = () => {
   }
 };
 
-const handleCardClick = (id: number, itemType?: any) => {
+const handleCardClick = (id: number, itemType?: string | number) => {
   if (itemType === 'daily') {
     router.push(`/daily/${id}`);
   } else if (itemType === 'activity' || itemType === 2 || activeType.value === '2') {
@@ -807,7 +805,6 @@ const fetchGlobalSearch = async () => {
         if (item.type === 'pet') {
           return item;
         } else if (item.type === 'daily') {
-          // 日常帖子保持独立类型
           return {
             id: item.id,
             title: item.title,

@@ -1,7 +1,7 @@
 <template>
   <div class="publish-container">
     <h2>发布日记</h2>
-    
+
     <el-form :model="form" :rules="rules" ref="formRef" label-width="80px">
       <!-- 内容输入 -->
       <el-form-item label="内容" prop="content">
@@ -20,13 +20,12 @@
         <el-upload
           class="upload-demo"
           action="/pet-system/pet/upload"
-          :headers="{ 'Authorization': `Bearer ${token}` }"
-          :on-success="handleImageUploadSuccess"
-          :on-error="handleImageUploadError"
+          :headers="{ 'Authorization': `Bearer ${localStorage.getItem('token')}` }"
+          :on-success="handleUploadSuccess"
+          :on-error="handleUploadError"
           :limit="9"
-          :on-exceed="handleImageExceed"
+          :on-exceed="handleExceed"
           list-type="picture-card"
-          :file-list="uploadFileList"
         >
           <template #default>
             <el-icon><Plus /></el-icon>
@@ -41,7 +40,7 @@
               <el-button
                 type="text"
                 size="small"
-                @click="handleRemoveImage(file)"
+                @click="handleRemove(file)"
               >
                 <el-icon><Delete /></el-icon>
               </el-button>
@@ -119,11 +118,11 @@ import { useRouter } from 'vue-router';
 import { publishDaily, getHotTopics, searchTopics, createTopic } from '../../api/daily';
 import { ElMessage } from 'element-plus';
 import { Plus, Delete } from '@element-plus/icons-vue';
+import { useImageUpload } from '../../composables/useImageUpload';
 
 const router = useRouter();
 const formRef = ref<any>(null);
 const loading = ref(false);
-const token = localStorage.getItem('token');
 
 // 表单数据
 const form = reactive({
@@ -133,8 +132,9 @@ const form = reactive({
   topicIds: [] as number[]
 });
 
-// 上传文件列表
-const uploadFileList = ref<any[]>([]);
+const { handleUploadSuccess, handleUploadError, handleRemove, handleExceed } = useImageUpload({
+  images: form.images
+});
 
 // 表单验证规则
 const rules = {
@@ -143,8 +143,8 @@ const rules = {
     { min: 1, max: 500, message: '内容长度在 1 到 500 个字符', trigger: 'blur' }
   ],
   topicIds: [
-    { 
-      required: true, 
+    {
+      required: true,
       validator: (rule: any, value: any, callback: any) => {
         if (!value || value.length === 0) {
           callback(new Error('请至少选择一个话题'));
@@ -161,40 +161,6 @@ const rules = {
 const selectedTopics = ref<any[]>([]);
 const topicInput = ref('');
 const hotTopics = ref<any[]>([]);
-
-// 处理图片上传成功
-const handleImageUploadSuccess = (response: any, uploadFile: any) => {
-  if (response.code === 200 && response.data?.avatarUrl) {
-    const url = response.data.avatarUrl;
-    form.images.push(url);
-    uploadFile.url = url;
-    ElMessage.success('图片上传成功');
-  } else {
-    ElMessage.error('图片上传失败');
-  }
-};
-
-// 处理图片上传失败
-const handleImageUploadError = () => {
-  ElMessage.error('图片上传失败');
-};
-
-// 处理图片超出限制
-const handleImageExceed = () => {
-  ElMessage.error('最多上传9张图片');
-};
-
-// 处理移除图片
-const handleRemoveImage = (file: any) => {
-  const index = form.images.findIndex(img => img === file.url);
-  if (index > -1) {
-    form.images.splice(index, 1);
-  }
-  const fileIndex = uploadFileList.value.findIndex(f => f.uid === file.uid);
-  if (fileIndex > -1) {
-    uploadFileList.value.splice(fileIndex, 1);
-  }
-};
 
 // 搜索话题
 const queryTopics = async (query: string, callback: (data: any[]) => void) => {
@@ -244,7 +210,7 @@ const handleAddTopic = (topic: any) => {
 // 创建话题
 const handleCreateTopic = async () => {
   if (!topicInput.value) return;
-  
+
   try {
     const response = await createTopic({
       name: topicInput.value,
@@ -265,7 +231,7 @@ const handleCreateTopic = async () => {
 // 提交表单
 const handleSubmit = async () => {
   if (!formRef.value) return;
-  
+
   await formRef.value.validate(async (valid: boolean) => {
     if (valid) {
       loading.value = true;
@@ -278,7 +244,7 @@ const handleSubmit = async () => {
           },
           topicIds: form.topicIds
         });
-        
+
         if (response.data) {
           ElMessage.success('发布成功');
           router.push('/daily');
@@ -394,7 +360,7 @@ onMounted(() => {
   .publish-container {
     padding: 10px;
   }
-  
+
   .topic-input {
     width: 200px;
   }
