@@ -251,45 +251,49 @@ public class AIAgentEngine {
                 log.info("正在搜索知识库: {}", userMessage);
                 LambdaQueryWrapper<AiKnowledgeBase> wrapper = new LambdaQueryWrapper<>();
                 wrapper.eq(AiKnowledgeBase::getStatus, 1);
-                wrapper.and(w -> {
-                    // 中文没有空格分隔，这里将查询拆成所有可能的2字词组做OR匹配
-                    // 例如"怎么报名活动" → "怎么" OR "报名" OR "活动" OR "么报" OR "名活"
-                    Set<String> keywords = new LinkedHashSet<>();
-                    // 添加完整查询词
-                    if (userMessage.trim().length() >= 2) {
-                        keywords.add(userMessage.trim());
+
+                // 中文没有空格分隔，这里将查询拆成所有可能的2字词组做OR匹配
+                // 例如"怎么报名活动" → "怎么" OR "报名" OR "活动" OR "么报" OR "名活"
+                Set<String> keywords = new LinkedHashSet<>();
+                // 添加完整查询词
+                if (userMessage.trim().length() >= 2) {
+                    keywords.add(userMessage.trim());
+                }
+                // 按常见分隔符切分
+                for (String part : userMessage.split("[\\s,，、。.?!？!：:；;]+")) {
+                    if (part.trim().length() >= 2) {
+                        keywords.add(part.trim());
                     }
-                    // 按常见分隔符切分
-                    for (String part : userMessage.split("[\\s,，、。.?!？!：:；;]+")) {
-                        if (part.trim().length() >= 2) {
-                            keywords.add(part.trim());
+                    // 生成所有2字组合（中文核心词通常是2字）
+                    for (int i = 0; i + 1 < part.length(); i++) {
+                        String bigram = part.substring(i, Math.min(i + 2, part.length()));
+                        if (bigram.length() >= 2) {
+                            keywords.add(bigram);
                         }
-                        // 生成所有2字组合（中文核心词通常是2字）
-                        for (int i = 0; i + 1 < part.length(); i++) {
-                            String bigram = part.substring(i, Math.min(i + 2, part.length()));
-                            if (bigram.length() >= 2) {
-                                keywords.add(bigram);
+                    }
+                }
+                // 过滤掉无意义的单字和常用虚词
+                keywords.removeIf(kw -> kw.length() < 2 || "怎么".equals(kw) || "如何".equals(kw) || "怎样".equals(kw) || "哪个".equals(kw) || "哪些".equals(kw));
+                log.info("知识库搜索关键词: {}", keywords);
+
+                // 仅当存在有效关键词时才拼接 AND(...) 条件，避免空条件生成 "WHERE (status=? AND )" 的 SQL 语法错误
+                if (!keywords.isEmpty()) {
+                    wrapper.and(w -> {
+                        boolean first = true;
+                        for (String kw : keywords) {
+                            if (first) {
+                                w.like(AiKnowledgeBase::getTitle, kw)
+                                        .or()
+                                        .like(AiKnowledgeBase::getContent, kw);
+                                first = false;
+                            } else {
+                                w.or(i -> i.like(AiKnowledgeBase::getTitle, kw)
+                                        .or()
+                                        .like(AiKnowledgeBase::getContent, kw));
                             }
                         }
-                    }
-                    // 过滤掉无意义的单字和常用虚词
-                    keywords.removeIf(kw -> kw.length() < 2 || "怎么".equals(kw) || "如何".equals(kw) || "怎样".equals(kw) || "哪个".equals(kw) || "哪些".equals(kw));
-
-                    log.info("知识库搜索关键词: {}", keywords);
-                    boolean first = true;
-                    for (String kw : keywords) {
-                        if (first) {
-                            w.like(AiKnowledgeBase::getTitle, kw)
-                                    .or()
-                                    .like(AiKnowledgeBase::getContent, kw);
-                            first = false;
-                        } else {
-                            w.or(i -> i.like(AiKnowledgeBase::getTitle, kw)
-                                    .or()
-                                    .like(AiKnowledgeBase::getContent, kw));
-                        }
-                    }
-                });
+                    });
+                }
                 wrapper.last("LIMIT 3");
 
                 List<AiKnowledgeBase> knowledges = knowledgeBaseMapper.selectList(wrapper);

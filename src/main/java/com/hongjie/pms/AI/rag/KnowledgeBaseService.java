@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -87,17 +88,31 @@ public class KnowledgeBaseService {
         try {
             LambdaQueryWrapper<AiKnowledgeBase> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(AiKnowledgeBase::getStatus, 1);
-            wrapper.and(w -> {
-                // 对整个查询词做 LIKE 匹配
-                String[] keywords = query.split("[\\s,，、。.]");
-                for (String kw : keywords) {
-                    if (kw.trim().length() >= 2) {
-                        w.like(AiKnowledgeBase::getTitle, kw.trim())
-                                .or()
-                                .like(AiKnowledgeBase::getContent, kw.trim());
-                    }
+            // 对整个查询词做 LIKE 匹配，仅当存在 ≥2 字关键词时才拼 AND(...)，避免空条件 SQL 语法错误
+            List<String> validKeywords = new ArrayList<>();
+            for (String kw : query.split("[\\s,，、。.]")) {
+                String t = kw.trim();
+                if (t.length() >= 2) {
+                    validKeywords.add(t);
                 }
-            });
+            }
+            if (!validKeywords.isEmpty()) {
+                wrapper.and(w -> {
+                    boolean first = true;
+                    for (String kw : validKeywords) {
+                        if (first) {
+                            w.like(AiKnowledgeBase::getTitle, kw)
+                                    .or()
+                                    .like(AiKnowledgeBase::getContent, kw);
+                            first = false;
+                        } else {
+                            w.or(i -> i.like(AiKnowledgeBase::getTitle, kw)
+                                    .or()
+                                    .like(AiKnowledgeBase::getContent, kw));
+                        }
+                    }
+                });
+            }
             wrapper.last("LIMIT 3");
             List<AiKnowledgeBase> knowledges = knowledgeBaseMapper.selectList(wrapper);
 
