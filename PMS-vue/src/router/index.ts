@@ -108,7 +108,8 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'feed',
         name: 'Feed',
-        component: () => import('../views/feed/index.vue')
+        component: () => import('../views/feed/index.vue'),
+        meta: { requiresAuth: true }
       },
       {
         path: 'pets/:id',

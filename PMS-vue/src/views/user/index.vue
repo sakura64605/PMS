@@ -121,9 +121,23 @@ const handleBack = () => router.back();
 
 const navigateToPetDetail = (petId: number) => router.push(`/pets/${petId}`);
 
-const handleFollow = () => ElMessage.info('功能开发中');
+const handleFollow = () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    ElMessage.warning('请先登录');
+    router.push('/login');
+    return;
+  }
+  ElMessage.info('功能开发中');
+};
 
 const handleSendMessage = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    ElMessage.warning('请先登录');
+    router.push('/login');
+    return;
+  }
   if (userInfo.value) {
     try {
       // 调用后端接口创建或获取会话

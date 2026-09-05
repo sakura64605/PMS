@@ -257,7 +257,10 @@ const fetchFeedList = async () => {
       ElMessage.error(response.message || '获取关注内容失败');
     }
   } catch (error) {
-    ElMessage.error('获取关注内容失败，请重试');
+    // 401=未登录/token失效，已由全局拦截器清登录态并跳转登录页，不重复弹错
+    if (error?.response?.status !== 401) {
+      ElMessage.error('获取关注内容失败，请重试');
+    }
     console.error('获取关注内容失败:', error);
   } finally {
     loading.value = false;

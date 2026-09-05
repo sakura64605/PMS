@@ -263,10 +263,15 @@ onMounted(() => {
     }
   })
   
-  // 监听token过期事件，立即清除用户信息
+  // 监听token过期事件：清除用户信息并跳转登录页
   const handleAuthCleared = () => {
     userInfo.value = null
     websocketService.close()
+    // token 过期/失效（如 24h 过期残留）：跳转登录页。
+    // 匿名浏览（无 token）不会走到这里，故不影响公开页访问。
+    if (router.currentRoute.value.path !== '/login') {
+      router.push('/login')
+    }
   }
   window.addEventListener('auth-cleared', handleAuthCleared)
 
