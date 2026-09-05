@@ -1,6 +1,9 @@
 package com.hongjie.pms.AI.common.config;
 
+import com.hongjie.pms.AI.common.TokenUsageTracker;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.listener.ChatModelListener;
+import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2.AllMiniLmL6V2EmbeddingModel;
@@ -18,6 +21,7 @@ import java.time.Duration;
 public class AIAgentConfiguration {
 
     private final AIAgentConfig aiAgentConfig;
+    private final TokenUsageTracker tokenUsageTracker;
 
     @Bean
     public ChatModel chatLanguageModel() {
@@ -33,7 +37,23 @@ public class AIAgentConfiguration {
                 .timeout(Duration.ofSeconds(aiAgentConfig.getTimeout()))
                 .logRequests(true)
                 .logResponses(true)
+                .listeners(createTokenUsageListener())
                 .build();
+    }
+
+    /**
+     * 每次 LLM 调用响应时，把该次 TokenUsage 累加到当前请求的累积器（ReAct 循环多次调用都会计到）。
+     */
+    private ChatModelListener createTokenUsageListener() {
+        return new ChatModelListener() {
+            @Override
+            public void onResponse(ChatModelResponseContext context) {
+                TokenUsageTracker.TokenUsageAccumulator acc = tokenUsageTracker.current();
+                if (acc != null && context.chatResponse() != null) {
+                    acc.add(context.chatResponse().tokenUsage());
+                }
+            }
+        };
     }
 
     @Bean

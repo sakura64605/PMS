@@ -1,6 +1,7 @@
 package com.hongjie.pms.AI.agent;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.hongjie.pms.AI.common.TokenUsageTracker;
 import com.hongjie.pms.AI.modules.dto.ToolCall;
 import com.hongjie.pms.AI.modules.dto.request.AIAgentRequest;
 import com.hongjie.pms.AI.modules.dto.response.AIAgentResponse;
@@ -21,7 +22,6 @@ import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.observability.AfterAgentToolExecution;
 import dev.langchain4j.agentic.observability.AgentListener;
-import dev.langchain4j.agentic.observability.AgentResponse;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.ChatMemory;
@@ -44,6 +44,7 @@ public class AIAgentEngine {
     private final ChatModel chatLanguageModel;
     private final ChatMemoryService memoryService;
     private final KnowledgeBaseService knowledgeBaseService;
+    private final TokenUsageTracker tokenUsageTracker;
     private final ToolRegistry toolRegistry;
     private final UserMapper userMapper;
     private final PetPostMapper petPostMapper;
@@ -60,6 +61,8 @@ public class AIAgentEngine {
         Long userId = request.getUserId();
         // 记录用户消息是否已落库，AI 异常时 catch 里据此补齐用户消息与故障回复
         boolean userSaved = false;
+        // 本次请求的 token 累积器：ChatModelListener 在每次 LLM 响应时累加，覆盖 ReAct 循环全部调用
+        TokenUsageTracker.TokenUsageAccumulator usage = tokenUsageTracker.begin();
 
         try {
             if (shouldTransferToHuman(userMessage)) {
@@ -72,12 +75,12 @@ public class AIAgentEngine {
                         .sessionId(request.getSessionId())
                         .content(transferMsg)
                         .needHuman(true)
+                        .tokensUsed(usage.totalTokens())
                         .build();
             }
 
-            // 请求级收集：工具调用轨迹 + token 用量（返回给前端）
+            // 请求级收集：工具调用轨迹（返回给前端）
             List<ToolCall> toolTrace = new ArrayList<>();
-            int[] tokenHolder = new int[1];
 
             // 工具执行器（闭包捕获 userId；执行异常作为观察结果回喂模型纠错）
             Map<ToolSpecification, ToolExecutor> toolExecutors = toolRegistry.getToolExecutors(userId);
@@ -90,7 +93,7 @@ public class AIAgentEngine {
                     .userMessageProvider(input -> userMessage)
                     .chatMemoryProvider(memoryId -> buildSeededMemory(request.getSessionId()))
                     .maxToolCallingRoundTrips(MAX_TOOL_CALLING_ROUND_TRIPS)
-                    .listener(createToolTraceListener(toolTrace, tokenHolder))
+                    .listener(createToolTraceListener(toolTrace))
                     .build();
 
             // 先落库用户消息（下次请求注入历史时包含本句）
@@ -100,7 +103,8 @@ public class AIAgentEngine {
             Object result = agent.invoke(Map.<String, Object>of("message", userMessage));
             String answer = result != null ? result.toString() : "";
 
-            memoryService.saveMessage(request.getSessionId(), "assistant", answer, userId);
+            // 落库助手回复并带上本次请求的 token 合计
+            memoryService.saveMessage(request.getSessionId(), "assistant", answer, userId, usage.totalTokens());
 
             long latency = System.currentTimeMillis() - startTime;
 
@@ -112,7 +116,7 @@ public class AIAgentEngine {
                     .needHuman(false)
                     .suggestions(smartSuggestions(userMessage))
                     .toolCalls(toolTrace.isEmpty() ? null : toolTrace)
-                    .tokensUsed(tokenHolder[0] > 0 ? tokenHolder[0] : answer.length() / 2)
+                    .tokensUsed(usage.totalTokens())
                     .latencyMs((int) latency)
                     .build();
 
@@ -120,13 +124,17 @@ public class AIAgentEngine {
             log.error("AI Agent处理失败: sessionId={}", request.getSessionId(), e);
             // AI 故障也要把"用户消息 + 故障回复"落库，否则刷新历史后像没发过一样
             String errorReply = "抱歉，我遇到了一些问题，请稍后再试或联系人工客服。";
-            persistFallbackReply(request.getSessionId(), userMessage, userId, userSaved, errorReply);
+            persistFallbackReply(request.getSessionId(), userMessage, userId, userSaved, errorReply, usage.totalTokens());
             return AIAgentResponse.builder()
                     .messageId(messageId)
                     .sessionId(request.getSessionId())
                     .content(errorReply)
                     .needHuman(true)
+                    .tokensUsed(usage.totalTokens())
                     .build();
+        } finally {
+            // 请求结束清理 ThreadLocal，避免线程池复用导致跨请求串数
+            tokenUsageTracker.end();
         }
     }
 
@@ -135,12 +143,12 @@ public class AIAgentEngine {
      * 使用户刷新历史时能看到完整往返，而不是"像没发过"。
      */
     private void persistFallbackReply(String sessionId, String userMessage, Long userId,
-                                      boolean userSaved, String assistantReply) {
+                                      boolean userSaved, String assistantReply, Integer tokensUsed) {
         try {
             if (!userSaved) {
                 memoryService.saveMessage(sessionId, "user", userMessage, userId);
             }
-            memoryService.saveMessage(sessionId, "assistant", assistantReply, userId);
+            memoryService.saveMessage(sessionId, "assistant", assistantReply, userId, tokensUsed);
         } catch (Exception ex) {
             log.warn("AI 降级回复落库失败: sessionId={}", sessionId, ex);
         }
@@ -174,17 +182,8 @@ public class AIAgentEngine {
      * 观察 ReAct 循环每一步工具调用，收集 name/arguments/result 填充 toolCalls；
      * 并在 invoke 结束后从最终 ChatResponse 取真实 token 用量。
      */
-    private AgentListener createToolTraceListener(List<ToolCall> trace, int[] tokenHolder) {
+    private AgentListener createToolTraceListener(List<ToolCall> trace) {
         return new AgentListener() {
-            @Override
-            public void afterAgentInvocation(AgentResponse response) {
-                if (response != null && response.chatResponse() != null
-                        && response.chatResponse().tokenUsage() != null
-                        && response.chatResponse().tokenUsage().totalTokenCount() != null) {
-                    tokenHolder[0] = response.chatResponse().tokenUsage().totalTokenCount();
-                }
-            }
-
             @Override
             public void afterAgentToolExecution(AfterAgentToolExecution observation) {
                 ToolExecution exec = observation.toolExecution();
@@ -199,7 +198,6 @@ public class AIAgentEngine {
             }
         };
     }
-    //TODO 记录token使用量，落库记录。学习使用向量模型搜索知识库
 
     private String buildSystemPrompt(Long userId, String userMessage) {
         StringBuilder sb = new StringBuilder();

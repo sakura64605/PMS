@@ -27,20 +27,26 @@ public class ChatMemoryService {
     private static final String MEMORY_CACHE_PREFIX = "ai:memory:session:";
     
     public void saveMessage(String sessionId, String role, String content, Long userId) {
+        saveMessage(sessionId, role, content, userId, null);
+    }
+
+    /** 带 token 用量的保存（assistant 回复落库时带上本消息整轮消耗） */
+    public void saveMessage(String sessionId, String role, String content, Long userId, Integer tokensUsed) {
         String cacheKey = MEMORY_CACHE_PREFIX + sessionId;
         MemoryMessage msg = new MemoryMessage(role, content, System.currentTimeMillis());
         redisTemplate.opsForList().rightPush(cacheKey, msg);
         redisTemplate.expire(cacheKey, 24, TimeUnit.HOURS);
-        
+
         AiChatMessage entity = new AiChatMessage();
         entity.setSessionId(sessionId);
         entity.setMessageId(UUID.randomUUID().toString());
         entity.setRole(role);
         entity.setContent(content);
+        entity.setTokensUsed(tokensUsed);
         entity.setCreatedAt(LocalDateTime.now());
         messageMapper.insert(entity);
-        
-        log.debug("保存消息: sessionId={}, role={}", sessionId, role);
+
+        log.debug("保存消息: sessionId={}, role={}, tokensUsed={}", sessionId, role, tokensUsed);
     }
     
     public List<MemoryMessage> getRecentMessages(String sessionId, int maxRounds) {
