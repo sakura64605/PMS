@@ -58,14 +58,19 @@ public class AIAgentEngine {
         String messageId = UUID.randomUUID().toString();
         String userMessage = request.getMessage();
         Long userId = request.getUserId();
+        // 记录用户消息是否已落库，AI 异常时 catch 里据此补齐用户消息与故障回复
+        boolean userSaved = false;
 
         try {
             if (shouldTransferToHuman(userMessage)) {
                 memoryService.saveMessage(request.getSessionId(), "user", userMessage, userId);
+                userSaved = true;
+                String transferMsg = "正在为您转接人工客服，请稍候...";
+                memoryService.saveMessage(request.getSessionId(), "assistant", transferMsg, userId);
                 return AIAgentResponse.builder()
                         .messageId(messageId)
                         .sessionId(request.getSessionId())
-                        .content("正在为您转接人工客服，请稍候...")
+                        .content(transferMsg)
                         .needHuman(true)
                         .build();
             }
@@ -90,6 +95,7 @@ public class AIAgentEngine {
 
             // 先落库用户消息（下次请求注入历史时包含本句）
             memoryService.saveMessage(request.getSessionId(), "user", userMessage, userId);
+            userSaved = true;
 
             Object result = agent.invoke(Map.<String, Object>of("message", userMessage));
             String answer = result != null ? result.toString() : "";
@@ -112,12 +118,31 @@ public class AIAgentEngine {
 
         } catch (Exception e) {
             log.error("AI Agent处理失败: sessionId={}", request.getSessionId(), e);
+            // AI 故障也要把"用户消息 + 故障回复"落库，否则刷新历史后像没发过一样
+            String errorReply = "抱歉，我遇到了一些问题，请稍后再试或联系人工客服。";
+            persistFallbackReply(request.getSessionId(), userMessage, userId, userSaved, errorReply);
             return AIAgentResponse.builder()
                     .messageId(messageId)
                     .sessionId(request.getSessionId())
-                    .content("抱歉，我遇到了一些问题，请稍后再试或联系人工客服。")
+                    .content(errorReply)
                     .needHuman(true)
                     .build();
+        }
+    }
+
+    /**
+     * AI 故障/转人工等降级路径落库兜底：确保用户消息已存，再存一条助手回复，
+     * 使用户刷新历史时能看到完整往返，而不是"像没发过"。
+     */
+    private void persistFallbackReply(String sessionId, String userMessage, Long userId,
+                                      boolean userSaved, String assistantReply) {
+        try {
+            if (!userSaved) {
+                memoryService.saveMessage(sessionId, "user", userMessage, userId);
+            }
+            memoryService.saveMessage(sessionId, "assistant", assistantReply, userId);
+        } catch (Exception ex) {
+            log.warn("AI 降级回复落库失败: sessionId={}", sessionId, ex);
         }
     }
 
