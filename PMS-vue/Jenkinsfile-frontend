@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        REMOTE_HOST = 'ubuntu@YOUR_SERVER_IP'
+        REMOTE_HOST = 'ubuntu@111.229.254.252'
         DEPLOY_PATH = '/var/www/html/pms'
         NODE_OPTIONS = '--max-old-space-size=2048'
     }
@@ -27,8 +27,8 @@ pipeline {
         stage('部署') {
             steps {
                 sh '''
-                    # 确保远程目录存在且有正确权限
-                    ssh ${REMOTE_HOST} "sudo mkdir -p ${DEPLOY_PATH} && sudo chown -R ubuntu:ubuntu ${DEPLOY_PATH}"
+                    # 清空旧产物（vite 产物为内容哈希命名，不清会持续累积），确保目录存在且有正确权限
+                    ssh ${REMOTE_HOST} "sudo rm -rf ${DEPLOY_PATH}/* && sudo mkdir -p ${DEPLOY_PATH} && sudo chown -R ubuntu:ubuntu ${DEPLOY_PATH}"
                     # 上传文件
                     scp -r PMS-vue/dist/* ${REMOTE_HOST}:${DEPLOY_PATH}/
                     # 重载 Nginx
