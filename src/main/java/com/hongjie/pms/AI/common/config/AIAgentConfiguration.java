@@ -1,6 +1,6 @@
 package com.hongjie.pms.AI.common.config;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2.AllMiniLmL6V2EmbeddingModel;
@@ -20,13 +20,13 @@ public class AIAgentConfiguration {
     private final AIAgentConfig aiAgentConfig;
 
     @Bean
-    public ChatLanguageModel chatLanguageModel() {
-        log.info("初始化 ChatLanguageModel, model={}, temperature={}, maxTokens={}",
+    public ChatModel chatLanguageModel() {
+        log.info("初始化 ChatModel, model={}, temperature={}, maxTokens={}",
                 aiAgentConfig.getModelName(), aiAgentConfig.getTemperature(), aiAgentConfig.getMaxTokens());
 
         return OpenAiChatModel.builder()
                 .apiKey(aiAgentConfig.getApiKey())
-                .baseUrl("https://dashscope.aliyuncs.com/compatible-mode/v1")
+                .baseUrl(aiAgentConfig.getBaseUrl())
                 .modelName(aiAgentConfig.getModelName())
                 .temperature(aiAgentConfig.getTemperature())
                 .maxTokens(aiAgentConfig.getMaxTokens())

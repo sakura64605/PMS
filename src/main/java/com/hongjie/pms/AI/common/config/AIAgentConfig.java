@@ -11,8 +11,11 @@ public class AIAgentConfig {
     /** API Key — 必须在 application.yaml 中配置 ai.agent.api-key */
     private String apiKey;
 
-    /** 模型名称 - 通义千问可选：qwen-turbo, qwen-plus, qwen-max */
-    private String modelName = "qwen-turbo";
+    /** OpenAI 兼容接口 baseUrl —— DeepSeek: https://api.deepseek.com */
+    private String baseUrl = "https://api.deepseek.com";
+
+    /** 模型名称 - DeepSeek: deepseek-chat（支持 function calling）；阿里云 qwen-turbo/qwen-plus/qwen-max */
+    private String modelName = "deepseek-chat";
 
     /** 温度参数 */
     private double temperature = 0.7;

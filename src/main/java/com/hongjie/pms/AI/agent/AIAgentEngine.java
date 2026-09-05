@@ -17,9 +17,18 @@ import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.data.message.*;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.output.Response;
+import dev.langchain4j.agentic.AgenticServices;
+import dev.langchain4j.agentic.UntypedAgent;
+import dev.langchain4j.agentic.observability.AfterAgentToolExecution;
+import dev.langchain4j.agentic.observability.AgentListener;
+import dev.langchain4j.agentic.observability.AgentResponse;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.memory.ChatMemory;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.service.tool.ToolExecution;
+import dev.langchain4j.service.tool.ToolExecutor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,7 +41,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class AIAgentEngine {
 
-    private final ChatLanguageModel chatLanguageModel;
+    private final ChatModel chatLanguageModel;
     private final ChatMemoryService memoryService;
     private final KnowledgeBaseService knowledgeBaseService;
     private final ToolRegistry toolRegistry;
@@ -40,6 +49,9 @@ public class AIAgentEngine {
     private final PetPostMapper petPostMapper;
     private final ActivitySignupMapper signupMapper;
     private final AiKnowledgeBaseMapper knowledgeBaseMapper;
+
+    /** ReAct 循环最大轮数（Thought→Action→Observation），防止死循环 */
+    private static final int MAX_TOOL_CALLING_ROUND_TRIPS = 5;
 
     public AIAgentResponse process(AIAgentRequest request) {
         long startTime = System.currentTimeMillis();
@@ -58,23 +70,29 @@ public class AIAgentEngine {
                         .build();
             }
 
-            List<ChatMessage> messages = new ArrayList<>();
-            messages.add(SystemMessage.from(buildSystemPrompt(userId, userMessage)));
+            // 请求级收集：工具调用轨迹 + token 用量（返回给前端）
+            List<ToolCall> toolTrace = new ArrayList<>();
+            int[] tokenHolder = new int[1];
 
-            List<ChatMemoryService.MemoryMessage> history = memoryService.getRecentMessages(
-                    request.getSessionId(), 5);
-            for (ChatMemoryService.MemoryMessage msg : history) {
-                if ("user".equals(msg.getRole())) {
-                    messages.add(UserMessage.from(msg.getContent()));
-                } else if ("assistant".equals(msg.getRole())) {
-                    messages.add(AiMessage.from(msg.getContent()));
-                }
-            }
-            messages.add(UserMessage.from(userMessage));
+            // 工具执行器（闭包捕获 userId；执行异常作为观察结果回喂模型纠错）
+            Map<ToolSpecification, ToolExecutor> toolExecutors = toolRegistry.getToolExecutors(userId);
 
+            // 每请求现搭 ReAct Agent：内置 Thought→Action→Observation 循环，无共享状态、线程安全
+            UntypedAgent agent = AgenticServices.agentBuilder()
+                    .chatModel(chatLanguageModel)
+                    .tools(toolExecutors)
+                    .systemMessageProvider(input -> buildSystemPrompt(userId, userMessage))
+                    .userMessageProvider(input -> userMessage)
+                    .chatMemoryProvider(memoryId -> buildSeededMemory(request.getSessionId()))
+                    .maxToolCallingRoundTrips(MAX_TOOL_CALLING_ROUND_TRIPS)
+                    .listener(createToolTraceListener(toolTrace, tokenHolder))
+                    .build();
+
+            // 先落库用户消息（下次请求注入历史时包含本句）
             memoryService.saveMessage(request.getSessionId(), "user", userMessage, userId);
 
-            String answer = generateWithTools(messages, userId);
+            Object result = agent.invoke(Map.<String, Object>of("message", userMessage));
+            String answer = result != null ? result.toString() : "";
 
             memoryService.saveMessage(request.getSessionId(), "assistant", answer, userId);
 
@@ -87,7 +105,8 @@ public class AIAgentEngine {
                     .answer(answer)
                     .needHuman(false)
                     .suggestions(smartSuggestions(userMessage))
-                    .tokensUsed(answer.length() / 2)
+                    .toolCalls(toolTrace.isEmpty() ? null : toolTrace)
+                    .tokensUsed(tokenHolder[0] > 0 ? tokenHolder[0] : answer.length() / 2)
                     .latencyMs((int) latency)
                     .build();
 
@@ -102,33 +121,60 @@ public class AIAgentEngine {
         }
     }
 
-    private String generateWithTools(List<ChatMessage> messages, Long userId) {
-        List<ToolSpecification> toolSpecs = toolRegistry.getToolSpecifications();
-        log.debug("发送消息到LLM，可用工具: {}", toolSpecs.stream().map(ToolSpecification::name).toList());
+    /**
+     * 从现有 ChatMemoryService（Redis + ai_chat_message 表）注入最近 5 轮对话到请求级内存窗口，
+     * 保持多轮上下文连续，同时不改变 /ai/history 与 clearMemory 的既有语义。
+     */
+    private ChatMemory buildSeededMemory(String sessionId) {
+        MessageWindowChatMemory memory = MessageWindowChatMemory.builder()
+                .id(sessionId)
+                .maxMessages(12)
+                .build();
+        try {
+            List<ChatMemoryService.MemoryMessage> history = memoryService.getRecentMessages(sessionId, 5);
+            for (ChatMemoryService.MemoryMessage msg : history) {
+                if ("user".equals(msg.getRole())) {
+                    memory.add(UserMessage.from(msg.getContent()));
+                } else if ("assistant".equals(msg.getRole())) {
+                    memory.add(AiMessage.from(msg.getContent()));
+                }
+            }
+        } catch (Exception e) {
+            log.warn("注入历史记忆失败: sessionId={}", sessionId, e);
+        }
+        return memory;
+    }
 
-        Response<AiMessage> response = chatLanguageModel.generate(messages, toolSpecs);
-        AiMessage aiMessage = response.content();
-
-        if (aiMessage.hasToolExecutionRequests()) {
-            List<ToolExecutionRequest> toolRequests = aiMessage.toolExecutionRequests();
-            log.info("LLM请求调用工具: {}",
-                    toolRequests.stream().map(r -> r.name() + "(" + r.arguments() + ")").toList());
-
-            messages.add(aiMessage);
-
-            for (ToolExecutionRequest toolReq : toolRequests) {
-                ToolCall result = toolRegistry.execute(toolReq.name(), toolReq.arguments(), userId);
-                log.debug("工具 {} 返回 {} 字符", toolReq.name(),
-                        result.getResult() != null ? result.getResult().length() : 0);
-                messages.add(ToolExecutionResultMessage.from(toolReq, result.getResult()));
+    /**
+     * 观察 ReAct 循环每一步工具调用，收集 name/arguments/result 填充 toolCalls；
+     * 并在 invoke 结束后从最终 ChatResponse 取真实 token 用量。
+     */
+    private AgentListener createToolTraceListener(List<ToolCall> trace, int[] tokenHolder) {
+        return new AgentListener() {
+            @Override
+            public void afterAgentInvocation(AgentResponse response) {
+                if (response != null && response.chatResponse() != null
+                        && response.chatResponse().tokenUsage() != null
+                        && response.chatResponse().tokenUsage().totalTokenCount() != null) {
+                    tokenHolder[0] = response.chatResponse().tokenUsage().totalTokenCount();
+                }
             }
 
-            Response<AiMessage> finalResponse = chatLanguageModel.generate(messages);
-            return finalResponse.content().text();
-        }
-
-        return aiMessage.text();
+            @Override
+            public void afterAgentToolExecution(AfterAgentToolExecution observation) {
+                ToolExecution exec = observation.toolExecution();
+                ToolExecutionRequest req = exec.request();
+                String result = exec.hasFailed() ? "工具执行失败: " + exec.result() : exec.result();
+                trace.add(ToolCall.builder()
+                        .id(req.id() != null ? req.id() : UUID.randomUUID().toString())
+                        .name(req.name())
+                        .arguments(req.arguments())
+                        .result(result)
+                        .build());
+            }
+        };
     }
+    //TODO 记录token使用量，落库记录。学习使用向量模型搜索知识库
 
     private String buildSystemPrompt(Long userId, String userMessage) {
         StringBuilder sb = new StringBuilder();
@@ -147,6 +193,7 @@ public class AIAgentEngine {
             2. 用户问到"我的帖子""我发布的""我报名的"时，主动调用对应工具
             3. 基于工具返回的真实数据回答，不要编造信息
             4. 不确定的事情建议联系人工客服
+            5. 需要多个信息才能回答时，可以依次调用多个工具，直到获得完整答案
             """);
 
         if (userId != null) {
