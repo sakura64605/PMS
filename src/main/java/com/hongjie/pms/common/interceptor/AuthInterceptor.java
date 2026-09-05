@@ -47,6 +47,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             "/pet-system/activity/detail/{id}",
             "/pet-system/notice/list",
             "/pet-system/notice/{id}",
+            "/pet-system/comment/list",
             "/pet-system/daily/{id}",
             "/pet-system/daily/topics/hot",
             "/pet-system/daily/topics/search",
