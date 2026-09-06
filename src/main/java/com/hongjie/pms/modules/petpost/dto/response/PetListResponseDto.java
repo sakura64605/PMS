@@ -37,6 +37,11 @@ public class PetListResponseDto {
     private String petType;
 
     /**
+     * 物种分类：0猫 1狗 2兔 3啮齿 4鸟 5鱼 6爬行 7其他
+     */
+    private Integer petCategory;
+
+    /**
      * 宠物年龄
      */
     private String petAge;

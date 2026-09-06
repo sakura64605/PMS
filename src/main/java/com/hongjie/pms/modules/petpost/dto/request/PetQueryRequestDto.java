@@ -12,7 +12,8 @@ public class PetQueryRequestDto {
     // 筛选条件
     private Integer type;           // 类型：0-领养 1-救助，null表示全部
     private Integer gender;         // 性别：0-未知 1-公 2-母，null表示全部
-    private String petType;         // 品种：猫/狗/其他
+    private Integer petCategory;    // 物种分类：0猫 1狗 2兔 3啮齿 4鸟 5鱼 6爬行 7其他，null表示全部
+    private String petType;         // 品种模糊搜索（自由文本品种名），与 petCategory 正交
     private Integer status;  // 状态：0-待审核 1-已发布 2-已完成，null表示已发布+已完成
     private Integer auditStatus;  // 审核状态：0-待审核 1-审核通过 2-审核拒绝，null表示全部
     private String keyword;         // 关键词搜索（标题+内容）

@@ -38,7 +38,9 @@ public class SearchPetsTool implements BaseTool {
 
         Map<String, Object> properties = new HashMap<>();
         properties.put("keyword", Map.of("type", "string", "description", "搜索关键词"));
-        properties.put("petType", Map.of("type", "string", "description", "宠物品种"));
+        properties.put("petType", Map.of("type", "string", "description", "具体品种名（自由文本），如 柴犬/金毛/橘猫"));
+        properties.put("species", Map.of("type", "integer", "description",
+                "物种分类：0猫 1狗 2兔 3啮齿类 4鸟类 5鱼类 6爬行/两栖 7其他。用户说'找狗/找猫/领养狗'等时填对应值"));
         properties.put("limit", Map.of("type", "integer", "description", "返回数量，默认5"));
 
         params.put("properties", properties);
@@ -49,20 +51,27 @@ public class SearchPetsTool implements BaseTool {
     public ToolCall execute(Map<String, Object> args, Long userId) {
         String keyword = (String) args.getOrDefault("keyword", "");
         String petType = (String) args.get("petType");
+        Integer species = args.get("species") instanceof Number
+                ? ((Number) args.get("species")).intValue() : null;
         String title = (String) args.get("title");
         String content = (String) args.get("content");
-        int limit = args.containsKey("limit") ? (int) args.get("limit") : 5;
+        int limit = args.containsKey("limit") ? ((Number) args.get("limit")).intValue() : 5;
 
-        log.info("搜索宠物: keyword={}, petType={}, limit={}", keyword, petType, limit);
+        log.info("搜索宠物: keyword={}, petType={}, species={}, limit={}", keyword, petType, species, limit);
 
         LambdaQueryWrapper<PetPost> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(PetPost::getStatus, 1)
                 .eq(PetPost::getAuditStatus, 1)
                 .orderByDesc(PetPost::getCreateTime);
 
-//        if (petType != null && !petType.isEmpty()) {
-//            wrapper.like(PetPost::getPetType, petType);
-//        }
+        // 物种分类（粗粒度）：数据有显式 pet_category 后可精确过滤，不再靠品种字符串猜
+        if (species != null) {
+            wrapper.eq(PetPost::getPetCategory, species);
+        }
+        // 具体品种（自由文本模糊）
+        if (petType != null && !petType.isEmpty()) {
+            wrapper.like(PetPost::getPetType, petType);
+        }
         if (title != null && !title.isEmpty()) {
             wrapper.like(PetPost::getTitle, title);
         }

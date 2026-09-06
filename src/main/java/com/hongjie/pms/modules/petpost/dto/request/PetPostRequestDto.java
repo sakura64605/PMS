@@ -25,6 +25,8 @@ public class PetPostRequestDto {
 
     private String petName;
     private String petType;
+    /** 物种分类：0猫 1狗 2兔 3啮齿 4鸟 5鱼 6爬行 7其他。前端显式传则用之，不传则由后端按 petType 推导 */
+    private Integer petCategory;
     private String petAge;
     private Integer petGender;
     private List<String> images;

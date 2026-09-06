@@ -66,6 +66,7 @@ CREATE TABLE `pet_post` (
                             `pet_gender` TINYINT DEFAULT 0 COMMENT '宠物性别：0-未知 1-公 2-母',
                             `pet_age` VARCHAR(20) COMMENT '宠物年龄，如：3个月',
                             `pet_type` VARCHAR(50) COMMENT '宠物品种，如：橘猫、金毛',
+                            `pet_category` TINYINT DEFAULT 7 COMMENT '物种分类：0-猫 1-狗 2-兔 3-啮齿类 4-鸟类 5-鱼类 6-爬行/两栖 7-其他',
                             `pet_name` VARCHAR(50) COMMENT '宠物名字',
                             `contact_phone` VARCHAR(20) NOT NULL COMMENT '联系电话',
                             `contact_wechat` VARCHAR(50) COMMENT '微信号',
@@ -84,6 +85,7 @@ CREATE TABLE `pet_post` (
                             INDEX `idx_audit_status` (`audit_status`),
                             INDEX `idx_user_status` (`user_id`, `status`),
                             INDEX `idx_type_status` (`type`, `status`),
+                            INDEX `idx_pet_category` (`pet_category`),
                             INDEX `idx_status_create_time` (`status`, `create_time`),
                             INDEX `idx_location` (`address`(100)),
                             FULLTEXT INDEX `ft_title_content` (`title`, `content`)

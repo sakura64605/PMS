@@ -23,6 +23,7 @@ public class PetDetailDto {
     private Integer petGender;
     private String petAge;
     private String petType;
+    private Integer petCategory;
     private String petName;
     private String contactPhone;
     private String contactWechat;

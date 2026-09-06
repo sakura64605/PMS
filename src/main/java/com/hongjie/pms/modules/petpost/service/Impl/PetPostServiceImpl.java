@@ -23,6 +23,7 @@ import com.hongjie.pms.modules.search.event.PetPostPublishedEvent;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import com.hongjie.pms.modules.petpost.dto.request.PetPostRequestDto;
 import com.hongjie.pms.modules.petpost.dto.request.PetQueryRequestDto;
+import com.hongjie.pms.modules.petpost.util.PetCategoryClassifier;
 import com.hongjie.pms.modules.user.dto.response.AvatarUploadResponse;
 import com.hongjie.pms.modules.petpost.dto.response.FavoriteResponseDto;
 import com.hongjie.pms.modules.petpost.dto.response.PetListResponseDto;
@@ -79,6 +80,9 @@ public class PetPostServiceImpl implements PetPostService {
                 .petGender(request.getPetGender())
                 .petAge(request.getPetAge())
                 .petType(request.getPetType())
+                .petCategory(request.getPetCategory() != null
+                        ? request.getPetCategory()
+                        : PetCategoryClassifier.classify(request.getPetType()))
                 .petName(request.getPetName())
                 .contactPhone(request.getContactPhone())
                 .contactWechat(request.getContactWechat())
@@ -159,7 +163,12 @@ public class PetPostServiceImpl implements PetPostService {
             wrapper.eq(PetPost::getPetGender, queryDto.getGender());
         }
 
-        // 品种筛选
+        // 物种分类筛选（猫/狗等粗粒度）
+        if (queryDto.getPetCategory() != null) {
+            wrapper.eq(PetPost::getPetCategory, queryDto.getPetCategory());
+        }
+
+        // 品种筛选（自由文本模糊）
         if (StringUtils.hasText(queryDto.getPetType())) {
             wrapper.like(PetPost::getPetType, queryDto.getPetType());
         }
@@ -459,6 +468,12 @@ public class PetPostServiceImpl implements PetPostService {
         }
         if(request.getPetType() != null){
             pet.setPetType(request.getPetType());
+        }
+        // 物种分类：前端显式传则用之；否则品种变了就按 petType 重新推导
+        if (request.getPetCategory() != null) {
+            pet.setPetCategory(request.getPetCategory());
+        } else if (request.getPetType() != null) {
+            pet.setPetCategory(PetCategoryClassifier.classify(request.getPetType()));
         }
         if(request.getPetName() != null){
             pet.setPetName(request.getPetName());
