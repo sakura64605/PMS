@@ -1,5 +1,6 @@
 package com.hongjie.pms.AI.agent;
 
+import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hongjie.pms.AI.common.TokenUsageTracker;
 import com.hongjie.pms.AI.modules.dto.ToolCall;
@@ -103,8 +104,9 @@ public class AIAgentEngine {
             Object result = agent.invoke(Map.<String, Object>of("message", userMessage));
             String answer = result != null ? result.toString() : "";
 
-            // 落库助手回复并带上本次请求的 token 合计
-            memoryService.saveMessage(request.getSessionId(), "assistant", answer, userId, usage.totalTokens());
+            // 落库助手回复，带上本次请求的 token 合计与工具调用轨迹
+            memoryService.saveMessage(request.getSessionId(), "assistant", answer, userId, usage.totalTokens(),
+                    toolTrace.isEmpty() ? null : JSON.toJSONString(toolTrace));
 
             long latency = System.currentTimeMillis() - startTime;
 
