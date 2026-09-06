@@ -53,6 +53,23 @@ CREATE TABLE `avatar_history` (
                                   INDEX `idx_update_time` (`update_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户头像历史表';
 
+-- ==================== 宠物物种分类字典 ====================
+-- 管理员可维护；种子 id 0-7 与 pet_post.pet_category 存量一致，新增分类由后端取 MAX(id)+1
+
+CREATE TABLE `pet_category` (
+                               `id` TINYINT NOT NULL COMMENT '分类ID',
+                               `name` VARCHAR(20) NOT NULL COMMENT '分类名，如 猫/狗/其他',
+                               `sort` INT DEFAULT 0 COMMENT '排序，小的靠前',
+                               `status` TINYINT DEFAULT 1 COMMENT '1启用 0停用',
+                               `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                               `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                               PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='宠物物种分类字典';
+
+INSERT IGNORE INTO `pet_category` (`id`, `name`, `sort`, `status`) VALUES
+(0, '猫', 1, 1), (1, '狗', 2, 1), (2, '兔', 3, 1), (3, '啮齿类', 4, 1),
+(4, '鸟类', 5, 1), (5, '鱼类', 6, 1), (6, '爬行/两栖', 7, 1), (7, '其他', 99, 1);
+
 -- ==================== 宠物帖子表 ====================
 
 -- 宠物帖子表
@@ -66,7 +83,7 @@ CREATE TABLE `pet_post` (
                             `pet_gender` TINYINT DEFAULT 0 COMMENT '宠物性别：0-未知 1-公 2-母',
                             `pet_age` VARCHAR(20) COMMENT '宠物年龄，如：3个月',
                             `pet_type` VARCHAR(50) COMMENT '宠物品种，如：橘猫、金毛',
-                            `pet_category` TINYINT DEFAULT 7 COMMENT '物种分类：0-猫 1-狗 2-兔 3-啮齿类 4-鸟类 5-鱼类 6-爬行/两栖 7-其他',
+                            `pet_category` TINYINT DEFAULT 7 COMMENT '物种分类ID，见 pet_category 表（默认7=其他）',
                             `pet_name` VARCHAR(50) COMMENT '宠物名字',
                             `contact_phone` VARCHAR(20) NOT NULL COMMENT '联系电话',
                             `contact_wechat` VARCHAR(50) COMMENT '微信号',
