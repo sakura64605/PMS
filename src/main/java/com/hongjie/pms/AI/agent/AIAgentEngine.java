@@ -109,6 +109,8 @@ public class AIAgentEngine {
                     toolTrace.isEmpty() ? null : JSON.toJSONString(toolTrace));
 
             long latency = System.currentTimeMillis() - startTime;
+            log.info("AI请求完成: sessionId={}, llmCalls={}, toolRounds={}, tokens={}, toolExecutions={}",
+                    request.getSessionId(), usage.llmCalls(), usage.toolRounds(), usage.totalTokens(), toolTrace.size());
 
             return AIAgentResponse.builder()
                     .messageId(messageId)
@@ -119,6 +121,8 @@ public class AIAgentEngine {
                     .suggestions(smartSuggestions(userMessage))
                     .toolCalls(toolTrace.isEmpty() ? null : toolTrace)
                     .tokensUsed(usage.totalTokens())
+                    .llmCallCount(usage.llmCalls())
+                    .toolRoundCount(usage.toolRounds())
                     .latencyMs((int) latency)
                     .build();
 

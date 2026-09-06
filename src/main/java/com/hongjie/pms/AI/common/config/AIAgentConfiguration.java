@@ -49,9 +49,14 @@ public class AIAgentConfiguration {
             @Override
             public void onResponse(ChatModelResponseContext context) {
                 TokenUsageTracker.TokenUsageAccumulator acc = tokenUsageTracker.current();
-                if (acc != null && context.chatResponse() != null) {
-                    acc.add(context.chatResponse().tokenUsage());
+                if (acc == null || context.chatResponse() == null) {
+                    return;
                 }
+                acc.add(context.chatResponse().tokenUsage());
+                // 该响应若带工具调用请求，属于"工具决策轮"；计数用于判断 ReAct 是否多轮迭代
+                boolean isToolRound = context.chatResponse().aiMessage() != null
+                        && context.chatResponse().aiMessage().hasToolExecutionRequests();
+                acc.recordCall(isToolRound);
             }
         };
     }

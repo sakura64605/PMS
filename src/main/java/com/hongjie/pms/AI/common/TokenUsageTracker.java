@@ -36,6 +36,8 @@ public class TokenUsageTracker {
         private int inputTokens;
         private int outputTokens;
         private int totalTokens;
+        private int llmCalls;   // 本次请求触发的 LLM 调用总次数（判断 ReAct 是否真正迭代的关键）
+        private int toolRounds; // 其中"工具决策轮"次数：该次响应请求了工具调用
 
         public int inputTokens() {
             return inputTokens;
@@ -47,6 +49,22 @@ public class TokenUsageTracker {
 
         public int totalTokens() {
             return totalTokens;
+        }
+
+        public int llmCalls() {
+            return llmCalls;
+        }
+
+        public int toolRounds() {
+            return toolRounds;
+        }
+
+        /** 记录一次 LLM 调用；isToolRound 表示该响应是否请求了工具调用（属工具决策轮） */
+        public void recordCall(boolean isToolRound) {
+            llmCalls++;
+            if (isToolRound) {
+                toolRounds++;
+            }
         }
 
         public void add(TokenUsage usage) {
