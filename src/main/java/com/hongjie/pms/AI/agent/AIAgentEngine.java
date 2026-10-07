@@ -3,12 +3,16 @@ package com.hongjie.pms.AI.agent;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hongjie.pms.AI.common.TokenUsageTracker;
+import com.hongjie.pms.AI.common.config.AIAgentConfig;
 import com.hongjie.pms.AI.modules.dto.ToolCall;
 import com.hongjie.pms.AI.modules.dto.request.AIAgentRequest;
 import com.hongjie.pms.AI.modules.dto.response.AIAgentResponse;
 import com.hongjie.pms.AI.modules.entity.AiKnowledgeBase;
+import com.hongjie.pms.AI.modules.entity.AiUserMemory;
 import com.hongjie.pms.AI.modules.mapper.AiKnowledgeBaseMapper;
+import com.hongjie.pms.AI.modules.service.AiMemoryExtractor;
 import com.hongjie.pms.AI.modules.service.ChatMemoryService;
+import com.hongjie.pms.AI.modules.service.UserMemoryService;
 import com.hongjie.pms.AI.rag.KnowledgeBaseService;
 import com.hongjie.pms.AI.tool.ToolRegistry;
 import com.hongjie.pms.modules.activity.entity.ActivitySignup;
@@ -47,6 +51,9 @@ public class AIAgentEngine {
     private final KnowledgeBaseService knowledgeBaseService;
     private final TokenUsageTracker tokenUsageTracker;
     private final ToolRegistry toolRegistry;
+    private final AIAgentConfig aiAgentConfig;
+    private final UserMemoryService userMemoryService;
+    private final AiMemoryExtractor aiMemoryExtractor;
     private final UserMapper userMapper;
     private final PetPostMapper petPostMapper;
     private final ActivitySignupMapper signupMapper;
@@ -108,6 +115,12 @@ public class AIAgentEngine {
             memoryService.saveMessage(request.getSessionId(), "assistant", answer, userId, usage.totalTokens(),
                     toolTrace.isEmpty() ? null : JSON.toJSONString(toolTrace));
 
+            // 长期记忆（配置开启时）：异步抽取用户持久事实/偏好并落库，避免阻塞本次响应，失败不影响主链路
+            if (aiAgentConfig.isEnableLongTermMemory()) {
+                java.util.concurrent.CompletableFuture.runAsync(() ->
+                        extractAndSaveLongTermMemory(request.getSessionId(), userId, userMessage, answer));
+            }
+
             long latency = System.currentTimeMillis() - startTime;
             log.info("AI请求完成: sessionId={}, llmCalls={}, toolRounds={}, tokens={}, toolExecutions={}",
                     request.getSessionId(), usage.llmCalls(), usage.toolRounds(), usage.totalTokens(), toolTrace.size());
@@ -161,16 +174,37 @@ public class AIAgentEngine {
     }
 
     /**
-     * 从现有 ChatMemoryService（Redis + ai_chat_message 表）注入最近 5 轮对话到请求级内存窗口，
-     * 保持多轮上下文连续，同时不改变 /ai/history 与 clearMemory 的既有语义。
+     * 长期记忆抽取：配置开启时，把"用户消息+本轮答复"交给抽取器提炼持久事实/偏好并落库。
+     * 单独 try-catch，抽取失败只记日志，绝不影响主链路返回。
+     */
+    private void extractAndSaveLongTermMemory(String sessionId, Long userId, String userMessage, String answer) {
+        if (userId == null) {
+            return;
+        }
+        try {
+            String excerpt = "用户: " + userMessage + "\nAI助手: " + answer;
+            List<String> facts = aiMemoryExtractor.extractFacts(excerpt);
+            if (!facts.isEmpty()) {
+                userMemoryService.saveFacts(userId, sessionId, facts);
+            }
+        } catch (Exception e) {
+            log.warn("长期记忆抽取/落库失败: userId={}", userId, e);
+        }
+    }
+
+    /**
+     * 短期记忆（滑动窗口）：从 ChatMemoryService（Redis + ai_chat_message）注入最近 N 轮到请求级内存窗口，
+     * N 由 ai.agent.max-memory-rounds 控制。保持多轮上下文连续，同时不改变 /ai/history 与 clearMemory 语义。
      */
     private ChatMemory buildSeededMemory(String sessionId) {
+        int rounds = aiAgentConfig.getMaxMemoryRounds() > 0
+                ? Math.min(aiAgentConfig.getMaxMemoryRounds(), 20) : 5;
         MessageWindowChatMemory memory = MessageWindowChatMemory.builder()
                 .id(sessionId)
-                .maxMessages(12)
+                .maxMessages(rounds * 2 + 2)
                 .build();
         try {
-            List<ChatMemoryService.MemoryMessage> history = memoryService.getRecentMessages(sessionId, 5);
+            List<ChatMemoryService.MemoryMessage> history = memoryService.getRecentMessages(sessionId, rounds);
             for (ChatMemoryService.MemoryMessage msg : history) {
                 if ("user".equals(msg.getRole())) {
                     memory.add(UserMessage.from(msg.getContent()));
@@ -246,6 +280,21 @@ public class AIAgentEngine {
                 }
             } catch (Exception e) {
                 log.warn("获取用户画像失败: userId={}", userId, e);
+            }
+        }
+
+        // 长期记忆注入（跨会话的用户持久事实/偏好，配置开启时加载）
+        if (userId != null && aiAgentConfig.isEnableLongTermMemory()) {
+            try {
+                List<AiUserMemory> memories = userMemoryService.getActiveByUser(userId, aiAgentConfig.getMaxLongTermMemories());
+                if (!memories.isEmpty()) {
+                    sb.append("\n\n用户长期记忆（来自历史对话沉淀，请据此更贴合地服务用户）：");
+                    for (AiUserMemory m : memories) {
+                        sb.append("\n- ").append(m.getContent());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("加载用户长期记忆失败: userId={}", userId, e);
             }
         }
 

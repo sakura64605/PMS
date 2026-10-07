@@ -26,11 +26,17 @@ public class AIAgentConfig {
     /** 超时时间（秒） */
     private int timeout = 30;
 
-    /** 是否启用记忆 */
+    /** 是否启用短期记忆（滑动窗口，注入最近 N 轮） */
     private boolean enableMemory = true;
 
-    /** 最大记忆轮数 */
+    /** 短期记忆滑动窗口：注入的最近对话轮数 */
     private int maxMemoryRounds = 10;
+
+    /** 是否启用长期记忆（对话中抽取用户持久事实/偏好，跨会话注入） */
+    private boolean enableLongTermMemory = false;
+
+    /** 注入 system prompt 的长期记忆条数上限 */
+    private int maxLongTermMemories = 20;
 
     /** 是否启用RAG */
     private boolean enableRag = true;
