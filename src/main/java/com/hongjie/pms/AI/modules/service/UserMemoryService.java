@@ -109,6 +109,68 @@ public class UserMemoryService {
         memoryMapper.deleteById(id);
     }
 
+    // ==================== 用户自助查看/修改（与对话自动添加共用同表，按内容去重天然不冲突） ====================
+
+    /** 用户查看自己的长期记忆（启用的，重要度高/较新在前） */
+    public List<AiUserMemory> listByUser(Long userId) {
+        return getActiveByUser(userId, 100);
+    }
+
+    /** 用户手动添加一条长期记忆（source_session 标记为 manual 以便区分来源） */
+    public AiUserMemory addManual(Long userId, String content) {
+        if (userId == null || !StringUtils.hasText(content)) {
+            return null;
+        }
+        String c = content.trim();
+        if (c.length() > 500) {
+            c = c.substring(0, 500);
+        }
+        AiUserMemory existing = findByUserAndContent(userId, c);
+        if (existing != null) {
+            // 已存在（可能是对话自动添加的）→ 重新启用并刷新，避免重复
+            existing.setStatus(1);
+            existing.setImportance(Math.min(5, (existing.getImportance() == null ? 1 : existing.getImportance()) + 1));
+            memoryMapper.updateById(existing);
+            return existing;
+        }
+        AiUserMemory mem = AiUserMemory.builder()
+                .userId(userId).content(c).sourceSession("manual").importance(1).status(1).build();
+        memoryMapper.insert(mem);
+        enforceCap(userId);
+        log.info("用户 {} 手动添加长期记忆: {}", userId, c);
+        return mem;
+    }
+
+    /** 用户修改自己的某条记忆内容/重要度（校验归属） */
+    public boolean updateByUser(Long userId, Long id, String content, Integer importance) {
+        AiUserMemory mem = memoryMapper.selectById(id);
+        if (mem == null || !mem.getUserId().equals(userId)) {
+            return false;
+        }
+        if (StringUtils.hasText(content)) {
+            String c = content.trim();
+            mem.setContent(c.length() > 500 ? c.substring(0, 500) : c);
+        }
+        if (importance != null) {
+            mem.setImportance(Math.max(1, Math.min(5, importance)));
+        }
+        memoryMapper.updateById(mem);
+        log.info("用户 {} 修改长期记忆 id={}", userId, id);
+        return true;
+    }
+
+    /** 用户删除自己的某条记忆：软删（status=0），避免下次对话又把它抽回来 */
+    public boolean deleteByUser(Long userId, Long id) {
+        AiUserMemory mem = memoryMapper.selectById(id);
+        if (mem == null || !mem.getUserId().equals(userId)) {
+            return false;
+        }
+        mem.setStatus(0);
+        memoryMapper.updateById(mem);
+        log.info("用户 {} 删除长期记忆 id={}", userId, id);
+        return true;
+    }
+
     /** 清空某用户全部记忆 */
     public void clearByUser(Long userId) {
         LambdaQueryWrapper<AiUserMemory> wrapper = new LambdaQueryWrapper<AiUserMemory>()
