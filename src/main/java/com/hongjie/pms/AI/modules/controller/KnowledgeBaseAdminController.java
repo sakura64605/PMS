@@ -67,12 +67,8 @@ public class KnowledgeBaseAdminController {
     @DeleteMapping("/delete/{id}")
     public CommonResult<String> deleteKnowledge(@PathVariable Long id) {
         checkAdmin();
-        
-        AiKnowledgeBase knowledge = knowledgeBaseMapper.selectById(id);
-        if (knowledge != null) {
-            knowledge.setStatus(0);
-            knowledgeBaseMapper.updateById(knowledge);
-        }
+        // 下架：改 MySQL 状态 + 同步删除 Qdrant 向量
+        knowledgeBaseService.removeKnowledge(id);
         return CommonResult.success("知识删除成功");
     }
     

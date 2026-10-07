@@ -3,92 +3,92 @@ package com.hongjie.pms.AI.rag;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hongjie.pms.AI.modules.entity.AiKnowledgeBase;
 import com.hongjie.pms.AI.modules.mapper.AiKnowledgeBaseMapper;
-import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.store.embedding.EmbeddingMatch;
-import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
-import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
+/**
+ * 知识库服务：向量存储改为 Qdrant（{@link QdrantVectorStore}），MySQL {@code ai_knowledge_base} 仍是权威源。
+ * <p>检索优先走 Qdrant 向量召回，无命中/异常时回退到 MySQL 关键词 LIKE（对中文更稳）。</p>
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class KnowledgeBaseService {
-    
+
+    /** 向量召回条数 */
+    private static final int RECALL_TOP_K = 3;
+
     private final AiKnowledgeBaseMapper knowledgeBaseMapper;
-    private final EmbeddingModel embeddingModel;
-    private final InMemoryEmbeddingStore embeddingStore;
-    
+    private final QdrantVectorStore qdrantVectorStore;
+
     @PostConstruct
     public void init() {
         loadKnowledgeToVectorStore();
     }
-    
+
+    /** 全量把启用中的知识同步进 Qdrant（按 docId 幂等 upsert），来源仍是 MySQL */
     public void loadKnowledgeToVectorStore() {
         LambdaQueryWrapper<AiKnowledgeBase> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(AiKnowledgeBase::getStatus, 1);
         List<AiKnowledgeBase> knowledgeList = knowledgeBaseMapper.selectList(wrapper);
-        
+
+        long start = System.currentTimeMillis();
+        log.info("[知识库] 开始同步 {} 条到 Qdrant ...", knowledgeList.size());
         for (AiKnowledgeBase knowledge : knowledgeList) {
-            Embedding embedding = embeddingModel.embed(knowledge.getContent()).content();
-            embeddingStore.add(knowledge.getDocId(), embedding);
+            qdrantVectorStore.upsert(knowledge.getDocId(), knowledge.getContent(), knowledge.getTitle(), knowledge.getCategory());
         }
-        
-        log.info("知识库加载完成，共 {} 条", knowledgeList.size());
+        log.info("[知识库] 同步完成，共 {} 条，Qdrant 当前点数={}（{}ms）",
+                knowledgeList.size(), qdrantVectorStore.count(), System.currentTimeMillis() - start);
     }
-    
+
     public String searchRelevant(String query) {
         if (query == null || query.trim().isEmpty()) {
             return null;
         }
 
-        // 1. 先尝试向量搜索（AllMiniLmL6V2 是英文模型，对中文效果可能不佳）
+        // 1. Qdrant 向量召回
         try {
-            Embedding queryEmbedding = embeddingModel.embed(query).content();
-            EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
-                            .queryEmbedding(queryEmbedding)
-                            .maxResults(3)
-                            .build();
-                    EmbeddingSearchResult<String> searchResult = embeddingStore.search(searchRequest);
-                    List<EmbeddingMatch<String>> matches = searchResult.matches();
+            List<QdrantVectorStore.SearchHit> hits = qdrantVectorStore.search(query, RECALL_TOP_K);
+            if (!hits.isEmpty()) {
+                List<String> docIds = hits.stream().map(QdrantVectorStore.SearchHit::docId).toList();
+                List<AiKnowledgeBase> rows = knowledgeBaseMapper.selectList(
+                        new LambdaQueryWrapper<AiKnowledgeBase>().in(AiKnowledgeBase::getDocId, docIds));
 
-                    if (!matches.isEmpty()) {
-                List<String> docIds = matches.stream()
-                        .map(EmbeddingMatch::embedded)
-                        .collect(Collectors.toList());
-
-                LambdaQueryWrapper<AiKnowledgeBase> queryWrapper = new LambdaQueryWrapper<>();
-                queryWrapper.in(AiKnowledgeBase::getDocId, docIds);
-                List<AiKnowledgeBase> knowledges = knowledgeBaseMapper.selectList(queryWrapper);
-
-                if (!knowledges.isEmpty()) {
-                    StringBuilder sb = new StringBuilder();
-                    for (AiKnowledgeBase knowledge : knowledges) {
-                        sb.append("【").append(knowledge.getTitle()).append("】\n");
-                        sb.append(knowledge.getContent()).append("\n\n");
+                // 按命中顺序（相似度降序）重排
+                Map<String, AiKnowledgeBase> byDocId = new LinkedHashMap<>();
+                for (AiKnowledgeBase row : rows) {
+                    byDocId.put(row.getDocId(), row);
+                }
+                StringBuilder sb = new StringBuilder();
+                for (QdrantVectorStore.SearchHit hit : hits) {
+                    AiKnowledgeBase k = byDocId.get(hit.docId());
+                    if (k != null) {
+                        sb.append("【").append(k.getTitle()).append("】\n");
+                        sb.append(k.getContent()).append("\n\n");
                     }
-                    log.info("向量搜索命中 {} 条知识", knowledges.size());
+                }
+                if (sb.length() > 0) {
+                    log.info("[知识库] Qdrant 向量召回命中 {} 条 query='{}'", hits.size(), query);
                     return sb.toString();
                 }
             }
+            log.info("[知识库] Qdrant 无命中，回退关键词搜索 query='{}'", query);
         } catch (Exception e) {
-            log.warn("向量搜索失败，回退到关键词搜索", e);
+            log.warn("[知识库] Qdrant 检索异常，回退关键词搜索：{}", e.getMessage());
         }
 
-        // 2. 向量搜索无结果 → 关键词 LIKE 搜索（对中文更可靠）
+        // 2. 回退：关键词 LIKE（仅当存在 ≥2 字关键词时才拼条件，避免空条件 SQL 语法错误）
         try {
             LambdaQueryWrapper<AiKnowledgeBase> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(AiKnowledgeBase::getStatus, 1);
-            // 对整个查询词做 LIKE 匹配，仅当存在 ≥2 字关键词时才拼 AND(...)，避免空条件 SQL 语法错误
             List<String> validKeywords = new ArrayList<>();
             for (String kw : query.split("[\\s,，、。.]")) {
                 String t = kw.trim();
@@ -122,16 +122,17 @@ public class KnowledgeBaseService {
                     sb.append("【").append(knowledge.getTitle()).append("】\n");
                     sb.append(knowledge.getContent()).append("\n\n");
                 }
-                log.info("关键词搜索命中 {} 条知识", knowledges.size());
+                log.info("[知识库] 关键词搜索命中 {} 条 query='{}'", knowledges.size(), query);
                 return sb.toString();
             }
         } catch (Exception e) {
-            log.warn("关键词搜索失败", e);
+            log.warn("[知识库] 关键词搜索失败", e);
         }
 
         return null;
     }
-    
+
+    /** 新增知识：写 MySQL（权威源）+ 同步进 Qdrant */
     public void addKnowledge(String title, String content, String category, List<String> tags) {
         AiKnowledgeBase knowledge = new AiKnowledgeBase();
         knowledge.setDocId(UUID.randomUUID().toString());
@@ -142,8 +143,21 @@ public class KnowledgeBaseService {
         knowledge.setTags(tags);
         knowledge.setStatus(1);
         knowledgeBaseMapper.insert(knowledge);
-        
-        Embedding embedding = embeddingModel.embed(content).content();
-        embeddingStore.add(knowledge.getDocId(), embedding);
+
+        qdrantVectorStore.upsert(knowledge.getDocId(), content, title, category);
+        log.info("[知识库] 新增知识 docId={} title={}，已写入 MySQL + Qdrant", knowledge.getDocId(), title);
+    }
+
+    /** 下架知识：改 MySQL 状态为停用 + 删除 Qdrant 向量 */
+    public void removeKnowledge(Long id) {
+        AiKnowledgeBase knowledge = knowledgeBaseMapper.selectById(id);
+        if (knowledge == null) {
+            log.warn("[知识库] 待删除知识不存在 id={}", id);
+            return;
+        }
+        knowledge.setStatus(0);
+        knowledgeBaseMapper.updateById(knowledge);
+        qdrantVectorStore.delete(knowledge.getDocId());
+        log.info("[知识库] 下架知识 id={} docId={}，已同步 Qdrant 删除", id, knowledge.getDocId());
     }
 }
