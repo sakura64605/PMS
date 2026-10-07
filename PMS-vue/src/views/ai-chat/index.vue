@@ -52,6 +52,9 @@
         <el-button @click="handleClearMemory" :icon="Delete" size="small">
           清除记忆
         </el-button>
+        <el-button @click="openMemoryDrawer" :icon="Notebook" size="small">
+          长期记忆
+        </el-button>
         <el-button @click="handleTransferHuman" type="warning" size="small">
           转人工
         </el-button>
@@ -152,14 +155,53 @@
       />
     </div>
     </div>
+
+    <!-- 长期记忆管理抽屉（与对话自动记忆共用数据） -->
+    <el-drawer v-model="showMemoryDrawer" title="我的长期记忆" size="420px" direction="rtl">
+      <div class="memory-panel">
+        <p class="memory-tip">AI 会在对话中自动记住关于您的重要信息；您也可以在这里手动增删改。</p>
+        <div class="memory-add">
+          <el-input
+            v-model="newMemory"
+            placeholder="如：我养了一只橘猫叫圆圆"
+            maxlength="200"
+            show-word-limit
+            @keyup.enter="handleAddMemory"
+          />
+          <el-button type="primary" :icon="Plus" :loading="memoryLoading" @click="handleAddMemory">添加</el-button>
+        </div>
+
+        <el-skeleton v-if="memoryLoading && memoryList.length === 0" :rows="4" animated />
+        <el-empty v-else-if="memoryList.length === 0" description="暂无长期记忆" :image-size="80" />
+        <div v-else class="memory-list">
+          <div v-for="m in memoryList" :key="m.id" class="memory-item">
+            <template v-if="editingId === m.id">
+              <el-input v-model="editingContent" size="small" maxlength="200" />
+              <div class="memory-item-actions">
+                <el-button size="small" type="primary" @click="handleSaveMemory(m)">保存</el-button>
+                <el-button size="small" @click="editingId = null">取消</el-button>
+              </div>
+            </template>
+            <template v-else>
+              <span class="memory-content">{{ m.content }}</span>
+              <div class="memory-item-actions">
+                <el-button size="small" text :icon="Edit" @click="startEdit(m)">编辑</el-button>
+                <el-button size="small" text type="danger" :icon="Delete" @click="handleDeleteMemory(m)">删除</el-button>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ChatDotRound, User, Promotion, Loading, Delete, Check, Close, Plus, Fold, Expand, ChatLineRound } from '@element-plus/icons-vue'
+import { ChatDotRound, User, Promotion, Loading, Delete, Check, Close, Plus, Fold, Expand, ChatLineRound, Notebook, Edit } from '@element-plus/icons-vue'
 import { sendChatMessage, getChatHistory, clearMemory, transferToHuman, submitFeedback, getSuggestions, getUserSessions, deleteSession as deleteSessionApi } from '../../api/ai'
+import { listMemories, addMemory, updateMemory, deleteMemory, type UserMemory } from '../../api/memory'
 import { aiWebSocket } from '../../utils/aiWebSocket'
 import { marked } from 'marked'
 
@@ -175,6 +217,73 @@ const messages = ref<Message[]>([])
 const inputMessage = ref('')
 const isLoading = ref(false)
 const isConnected = ref(false)
+
+// ===== 长期记忆管理（与对话自动记忆共用同一数据） =====
+const showMemoryDrawer = ref(false)
+const memoryList = ref<UserMemory[]>([])
+const memoryLoading = ref(false)
+const newMemory = ref('')
+const editingId = ref<number | null>(null)
+const editingContent = ref('')
+
+const openMemoryDrawer = () => {
+  showMemoryDrawer.value = true
+  loadMemories()
+}
+
+const loadMemories = async () => {
+  memoryLoading.value = true
+  try {
+    const res: any = await listMemories()
+    memoryList.value = res.data || []
+  } catch (e) {
+    // 错误已由全局拦截器提示
+  } finally {
+    memoryLoading.value = false
+  }
+}
+
+const handleAddMemory = async () => {
+  const content = newMemory.value.trim()
+  if (!content) return
+  memoryLoading.value = true
+  try {
+    await addMemory(content)
+    ElMessage.success('已添加')
+    newMemory.value = ''
+    await loadMemories()
+  } finally {
+    memoryLoading.value = false
+  }
+}
+
+const startEdit = (m: UserMemory) => {
+  editingId.value = m.id
+  editingContent.value = m.content
+}
+
+const handleSaveMemory = async (m: UserMemory) => {
+  const content = editingContent.value.trim()
+  if (!content) {
+    ElMessage.warning('内容不能为空')
+    return
+  }
+  await updateMemory(m.id, { content })
+  ElMessage.success('已保存')
+  editingId.value = null
+  await loadMemories()
+}
+
+const handleDeleteMemory = async (m: UserMemory) => {
+  try {
+    await ElMessageBox.confirm('确定删除这条记忆吗？', '提示', { type: 'warning' })
+  } catch {
+    return
+  }
+  await deleteMemory(m.id)
+  ElMessage.success('已删除')
+  await loadMemories()
+}
 const sessionId = ref('')
 const suggestions = ref<string[]>([])
 const messagesRef = ref<HTMLElement>()
@@ -794,6 +903,53 @@ const formatTime = (time: string | Date) => {
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* 长期记忆抽屉 */
+.memory-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .memory-tip {
+    margin: 0;
+    font-size: 13px;
+    color: #909399;
+    line-height: 1.5;
+  }
+
+  .memory-add {
+    display: flex;
+    gap: 8px;
+  }
+
+  .memory-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .memory-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid #ebeef5;
+    border-radius: 8px;
+    background: #fafafa;
+
+    .memory-content {
+      flex: 1;
+      font-size: 14px;
+      color: #303133;
+      word-break: break-all;
+    }
+
+    .memory-item-actions {
+      flex-shrink: 0;
+    }
   }
 }
 </style>
