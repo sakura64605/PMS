@@ -73,10 +73,10 @@
             </exclusions>
         </dependency>
 
-        <!-- 向量存储 -->
+        <!-- 向量存储：中文嵌入模型（BGE-small-zh-v1.5，512维，本地ONNX推理） -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-embeddings-all-minilm-l6-v2</artifactId>
+            <artifactId>langchain4j-embeddings-bge-small-zh-v15</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>

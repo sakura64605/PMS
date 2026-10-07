@@ -54,25 +54,45 @@ public class QdrantVectorStore {
         return "http://" + host + ":" + port;
     }
 
-    /** 确保 collection 存在（按当前嵌入模型维度创建；已存在则跳过） */
+    /** 确保 collection 存在，且维度与当前嵌入模型一致（不一致则删除重建，支持换模型） */
     public synchronized void ensureCollection() {
         if (collectionReady) {
             return;
         }
         try {
+            int dims = embeddingModel.embed("dim-probe").content().dimension();
             HttpResponse<String> head = http("GET", "/collections/" + collection, null);
             if (head.statusCode() == 200) {
-                log.info("[Qdrant] collection '{}' 已存在", collection);
-                collectionReady = true;
-                return;
+                int existing = parseVectorSize(head.body());
+                if (existing == dims) {
+                    log.info("[Qdrant] collection '{}' 已存在，dims={}", collection, dims);
+                    collectionReady = true;
+                    return;
+                }
+                log.warn("[Qdrant] collection '{}' 维度不匹配（现有{} vs 模型{}），删除重建", collection, existing, dims);
+                http("DELETE", "/collections/" + collection, null);
             }
-            int dims = embeddingModel.embed("dim-probe").content().dimension();
             String body = "{\"vectors\":{\"size\":" + dims + ",\"distance\":\"Cosine\"}}";
             HttpResponse<String> put = http("PUT", "/collections/" + collection, body);
             log.info("[Qdrant] 创建 collection '{}' dims={} → HTTP {}", collection, dims, put.statusCode());
             collectionReady = put.statusCode() == 200;
         } catch (Exception e) {
             log.error("[Qdrant] ensureCollection 失败: {}", e.getMessage(), e);
+        }
+    }
+
+    /** 从 collection 信息 JSON 里取向量维度，取不到返回 -1 */
+    private int parseVectorSize(String body) {
+        try {
+            JSONObject result = JSON.parseObject(body).getJSONObject("result");
+            JSONObject params = result.getJSONObject("config").getJSONObject("params");
+            Object vectors = params.get("vectors");
+            if (vectors instanceof JSONObject v) {
+                return v.getIntValue("size");
+            }
+            return result.getJSONObject("config").getJSONObject("params").getIntValue("size");
+        } catch (Exception e) {
+            return -1;
         }
     }
 

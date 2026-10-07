@@ -6,7 +6,7 @@ import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.embedding.onnx.allminilml6v2.AllMiniLmL6V2EmbeddingModel;
+import dev.langchain4j.model.embedding.onnx.bgesmallzhv15.BgeSmallZhV15EmbeddingModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -62,7 +62,7 @@ public class AIAgentConfiguration {
 
     @Bean
     public EmbeddingModel embeddingModel() {
-        log.info("初始化 EmbeddingModel（供 Qdrant 向量存储使用）...");
-        return new AllMiniLmL6V2EmbeddingModel();
+        log.info("初始化 EmbeddingModel（BGE-small-zh-v1.5，中文，512维，供 Qdrant 向量存储使用）...");
+        return new BgeSmallZhV15EmbeddingModel();
     }
 }
