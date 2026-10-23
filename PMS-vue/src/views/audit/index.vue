@@ -577,7 +577,7 @@
             </div>
             
             <!-- 统计数据卡片 -->
-            <div v-if="loading" class="loading-container">
+            <div v-if="overviewLoading" class="loading-container">
               <el-skeleton :rows="4" animated />
             </div>
             <div v-else>
@@ -1030,7 +1030,10 @@ import { getAdminUserList, batchDisableUsers, batchEnableUsers, batchResetPasswo
 import { getAdminNoticeList, createNotice, updateNotice, deleteNotice, publishNotice, unpublishNotice } from '../../api/notice'
 import { getReportList, getReportDetail, handleReport } from '../../api/report'
 import { getStatistics, getRealtime, regenerateStatistics, clearStatisticsCache, regenerateStatisticsRange } from '../../api/statistics'
-import * as echarts from 'echarts'
+import type { ECharts } from 'echarts'
+
+// 图表只在统计页使用，避免阻塞管理后台首屏。
+const loadCharts = () => import('echarts')
 import { Search, Plus, View, Check, Close, InfoFilled, WarningFilled } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -1133,11 +1136,12 @@ const monthDate = ref('')
 const yearDate = ref('')
 const customDateRange = ref<[Date, Date] | null>(null)
 const realtimeLoading = ref(false)
+const overviewLoading = ref(false)
 const trendLoading = ref(false)
 const overviewData = ref<any>(null)
 const realtimeData = ref<any>(null)
 const trendChartRef = ref<HTMLElement | null>(null)
-let trendChart: echarts.ECharts | null = null
+let trendChart: ECharts | null = null
 
 // 获取审核列表
 const fetchAuditList = async () => {
@@ -1443,6 +1447,7 @@ const handleTabChange = () => {
       fetchReportList()
     } else if (activeTab.value === 'stats') {
       fetchOverviewData()
+      fetchRealtimeData()
     }
   }, 0)
 }
@@ -1961,8 +1966,7 @@ onMounted(() => {
   customStart.setDate(today.getDate() - 6)
   customDateRange.value = [customStart, today]
   
-  // 初始化时查询数据
-  fetchOverviewData()
+  // 统计数据在打开统计页时获取，首屏只查询待审核列表。
   
   // 监听窗口大小变化，调整图表大小
   window.addEventListener('resize', handleResize)
@@ -2004,7 +2008,7 @@ const fetchOverviewData = async () => {
     return
   }
   
-  loading.value = true
+  overviewLoading.value = true
   trendLoading.value = true
   try {
     let params: any = {}
@@ -2058,25 +2062,11 @@ const fetchOverviewData = async () => {
       console.log('overviewData.value:', overviewData.value)
       console.log('trendData:', overviewData.value?.trendData)
       
-      // 确保DOM渲染完成后初始化图表
+      // 先显示图表容器，再等待 Vue 更新 DOM，避免固定一秒的重试延迟。
+      trendLoading.value = false
       await nextTick()
-      console.log('DOM渲染完成，开始初始化图表')
-      
-      // 确保图表容器存在
-      if (trendChartRef.value) {
-        console.log('图表容器存在，初始化图表')
-        initTrendChart()
-      } else {
-        console.log('图表容器不存在，延迟初始化')
-        // 延迟一秒后再次尝试
-        setTimeout(() => {
-          if (trendChartRef.value) {
-            console.log('延迟后图表容器存在，初始化图表')
-            initTrendChart()
-          } else {
-            console.log('延迟后图表容器仍不存在')
-          }
-        }, 1000)
+      if (activeTab.value === 'stats' && trendChartRef.value) {
+        await initTrendChart()
       }
     } else {
       console.log('=== 数据获取失败 ===')
@@ -2086,7 +2076,7 @@ const fetchOverviewData = async () => {
     console.error('获取统计概览失败:', error)
     ElMessage.error('获取统计数据失败，请重试')
   } finally {
-    loading.value = false
+    overviewLoading.value = false
     trendLoading.value = false
   }
 }
@@ -2171,7 +2161,9 @@ const fetchRealtimeData = async () => {
 }
 
 // 初始化趋势图表
-const initTrendChart = () => {
+const initTrendChart = async () => {
+  const echarts = await loadCharts()
+  if (activeTab.value !== 'stats' || !trendChartRef.value) return
   console.log('=== initTrendChart 开始 ===')
   console.log('trendChartRef.value:', trendChartRef.value)
   
@@ -2405,7 +2397,9 @@ const initTrendChart = () => {
 
 // 手动测试图表
 let testChartInstance = null
-const testChart = () => {
+const testChart = async () => {
+  const echarts = await loadCharts()
+  if (activeTab.value !== 'stats' || !trendChartRef.value) return
   console.log('=== 手动测试图表 ===')
   console.log('trendChartRef.value:', trendChartRef.value)
   
