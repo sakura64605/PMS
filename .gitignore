@@ -1,5 +1,5 @@
 HELP.md
-target/
+/target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
@@ -38,7 +38,7 @@ dist/
 .vite/
 
 # 后端
-target/
+/target/
 *.class
 
 # 临时文件
