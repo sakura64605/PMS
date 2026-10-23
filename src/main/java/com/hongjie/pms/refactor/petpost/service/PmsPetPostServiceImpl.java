@@ -180,6 +180,9 @@ public class PmsPetPostServiceImpl implements PetPostService {
         if (post == null || !post.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.PET_NOT_FOUND);
         }
+        if (PetPostStatus.COMPLETED.getCode().equals(post.getStatus())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "已完成的领养/救助不能修改或重新送审");
+        }
 
         if (request.getTitle() != null) {
             post.setTitle(request.getTitle());

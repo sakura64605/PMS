@@ -154,6 +154,23 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional
     public void updateActivity(ActivityRequestDto activityRequestDto) {
+        Long userId = UserContext.getUserId();
+        if(activityRequestDto.getUserId() != null && !activityRequestDto.getUserId().equals(userId)){
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        Activity activity = activityMapper.selectOne(new LambdaQueryWrapper<Activity>()
+                .eq(Activity::getId, activityRequestDto.getId()).last("FOR UPDATE"));
+        log.info("updateActivity: userId={}, activity={}", userId, activity);
+        if (activity == null) {
+            throw new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND);
+        }
+        if(activity.getStatus() == 2){
+            throw new BusinessException(ErrorCode.ACTIVITY_ENDED, "活动已结束，无法修改");
+        }
+        if (!Objects.equals(activity.getUserId(), userId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+
         // 校验时间
         if (activityRequestDto.getStartTime().isBefore(LocalDateTime.now())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "开始时间不能早于现在");
@@ -162,18 +179,6 @@ public class ActivityServiceImpl implements ActivityService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "结束时间不能早于开始时间");
         }
 
-        Long userId = UserContext.getUserId();
-        if(activityRequestDto.getUserId() != null && !activityRequestDto.getUserId().equals(userId)){
-            throw new BusinessException(ErrorCode.FORBIDDEN);
-        }
-        Activity activity = activityMapper.selectById(activityRequestDto.getId());
-        log.info("updateActivity: userId={}, activity={}", userId, activity);
-        if (activity == null) {
-            throw new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND);
-        }
-        if(activity.getStatus() == 2){
-            throw new BusinessException(ErrorCode.ACTIVITY_ENDED, "活动已结束，无法修改");
-        }
 
         // 检测是否有重大变更
         boolean hasMajorChange = hasMajorChange(activity, activityRequestDto);
@@ -189,7 +194,8 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setStartTime(activityRequestDto.getStartTime());
         activity.setEndTime(activityRequestDto.getEndTime());
         activity.setAuditStatus(hasMajorChange ? 0 : activity.getAuditStatus());
-        Integer result = activityMapper.updateById(activity);
+        Integer result = activityMapper.update(activity, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Activity>()
+                .eq(Activity::getId, activity.getId()).ne(Activity::getStatus, 2));
 
         // 清理缓存
         String cacheKey = CacheUtil.buildKey("activity", String.valueOf(activityRequestDto.getId()));

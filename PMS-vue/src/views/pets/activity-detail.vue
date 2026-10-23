@@ -130,7 +130,7 @@
           
           <!-- 活动操作按钮 -->
           <el-button
-            v-if="isOwner"
+            v-if="isOwner && pet.status !== 2"
             type="primary"
             @click="handleEdit"
           >
@@ -494,6 +494,10 @@ const handleBack = () => {
 };
 
 const handleEdit = () => {
+  if (pet.value?.status === 2) {
+    ElMessage.warning('已完成或已结束的内容不能修改');
+    return;
+  }
   ElMessage.info('功能开发中');
   // router.push(`/activities/${activity.value.id}/edit`);
 };

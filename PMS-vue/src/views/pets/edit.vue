@@ -272,6 +272,11 @@ const fetchPetDetail = async () => {
     const response = await getPetDetail(Number(id));
     if (response.code === 200 && response.data) {
       const pet = response.data;
+      if (pet.status === 2) {
+        ElMessage.warning('已完成的领养/救助不能修改');
+        router.replace(`/pets/${id}`);
+        return;
+      }
       form.type = pet.type;
       form.title = pet.title;
       form.petName = pet.petName || '';

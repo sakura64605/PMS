@@ -71,6 +71,7 @@
             </el-button>
             <el-button
               size="small"
+              v-if="pet.status !== 2"
               type="primary"
               @click.stop="handleEdit(pet.id)"
             >
@@ -167,6 +168,7 @@
             </el-button>
             <el-button
               size="small"
+              v-if="activity.status !== 2"
               type="primary"
               @click.stop="handleActivityEdit(activity.id)"
             >

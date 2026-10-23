@@ -29,7 +29,7 @@ public class AuditQuerySources {
                 .petType(row.getPetType()).petName(row.getPetName()).petAge(row.getPetAge())
                 .petGender(row.getPetGender()).address(row.getAddress()).contactPhone(row.getContactPhone()).build());
         return source(type, keyword -> {
-            var query = new LambdaQueryWrapper<PetPost>().eq(PetPost::getType, code).eq(PetPost::getAuditStatus, AuditStatus.PENDING.getCode());
+            var query = new LambdaQueryWrapper<PetPost>().eq(PetPost::getType, code).eq(PetPost::getAuditStatus, AuditStatus.PENDING.getCode()).notIn(PetPost::getStatus, -1, 2);
             if (StringUtils.hasText(keyword)) query.and(q -> q.like(PetPost::getTitle, keyword).or().like(PetPost::getContent, keyword));
             return mapper.selectList(query).stream().map(convert).toList();
         }, ids -> mapper.selectBatchIds(ids).stream().filter(row -> Objects.equals(row.getType(), code)).map(convert).toList());
@@ -43,7 +43,7 @@ public class AuditQuerySources {
                 .startTime(row.getStartTime()).endTime(row.getEndTime()).maxPeople(row.getMaxPeople())
                 .currentPeople(row.getCurrentPeople()).build());
         return source("activity", keyword -> {
-            var query = new LambdaQueryWrapper<Activity>().eq(Activity::getAuditStatus, AuditStatus.PENDING.getCode());
+            var query = new LambdaQueryWrapper<Activity>().eq(Activity::getAuditStatus, AuditStatus.PENDING.getCode()).ne(Activity::getStatus, 2);
             if (StringUtils.hasText(keyword)) query.and(q -> q.like(Activity::getTitle, keyword).or().like(Activity::getContent, keyword));
             return mapper.selectList(query).stream().map(convert).toList();
         }, ids -> mapper.selectBatchIds(ids).stream().map(convert).toList());
