@@ -72,14 +72,14 @@ public class CommentServiceImpl implements CommentService {
         comment.setStatus(1);
         log.debug("保存评论: {}", comment);
         commentMapper.insert(comment);
-        if (request.getTargetType().equals(CommentLikeTypes.PET_POST)){
-            petPostMapper.incrementCommentCount(request.getTargetId());
-        } else if (request.getTargetType().equals(CommentLikeTypes.PET_ACTIVITY)){
-            activityMapper.incrementCommentCount(request.getTargetId());
-        }
         log.info("保存评论成功: {}", comment);
 
-        // 增加评论计数
+        // 增加评论计数，并按目标类型发送通知。
+        //
+        // 缺陷修复：此处原本在这段之前还有一份重复的 increment 分支
+        // （只覆盖 PET_POST 与 PET_ACTIVITY），导致帖子与活动的评论数被加了两次，
+        // 而日常动态在这一段里只加一次 —— 三者行为不一致。
+        // 重复分支已删除，下面这个链是唯一的自增点。
         if (request.getTargetType().equals(CommentLikeTypes.PET_POST)) {
             petPostMapper.incrementCommentCount(request.getTargetId());
 
@@ -143,7 +143,7 @@ public class CommentServiceImpl implements CommentService {
                         null,
                         "回复了你的评论：" + request.getContent(),
                         request.getParentId(),
-                        request.getTargetType().equals(CommentLikeTypes.PET_ACTIVITY) ? "/activity/" : "/pet/" + request.getTargetId() + "?commentId=" + comment.getId()  // 带评论锚点
+                        buildCommentAnchorLink(request.getTargetType(), request.getTargetId(), comment.getId())
                 );
             }
         }
@@ -151,6 +151,35 @@ public class CommentServiceImpl implements CommentService {
         log.info("评论创建成功: userId={}, targetType={}, targetId={}",
                 userId, request.getTargetType(), request.getTargetId());
 
+    }
+
+    /**
+     * 构造带评论锚点的跳转链接。
+     *
+     * <p>缺陷修复：原实现写成
+     * {@code cond ? "/activity/" : "/pet/" + targetId + "?commentId=" + commentId}。
+     * Java 中 {@code +} 的优先级高于三元运算符，该表达式实际被解析为
+     * {@code cond ? "/activity/" : ("/pet/" + targetId + "?commentId=" + commentId)}，
+     * 于是：
+     * <ul>
+     *   <li>活动分支的链接退化成 {@code "/activity/"}，丢失活动 ID 与评论锚点；</li>
+     *   <li>日常动态分支落到 else，被错发成 {@code "/pet/..."}。</li>
+     * </ul>
+     * 改为按目标类型取路径前缀后，三种类型都能得到正确链接。
+     *
+     * <p>可见性刻意设为<b>包级静态</b>：它是纯函数，做成静态方法后，
+     * 测试可以在同包内直接调用，无需构造这个依赖近十个 Mapper/Service 的类。
+     */
+    static String buildCommentAnchorLink(String targetType, Long targetId, Long commentId) {
+        String prefix;
+        if (CommentLikeTypes.PET_ACTIVITY.equals(targetType)) {
+            prefix = "/activity/";
+        } else if (CommentLikeTypes.DAILY.equals(targetType)) {
+            prefix = "/daily/";
+        } else {
+            prefix = "/pet/";
+        }
+        return prefix + targetId + "?commentId=" + commentId;
     }
 
     /**
