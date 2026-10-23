@@ -80,4 +80,8 @@ class AuditCommandServiceTest {
         assertThatThrownBy(()->service.batchApprove(List.of(),"adopt")).isInstanceOf(BusinessException.class);
         verifyNoInteractions(locks,records,events);
     }
+    @Test void resubmissionCreatesMissingRound(){when(locks.pending("adopt",1L)).thenReturn(List.of());service.ensurePending("adopt",1L);verify(records).insert(any(AuditRecord.class));}
+    @Test void resubmissionReusesExistingPendingRound(){service.ensurePending("adopt",1L);verify(records,never()).insert(any(AuditRecord.class));}
+    @Test void resubmissionRejectsDuplicateOpenRounds(){when(locks.pending("adopt",1L)).thenReturn(List.of(record(),record()));assertThatThrownBy(()->service.ensurePending("adopt",1L)).isInstanceOf(BusinessException.class);verifyNoInteractions(records,events);}
+
 }

@@ -74,6 +74,7 @@ public class PetPostDtoConverter implements EntityConverter<PetPostWithAuthor, P
                 .address(post.getAddress())
                 .viewCount(post.getViewCount())
                 .status(post.getStatus())
+                .auditStatus(post.getAuditStatus())
                 .createTime(post.getCreateTime())
                 .updateTime(post.getUpdateTime())
                 .user(source.author())

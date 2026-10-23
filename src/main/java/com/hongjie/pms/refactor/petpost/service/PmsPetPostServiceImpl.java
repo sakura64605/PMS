@@ -115,6 +115,7 @@ public class PmsPetPostServiceImpl implements PetPostService {
     private final FeedService feedService;
     private final AuditService auditService;
     private final ApplicationEventPublisher eventPublisher;
+    private final com.hongjie.pms.refactor.audit.AuditCommandService auditCommands;
 
     // ==================== 发布 / 修改 ====================
 
@@ -174,7 +175,8 @@ public class PmsPetPostServiceImpl implements PetPostService {
     public PetListResponseDto update(PetPostRequestDto request) {
         Long userId = UserContext.getUserId();
 
-        PmsPetPost post = petPostMapper.selectById(request.getId());
+        PmsPetPost post = petPostMapper.selectOne(new LambdaQueryWrapper<PmsPetPost>()
+                .eq(PmsPetPost::getId, request.getId()).last("FOR UPDATE"));
         if (post == null || !post.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.PET_NOT_FOUND);
         }
@@ -218,6 +220,7 @@ public class PmsPetPostServiceImpl implements PetPostService {
         // 内容被改动，审核需重新开始 —— 与老实现一致
         post.setAuditStatus(AuditStatus.PENDING.getCode());
         petPostMapper.updateById(post);
+        auditCommands.ensurePending(post.getType() == 0 ? "adopt" : "help", post.getId());
 
         evictDetailCache(post.getId());
 
@@ -289,12 +292,6 @@ public class PmsPetPostServiceImpl implements PetPostService {
     public PetDetailDto detail(Long id, Long currentUserId) {
         String cacheKey = detailCacheKey(id);
 
-        PetDetailDto cached = distributedCache.get(cacheKey, PetDetailDto.class);
-        if (cached != null) {
-            fillViewerState(cached, id, currentUserId);
-            return cached;
-        }
-
         PmsPetPost post = petPostMapper.selectById(id);
         // 修复：老实现先调 post.getAuditStatus() 再判 null，帖子不存在时抛 NPE（500）
         Guard.requireFound(post, ErrorCode.PET_NOT_FOUND, id);
@@ -303,17 +300,25 @@ public class PmsPetPostServiceImpl implements PetPostService {
                 ErrorCode.PET_NOT_FOUND, "帖子不存在: " + id);
 
         AuditStatus auditStatus = CodableEnum.of(AuditStatus.class, post.getAuditStatus());
-        if (auditStatus == AuditStatus.REJECTED) {
+        boolean canPreview = currentUserId != null &&
+                (post.getUserId().equals(currentUserId) || UserContext.isAdmin());
+        if (!canPreview && auditStatus == AuditStatus.REJECTED) {
             throw new BusinessException(ErrorCode.AUDIT_REJECT);
         }
-        if (auditStatus == AuditStatus.PENDING) {
+        if (!canPreview && auditStatus == AuditStatus.PENDING) {
             throw new BusinessException(ErrorCode.AUDIT_WAITING);
+        }
+        // Validate visibility against the current row before consulting the shared cache.
+        boolean publicDetail = auditStatus == AuditStatus.APPROVED;
+        if (publicDetail) {
+            PetDetailDto cached = distributedCache.get(cacheKey, PetDetailDto.class);
+            if (cached != null) { cached.setAuditStatus(post.getAuditStatus()); fillViewerState(cached, id, currentUserId); return cached; }
         }
 
         UserSimpleDto author = loadAuthor(post.getUserId(), currentUserId);
 
         // 浏览计数：仅对已发布的、且不是自己发的帖子累加（与老实现一致）
-        if (PetPostStatus.PUBLISHED.getCode().equals(post.getStatus())
+        if (publicDetail && PetPostStatus.PUBLISHED.getCode().equals(post.getStatus())
                 && !post.getUserId().equals(currentUserId)) {
             petPostMapper.incrementViewCount(id);
         }
@@ -321,7 +326,7 @@ public class PmsPetPostServiceImpl implements PetPostService {
         // 互动状态先留 null（与老实现一致：匿名访问时不计算），登录后再由 fillViewerState 填充
         PetDetailDto detail = converter.toDetail(new PetPostWithAuthor(post, author, null, null));
         fillViewerState(detail, id, currentUserId);
-        distributedCache.put(cacheKey, detail, DETAIL_CACHE_SECONDS);
+        if (publicDetail) distributedCache.put(cacheKey, detail, DETAIL_CACHE_SECONDS);
         return detail;
     }
 

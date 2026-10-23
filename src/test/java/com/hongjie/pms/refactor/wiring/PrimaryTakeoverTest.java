@@ -221,6 +221,11 @@ class PrimaryTakeoverTest {
         }
 
         @Bean
+        com.hongjie.pms.refactor.audit.AuditCommandService auditCommands() {
+            return mock(com.hongjie.pms.refactor.audit.AuditCommandService.class);
+        }
+
+        @Bean
         AuditService auditService() {
             return mock(AuditService.class);
         }

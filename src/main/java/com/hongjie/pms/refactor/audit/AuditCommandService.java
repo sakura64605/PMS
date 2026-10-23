@@ -33,6 +33,17 @@ public class AuditCommandService {
         records.insert(record);
         events.publishEvent(new AuditChanged(type,id,null,null,null));
     }
+    /** Editing a post reuses its open review or starts a new round, preserving old decisions. */
+    @Transactional(rollbackFor=Exception.class)
+    public void ensurePending(String type,Long id){
+        validateId(id);var target=targets.get(type);target.lock(id);
+        var pending=locks.pending(type,id);
+        if(pending.size()>1)throw new BusinessException(ErrorCode.PARAM_ERROR,"存在重复待审记录，请先核实历史数据");
+        if(pending.isEmpty()){
+            var record=new AuditRecord();record.setTargetType(type);record.setTargetId(id);record.setAuditStatus(0);records.insert(record);
+        }
+        events.publishEvent(new AuditChanged(type,id,null,null,null));
+    }
     @Transactional(rollbackFor=Exception.class)
     public void approve(Long id,String type){ requireAdmin();decide(id,type,1,null); }
     @Transactional(rollbackFor=Exception.class)

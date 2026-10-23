@@ -30,6 +30,7 @@ public class PetDetailDto {
     private String address;
     private Integer viewCount;
     private Integer status;
+    private Integer auditStatus;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 

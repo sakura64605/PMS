@@ -125,7 +125,7 @@ class PetPostServiceWriteEquivalenceTest {
 
         newService = new PmsPetPostServiceImpl(pmsPetPostMapper, new PetPostDtoConverter(),
                 ossUtils, userMapper, likeRecordMapper, favoriteRecordMapper, followMapper,
-                cache, new TargetTypeCodec(), feedService, auditService, publisher);
+                cache, new TargetTypeCodec(), feedService, auditService, publisher, mock(com.hongjie.pms.refactor.audit.AuditCommandService.class));
     }
 
     @AfterEach

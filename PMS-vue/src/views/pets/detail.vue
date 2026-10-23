@@ -454,7 +454,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { ArrowLeft, View, Male, Female, QuestionFilled, DocumentCopy, Star, ChatLineSquare, Share, Top, Warning } from '@element-plus/icons-vue';
 import { getPetDetail, likePet, collectPet, completePet } from '../../api/pet';
-import { getActivityDetail, signupActivity, getCommentList, createComment } from '../../api/activity';
+import { signupActivity, getCommentList, createComment } from '../../api/activity';
 import { approveAudit, rejectAudit } from '../../api/audit';
 import ReportForm from '../../components/ReportForm.vue';
 import request from '../../utils/request';
@@ -1072,50 +1072,18 @@ const fetchPetDetail = async () => {
 
   loading.value = true;
   try {
-    // 先尝试获取宠物详情
-    try {
-      const petResponse = await getPetDetail(Number(id));
-      if (petResponse.code === 200 && petResponse.data) {
-        pet.value = petResponse.data;
-        // 初始化点赞和收藏状态，使用后端返回的字段
-        isLiked.value = pet.value.isLiked || false;
-        isCollected.value = pet.value.isFavorite || false;
-        // 初始化关注状态
-        isFollowing.value = pet.value.user.isFollow || false;
-        // 获取评论列表
-        await fetchComments();
-        // 滚动到指定评论
-        scrollToComment();
-        return;
-      }
-    } catch (petError) {
-      // 宠物详情获取失败，尝试获取活动详情
-      console.log('宠物详情获取失败，尝试获取活动详情:', petError);
+    // This route is exclusively for pet posts; activity IDs belong to another route.
+    const response = await getPetDetail(Number(id));
+    if (response.code !== 200 || !response.data) {
+      ElMessage.error(response.message || '获取宠物详情失败');
+      return;
     }
-    
-    // 尝试获取活动详情
-    try {
-      const activityResponse = await getActivityDetail(Number(id));
-      if (activityResponse.code === 200 && activityResponse.data) {
-        pet.value = activityResponse.data;
-        // 初始化点赞和收藏状态，使用后端返回的字段
-        isLiked.value = pet.value.isLiked || false;
-        isCollected.value = pet.value.isFavorite || false;
-        // 初始化关注状态
-        isFollowing.value = pet.value.user.isFollow || false;
-        // 获取评论列表
-        await fetchComments();
-        // 滚动到指定评论
-        scrollToComment();
-        return;
-      }
-    } catch (activityError) {
-      // 活动详情获取失败
-      console.log('活动详情获取失败:', activityError);
-    }
-    
-    // 两种详情都获取失败
-    ElMessage.error('获取详情失败');
+    pet.value = response.data;
+    isLiked.value = pet.value.isLiked || false;
+    isCollected.value = pet.value.isFavorite || false;
+    isFollowing.value = pet.value.user?.isFollow || false;
+    await fetchComments();
+    scrollToComment();
   } catch (error) {
     ElMessage.error('获取详情失败，请重试');
     console.error('获取详情失败:', error);
