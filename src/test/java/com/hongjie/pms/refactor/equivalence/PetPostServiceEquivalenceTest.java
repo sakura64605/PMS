@@ -249,15 +249,15 @@ class PetPostServiceEquivalenceTest {
         }
 
         @Test
-        @DisplayName("待审核：老实现与新实现都抛 AUDIT_WAITING")
+        @DisplayName("非作者查看待审核：仍抛 AUDIT_WAITING")
         void pendingAuditDoesNotLeak() {
-            assertBothThrow(104L, 1L, "AUDIT_WAITING");
+            assertBothThrow(104L, 2L, "AUDIT_WAITING");
         }
 
         @Test
-        @DisplayName("已拒绝：老实现与新实现都抛 AUDIT_REJECT")
+        @DisplayName("非作者查看已拒绝：仍抛 AUDIT_REJECT")
         void rejectedDoesNotLeak() {
-            assertBothThrow(105L, 1L, "AUDIT_REJECT");
+            assertBothThrow(105L, 2L, "AUDIT_REJECT");
         }
     }
 
