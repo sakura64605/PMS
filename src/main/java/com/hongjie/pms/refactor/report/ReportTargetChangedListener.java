@@ -4,7 +4,7 @@ import com.hongjie.pms.common.cache.DistributedCache;
 import com.hongjie.pms.common.cache.toolkit.CacheUtil;
 import com.hongjie.pms.common.utils.RedisScanUtil;
 import com.hongjie.pms.modules.search.event.*;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
@@ -12,11 +12,14 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class ReportTargetChangedListener {
     private final DistributedCache cache;
     private final RedisScanUtil scan;
     private final ApplicationEventPublisher events;
+    public ReportTargetChangedListener(@Qualifier("distributedCache") DistributedCache cache,
+                                       RedisScanUtil scan,ApplicationEventPublisher events){
+        this.cache=cache;this.scan=scan;this.events=events;
+    }
     @TransactionalEventListener public void changed(ReportTargetChanged event){
         switch(event.type()){
             case PET_POST -> {

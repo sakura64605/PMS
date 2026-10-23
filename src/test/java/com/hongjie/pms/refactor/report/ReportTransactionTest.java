@@ -43,7 +43,7 @@ class ReportTransactionTest {
         var row=new com.hongjie.pms.modules.report.entity.ReportRecord();row.setId(100L);row.setTargetId(10L);row.setTargetType("pet");row.setStatus(0);
         when(records.selectById(100L)).thenReturn(row);when(records.update(isNull(),any())).thenReturn(1);
         var target=mock(ReportTarget.class);when(target.type()).thenReturn(BizTargetType.PET_POST);when(target.lock(10L)).thenReturn(true);
-        var cache=mock(DistributedCache.class);var scan=mock(RedisScanUtil.class);
+        var cache=mock(DistributedCache.class);var proxy=mock(com.hongjie.pms.common.cache.StringRedisTemplateProxy.class);var scan=mock(RedisScanUtil.class);
         if(cacheFailure)doThrow(new IllegalStateException("cache unavailable")).when(cache).delete(anyString());
         doAnswer(call->{
             verifyNoInteractions(cache,scan);
@@ -56,7 +56,9 @@ class ReportTransactionTest {
                 .withBean(ReportTarget.class,()->target).withBean(ReportRecordMapper.class,()->records)
                 .withBean(UserMapper.class,()->mock(UserMapper.class))
                 .withBean(ReportWriteMapper.class,()->mock(ReportWriteMapper.class))
-                .withBean(DistributedCache.class,()->cache).withBean(RedisScanUtil.class,()->scan)
+                .withBean("distributedCache",DistributedCache.class,()->cache)
+                .withBean("stringRedisTemplateProxy",com.hongjie.pms.common.cache.StringRedisTemplateProxy.class,()->proxy)
+                .withBean(RedisScanUtil.class,()->scan)
                 .run(context->{
                     assertThat(context).hasNotFailed();
                     var service=context.getBean(ReportService.class);
@@ -70,7 +72,7 @@ class ReportTransactionTest {
                         assertThat(tx.commits).isEqualTo(1);assertThat(tx.rollbacks).isZero();
                         verify(cache).delete("pet_10");verify(scan).scanAndDelete("petList_*");
                     }
-                    verifyNoInteractions(legacy);
+                    verifyNoInteractions(legacy,proxy);
                 });
     }
     @Test void primaryServiceCommitsBeforeInvalidatingCache(){run(false,false);}
