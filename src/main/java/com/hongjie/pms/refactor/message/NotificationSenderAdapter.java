@@ -16,8 +16,9 @@ import org.springframework.stereotype.Component;
  * <p><b>为什么复用老的发送链路而不是另起一套</b>：老链路
  * （{@code MessageService -> MessageMqProducer -> MessageMqConsumer -> WebSocketHandler}）
  * 已经带了 MQ 重试、熔断降级、离线存储，是经过线上验证的。
- * v2 重写一遍只会引入新的不一致。所以这里做的是<b>适配</b> ——
- * 把新的值对象翻译成老的实体，走同一条管道，因此新老通知的可靠性与行为完全一致。
+ * 本适配器把策略生成的值对象翻译为既有实体。当前由 @Primary 的
+ * PmsMessageService 接管 MessageService 注入，在业务事务提交后再进入同一 MQ 管道；
+ * 无活动事务时直接投递。MQ 消费、重试与熔断能力仍沿用旧链路，不宣称恰好一次投递。
  */
 @Component
 @RequiredArgsConstructor
