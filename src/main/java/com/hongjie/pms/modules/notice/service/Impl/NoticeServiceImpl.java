@@ -16,7 +16,10 @@ import com.hongjie.pms.modules.notice.entity.NoticeReadRecord;
 import com.hongjie.pms.modules.notice.mapper.NoticeMapper;
 import com.hongjie.pms.modules.notice.mapper.NoticeReadRecordMapper;
 import com.hongjie.pms.modules.notice.service.NoticeService;
-import jakarta.annotation.PostConstruct;
+import org.springframework.aop.framework.AopProxyUtils;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.SmartLifecycle;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBlockingQueue;
@@ -39,13 +42,50 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class NoticeServiceImpl implements NoticeService {
+public class NoticeServiceImpl implements NoticeService, ApplicationContextAware, SmartLifecycle {
 
     private final NoticeMapper noticeMapper;
     private final NoticeReadRecordMapper noticeReadRecordMapper;
     private final CacheUpdateProducer cacheUpdateProducer;
     private final RedisTemplate redisTemplate;
     private final RedissonClient redissonClient;
+
+    private ApplicationContext applicationContext;
+    private volatile Thread consumerThread;
+    private volatile boolean consumerRunning;
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) {
+        this.applicationContext = applicationContext;
+    }
+
+    @Override
+    public void start() {
+        startConsumer();
+    }
+
+    @Override
+    public boolean isRunning() {
+        return consumerRunning;
+    }
+
+    @Override
+    public void stop() {
+        Thread thread;
+        synchronized (this) {
+            consumerRunning = false;
+            thread = consumerThread;
+            if (thread != null) thread.interrupt();
+        }
+        if (thread != null && thread != Thread.currentThread()) {
+            try {
+                thread.join(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            if (thread.isAlive()) log.warn("旧公告消费者未在关闭超时内退出");
+        }
+    }
 
     @Override
     @Transactional
@@ -106,23 +146,47 @@ public class NoticeServiceImpl implements NoticeService {
     }
 
     /**
-     * 启动消费者
+     * 上下文完成装配后，只为实际被选中的旧实现启动消费者。
+     * SmartLifecycle 负责启动和关闭，避免 @Primary 接管后旧线程仍然运行。
      */
-    @PostConstruct
-    public void startConsumer() {
-        new Thread(() -> {
-            RBlockingQueue<Long> blockingQueue = redissonClient.getBlockingQueue("notice:delay:queue");
-            while (true) {
+    public synchronized void startConsumer() {
+        if (consumerThread != null && consumerThread.isAlive()) return;
+        if (applicationContext == null) return;
+        NoticeService selected = applicationContext.getBean(NoticeService.class);
+        if (AopProxyUtils.ultimateTargetClass(selected) != NoticeServiceImpl.class) {
+            log.info("公告接口已由其他实现接管，旧 Redis 消费者不启动");
+            return;
+        }
+        RBlockingQueue<Long> queue = redissonClient.getBlockingQueue("notice:delay:queue");
+        consumerRunning = true;
+        consumerThread = new Thread(() -> consume(queue), "legacy-notice-publisher");
+        consumerThread.setDaemon(true);
+        consumerThread.start();
+    }
+
+    private void consume(RBlockingQueue<Long> queue) {
+        try {
+            while (consumerRunning && !Thread.currentThread().isInterrupted()) {
                 try {
-                    Long noticeId = blockingQueue.take();
-                    log.info("定时发布任务触发: noticeId={}", noticeId);
+                    Long noticeId = queue.take();
+                    if (!consumerRunning) break;
                     publishNow(noticeId);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     break;
+                } catch (RuntimeException e) {
+                    log.error("旧公告消费者执行失败", e);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
                 }
             }
-        }).start();
+        } finally {
+            consumerRunning = false;
+        }
     }
 
     private void publishNow(Long noticeId) {
