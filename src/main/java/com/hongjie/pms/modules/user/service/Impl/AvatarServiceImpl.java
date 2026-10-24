@@ -17,6 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.hongjie.pms.common.cache.DistributedCache;
+import com.hongjie.pms.common.cache.toolkit.CacheUtil;
+import com.hongjie.pms.refactor.core.cache.AfterCommitCache;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,6 +30,7 @@ public class AvatarServiceImpl implements AvatarService {
 
     private static final int MAX_HISTORY_SIZE = 11;  // 最多保留10个历史头像
 
+    private final DistributedCache cache;
     private final OssUtils ossUtil;
     private final UserMapper userMapper;
     private final AvatarHistoryMapper avatarHistoryMapper;
@@ -57,6 +61,7 @@ public class AvatarServiceImpl implements AvatarService {
             updateUser.setId(userId);
             updateUser.setAvatar(newAvatarUrl);
             userMapper.updateById(updateUser);
+            AfterCommitCache.evict(() -> cache.delete(CacheUtil.buildKey("user", userId.toString())));
 
             // 5. 清理多余的历史头像（保留最近10个）
             cleanOldHistory(userId);
@@ -116,6 +121,7 @@ public class AvatarServiceImpl implements AvatarService {
             updateUser.setId(userId);
             updateUser.setAvatar(history.getAvatarUrl());
             userMapper.updateById(updateUser);
+            AfterCommitCache.evict(() -> cache.delete(CacheUtil.buildKey("user", userId.toString())));
 
             // 4. 更新历史头像的updateTime（使其在历史列表中排在最前面）
             AvatarHistory updateHistory = new AvatarHistory();

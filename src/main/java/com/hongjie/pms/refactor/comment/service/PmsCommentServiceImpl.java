@@ -127,6 +127,8 @@ public class PmsCommentServiceImpl implements CommentService {
 
         // 唯一的自增点
         target.incrementCommentCount(request.getTargetId());
+        eventPublisher.publish(new com.hongjie.pms.refactor.comment.event.CommentCreatedEvent(
+                comment.getId(), targetType, comment.getTargetId()));
 
         notifyContentOwner(comment, targetType, target, authorId);
         notifyParentCommentAuthor(comment, targetType, target, authorId);

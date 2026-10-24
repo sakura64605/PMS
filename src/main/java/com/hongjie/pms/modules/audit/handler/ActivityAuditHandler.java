@@ -1,7 +1,6 @@
 package com.hongjie.pms.modules.audit.handler;
 
-import com.hongjie.pms.common.cache.DistributedCache;
-import com.hongjie.pms.common.cache.toolkit.CacheUtil;
+import com.hongjie.pms.modules.activity.cache.ActivityCache;
 import com.hongjie.pms.common.enums.AuditStatus;
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.enums.TargetType;
@@ -13,6 +12,7 @@ import com.hongjie.pms.modules.search.event.ActivityUpdatedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -22,7 +22,7 @@ public class ActivityAuditHandler implements AuditTargetHandler {
 
     private final ActivityMapper activityMapper;
     private final MessageService messageService;
-    private final DistributedCache distributedCache;
+    private final ActivityCache activityCache;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -40,6 +40,7 @@ public class ActivityAuditHandler implements AuditTargetHandler {
     }
 
     @Override
+    @Transactional
     public void updateAuditStatus(Long targetId, Integer auditStatus, String rejectReason) {
         Activity activity = activityMapper.selectById(targetId);
         if (activity != null) {
@@ -54,16 +55,14 @@ public class ActivityAuditHandler implements AuditTargetHandler {
                         activity.getUserId(), activity.getTitle(), activity.getId(), "activity", rejectReason);
             }
             activityMapper.updateById(activity);
+            activityCache.evictAfterCommit(targetId);
             eventPublisher.publishEvent(new ActivityUpdatedEvent(this, targetId, "audit"));
         }
     }
 
     @Override
     public void clearCache(Long targetId) {
-        String activityCacheKey = CacheUtil.buildKey("activity", String.valueOf(targetId));
-        distributedCache.delete(activityCacheKey);
-        String activityListCacheKey = CacheUtil.buildKey("activityList", "1", "10");
-        distributedCache.delete(activityListCacheKey);
+        activityCache.evictAfterCommit(targetId);
     }
 
     @Override

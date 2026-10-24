@@ -1,8 +1,7 @@
 package com.hongjie.pms.common.punishment.scheduler;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.hongjie.pms.common.cache.DistributedCache;
-import com.hongjie.pms.common.cache.toolkit.CacheUtil;
+import com.hongjie.pms.modules.activity.cache.ActivityCache;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.punishment.util.PunishmentUtil;
 import com.hongjie.pms.modules.activity.entity.Activity;
@@ -30,7 +29,7 @@ public class DelayTaskHandler {
     private final UserMapper userMapper;
     private final PunishmentUtil punishmentUtil;
     private final DelayTaskService delayTaskService;
-    private final DistributedCache distributedCache;
+    private final ActivityCache activityCache;
 
     /**
      * 处理活动提醒
@@ -100,9 +99,9 @@ public class DelayTaskHandler {
         } else {
             activity.setStatus(2);
             activity.setUpdateTime(now);
-            activityMapper.updateById(activity);
-            String cacheKey = CacheUtil.buildKey("activity", String.valueOf(activityId));
-            distributedCache.delete(cacheKey);
+            if (activityMapper.updateById(activity) > 0) {
+                activityCache.evictAfterCommit(activityId);
+            }
         }
 
         // 查询所有报名用户
@@ -120,7 +119,9 @@ public class DelayTaskHandler {
             if (signup.getCheckInTime() == null &&
                     (activity.getStatus() == 2 || activity.getEndTime().isBefore(LocalDateTime.now()))) {
                 signup.setStatus(4); // 4-爽约
-                activitySignupMapper.updateById(signup);
+                if (activitySignupMapper.updateById(signup) > 0) {
+                    activityCache.evictAfterCommit(activityId);
+                }
                 noShowCount++;
             } else if (signup.getCheckInTime() != null) {
                 signedCount++;
@@ -299,10 +300,9 @@ public class DelayTaskHandler {
         }
         activity.setStatus(1);
         activity.setUpdateTime(LocalDateTime.now());
-        activityMapper.updateById(activity);
-
-        String cacheKey = CacheUtil.buildKey("activity", String.valueOf(businessId));
-        distributedCache.delete(cacheKey);
+        if (activityMapper.updateById(activity) > 0) {
+            activityCache.evictAfterCommit(businessId);
+        }
         log.info("活动已自动变更为进行中: activityId={}", businessId);
     }
 

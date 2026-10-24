@@ -315,7 +315,16 @@ public class PmsPetPostServiceImpl implements PetPostService {
         boolean publicDetail = auditStatus == AuditStatus.APPROVED;
         if (publicDetail) {
             PetDetailDto cached = distributedCache.get(cacheKey, PetDetailDto.class);
-            if (cached != null) { cached.setAuditStatus(post.getAuditStatus()); fillViewerState(cached, id, currentUserId); return cached; }
+            if (cached != null && java.util.Objects.equals(cached.getUpdateTime(), post.getUpdateTime())) {
+                cached.setAuditStatus(post.getAuditStatus());
+                cached.setStatus(post.getStatus());
+                cached.setLikeCount(post.getLikeCount());
+                cached.setCommentCount(post.getCommentCount());
+                cached.setViewCount(post.getViewCount());
+                cached.setUser(loadAuthor(post.getUserId(), currentUserId));
+                fillViewerState(cached, id, currentUserId);
+                return cached;
+            }
         }
 
         UserSimpleDto author = loadAuthor(post.getUserId(), currentUserId);
@@ -329,7 +338,7 @@ public class PmsPetPostServiceImpl implements PetPostService {
         // 互动状态先留 null（与老实现一致：匿名访问时不计算），登录后再由 fillViewerState 填充
         PetDetailDto detail = converter.toDetail(new PetPostWithAuthor(post, author, null, null));
         fillViewerState(detail, id, currentUserId);
-        if (publicDetail) distributedCache.put(cacheKey, detail, DETAIL_CACHE_SECONDS);
+        if (publicDetail) distributedCache.put(cacheKey, detail, DETAIL_CACHE_SECONDS, java.util.concurrent.TimeUnit.SECONDS);
         return detail;
     }
 
@@ -651,6 +660,8 @@ public class PmsPetPostServiceImpl implements PetPostService {
 
     /** 补齐当前用户视角的点赞/收藏态；未登录时保持 null（与老实现一致） */
     private void fillViewerState(PetDetailDto detail, Long postId, Long currentUserId) {
+        detail.setIsLiked(null);
+        detail.setIsFavorite(null);
         if (currentUserId == null) {
             return;
         }
@@ -690,7 +701,8 @@ public class PmsPetPostServiceImpl implements PetPostService {
     }
 
     private void evictDetailCache(Long id) {
-        distributedCache.delete(detailCacheKey(id));
+        com.hongjie.pms.refactor.core.cache.AfterCommitCache.evict(
+                () -> distributedCache.delete(detailCacheKey(id)));
     }
 
     private static Long asLong(Integer value) {

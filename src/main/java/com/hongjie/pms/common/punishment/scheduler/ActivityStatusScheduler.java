@@ -1,8 +1,7 @@
 package com.hongjie.pms.common.punishment.scheduler;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.hongjie.pms.common.cache.DistributedCache;
-import com.hongjie.pms.common.cache.toolkit.CacheUtil;
+import com.hongjie.pms.modules.activity.cache.ActivityCache;
 import com.hongjie.pms.modules.activity.entity.Activity;
 import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +18,7 @@ import java.util.List;
 public class ActivityStatusScheduler {
 
     private final ActivityMapper activityMapper;
-    private final DistributedCache distributedCache;
+    private final ActivityCache activityCache;
 
     @Scheduled(fixedDelay = 60000)
     public void syncActivityStatus() {
@@ -33,8 +32,9 @@ public class ActivityStatusScheduler {
             try {
                 activity.setStatus(1);
                 activity.setUpdateTime(now);
-                activityMapper.updateById(activity);
-                distributedCache.delete(CacheUtil.buildKey("activity", String.valueOf(activity.getId())));
+                if (activityMapper.updateById(activity) > 0) {
+                    activityCache.evictAfterCommit(activity.getId());
+                }
                 log.info("定时任务：活动已变更为进行中: id={}", activity.getId());
             } catch (Exception e) {
                 log.error("定时任务：活动开始失败: id={}", activity.getId(), e);
@@ -49,8 +49,9 @@ public class ActivityStatusScheduler {
             try {
                 activity.setStatus(2);
                 activity.setUpdateTime(now);
-                activityMapper.updateById(activity);
-                distributedCache.delete(CacheUtil.buildKey("activity", String.valueOf(activity.getId())));
+                if (activityMapper.updateById(activity) > 0) {
+                    activityCache.evictAfterCommit(activity.getId());
+                }
                 log.info("定时任务：活动已变更为已结束: id={}", activity.getId());
             } catch (Exception e) {
                 log.error("定时任务：活动结束失败: id={}", activity.getId(), e);

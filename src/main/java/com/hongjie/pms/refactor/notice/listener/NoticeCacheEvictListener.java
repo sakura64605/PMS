@@ -1,6 +1,8 @@
 package com.hongjie.pms.refactor.notice.listener;
 
 import com.hongjie.pms.common.mq.CacheUpdateProducer;
+import com.hongjie.pms.common.utils.RedisScanUtil;
+import org.springframework.data.redis.core.RedisTemplate;
 import com.hongjie.pms.refactor.notice.event.NoticeChangedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +46,8 @@ public class NoticeCacheEvictListener {
     public static final String DETAIL_CACHE_REGION = "notice";
 
     private final CacheUpdateProducer cacheUpdateProducer;
+    private final RedisTemplate<String, Object> redis;
+    private final RedisScanUtil scan;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onNoticeChanged(NoticeChangedEvent event) {
@@ -53,9 +57,18 @@ public class NoticeCacheEvictListener {
     /** 清除某条公告的详情缓存，以及全部列表分页缓存 */
     public void evict(Long noticeId) {
         if (noticeId != null) {
-            cacheUpdateProducer.sendEvict(DETAIL_CACHE_REGION, String.valueOf(noticeId));
+            run(() -> redis.delete(DETAIL_CACHE_REGION + ":" + noticeId));
         }
-        cacheUpdateProducer.sendEvictAll(LIST_CACHE_REGION);
+        run(() -> scan.scanAndDelete(LIST_CACHE_REGION + ":*"));
+        if (noticeId != null) {
+            run(() -> cacheUpdateProducer.sendEvict(DETAIL_CACHE_REGION, String.valueOf(noticeId)));
+        }
+        run(() -> cacheUpdateProducer.sendEvictAll(LIST_CACHE_REGION));
         log.debug("公告缓存清除已发送: noticeId={}, listRegion={}", noticeId, LIST_CACHE_REGION);
+    }
+
+    private void run(Runnable task) {
+        try { task.run(); }
+        catch (RuntimeException e) { log.error("Notice committed but cache eviction failed", e); }
     }
 }

@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 public class CacheUpdateProducer {
     
     private final RocketMQTemplate rocketMQTemplate;
+    private final org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
+    private final com.hongjie.pms.common.utils.RedisScanUtil redisScanUtil;
     
     private static final String TOPIC = "cache-update-topic";
     private static final String TAG = "cache";
@@ -108,7 +110,10 @@ public class CacheUpdateProducer {
      * 降级处理：直接清除本地缓存
      */
     private void handleLocalEvict(CacheUpdateMessage message) {
-        // 这里直接调用缓存清除逻辑
-        // 可以通过 Spring 上下文获取 Bean
+        if (message.isAllEntries()) {
+            redisScanUtil.scanAndDelete(message.getCacheName() + ":*");
+        } else {
+            redisTemplate.delete(message.getCacheName() + ":" + message.getCacheKey());
+        }
     }
 }

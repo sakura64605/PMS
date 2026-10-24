@@ -33,4 +33,24 @@ class PetReviewPreviewTest {
     @Test void unrelatedUserCannotPreviewEvenIfSharedCacheExists(){UserContext.setUser(new UserInfo(3L,"other",0,null,null));assertThatThrownBy(()->service.detail(10L,3L)).isInstanceOf(BusinessException.class);verifyNoInteractions(cache);}
     @Test void anonymousCannotPreview(){assertThatThrownBy(()->service.detail(10L,null)).isInstanceOf(BusinessException.class);verifyNoInteractions(cache);}
     @Test void ownerCanPreviewRejectedContent(){post.setAuditStatus(2);UserContext.setUser(new UserInfo(1L,"owner",0,null,null));assertThat(service.detail(10L,1L).getAuditStatus()).isEqualTo(2);verifyNoInteractions(cache);}
+
+    @Test void cachedDetailUsesCurrentCountersAndResetsAnonymousViewerState() {
+        post.setAuditStatus(1);post.setStatus(1);post.setLikeCount(4);post.setCommentCount(3);
+        var cached = com.hongjie.pms.modules.petpost.dto.PetDetailDto.builder()
+                .id(10L).title("cached").likeCount(1).commentCount(0).isLiked(true).isFavorite(true).build();
+        when(cache.get("pet_10", com.hongjie.pms.modules.petpost.dto.PetDetailDto.class)).thenReturn(cached);
+        var result=service.detail(10L,null);
+        assertThat(result.getLikeCount()).isEqualTo(4);
+        assertThat(result.getCommentCount()).isEqualTo(3);
+        assertThat(result.getIsLiked()).isNull();
+        assertThat(result.getIsFavorite()).isNull();
+    }
+    @Test void staleDetailVersionIsRebuiltFromCurrentRow() {
+        post.setAuditStatus(1);post.setStatus(1);post.setTitle("new title");
+        post.setUpdateTime(java.time.LocalDateTime.of(2026,10,24,12,0));
+        var cached = com.hongjie.pms.modules.petpost.dto.PetDetailDto.builder()
+                .id(10L).title("old title").updateTime(post.getUpdateTime().minusMinutes(1)).build();
+        when(cache.get("pet_10", com.hongjie.pms.modules.petpost.dto.PetDetailDto.class)).thenReturn(cached);
+        assertThat(service.detail(10L,null).getTitle()).isEqualTo("new title");
+    }
 }

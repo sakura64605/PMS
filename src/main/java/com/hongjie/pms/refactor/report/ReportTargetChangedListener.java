@@ -32,7 +32,7 @@ public class ReportTargetChangedListener {
                 run(event,()->cache.delete(CacheUtil.buildKey("activity",event.targetId().toString())));
                 run(event,()->scan.scanAndDelete("activity:"+event.targetId()));
                 run(event,()->scan.scanAndDelete("activityList*"));
-                run(event,()->scan.scanAndDelete("userActivity:*"));
+                run(event,()->scan.scanAndDelete("userActivity_*"));
                 run(event,()->events.publishEvent(new ActivityUpdatedEvent(this,event.targetId(),"content")));
             }
             default -> { /* 评论不在搜索索引中；用户账号治理沿用既有鉴权机制。 */ }

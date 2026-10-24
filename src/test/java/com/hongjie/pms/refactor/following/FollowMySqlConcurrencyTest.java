@@ -34,6 +34,7 @@ class FollowMySqlConcurrencyTest {
     @EnableTransactionManagement(proxyTargetClass=true)
     @Import({PmsFollowServiceImpl.class,FollowInboxWriter.class,FollowCreatedListener.class,FollowingController.class})
     static class Config{
+        @Bean com.hongjie.pms.common.cache.DistributedCache cache(){return mock(com.hongjie.pms.common.cache.DistributedCache.class);}
         @Bean MessageService messages(){return mock(MessageService.class);}
         @Bean FollowService legacyFollowService(){return mock(FollowService.class);}
     }

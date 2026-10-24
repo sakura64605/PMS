@@ -18,6 +18,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.hongjie.pms.common.cache.DistributedCache;
+import com.hongjie.pms.common.cache.toolkit.CacheUtil;
+import com.hongjie.pms.refactor.core.cache.AfterCommitCache;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -26,6 +29,7 @@ import java.util.stream.Collectors;
 @Primary
 @RequiredArgsConstructor
 public class PmsFollowServiceImpl implements FollowService {
+    private final DistributedCache cache;
     private final FollowMapper follows;
     private final UserMapper users;
     private final FollowWriteMapper writes;
@@ -60,6 +64,8 @@ public class PmsFollowServiceImpl implements FollowService {
             inbox.populate(actor,profile);
             events.publishEvent(new FollowCreated(actor,target,follower.getUserName()));
         }
+        AfterCommitCache.evict(() -> cache.delete(CacheUtil.buildKey("user", actor.toString())));
+        AfterCommitCache.evict(() -> cache.delete(CacheUtil.buildKey("user", target.toString())));
     }
 
     @Override public IPage<UserSimpleDto> listFollowing(Long userId,int pageNum,int pageSize){return list(userId,pageNum,pageSize,true);}

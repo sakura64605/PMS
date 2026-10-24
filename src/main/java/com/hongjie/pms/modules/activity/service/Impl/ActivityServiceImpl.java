@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.common.circuitbreaker.annotation.CircuitBreaker;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.cache.DistributedCache;
+import com.hongjie.pms.modules.activity.cache.ActivityCache;
 import com.hongjie.pms.common.cache.toolkit.CacheUtil;
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.enums.PostType;
@@ -64,6 +65,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final FollowMapper followMapper;
     private final MessageService messageService;
     private final DistributedCache distributedCache;
+    private final ActivityCache activityCache;
     private final DelayTaskService delayTaskService;
     private final FeedService feedService;
     private final AuditService auditService;
@@ -72,6 +74,7 @@ public class ActivityServiceImpl implements ActivityService {
 
 
     @Override
+    @Transactional
     public ActivityPostRespDto postActivity(ActivityRequestDto request) {
 
         // 校验时间
@@ -113,9 +116,7 @@ public class ActivityServiceImpl implements ActivityService {
             delayTaskService.addTask("ACTIVITY_STATISTICS", activity.getId(), statisticsTime);
         }
 
-        // 清理活动列表缓存
-        String activityListCacheKey = CacheUtil.buildKey("activityList", "1", "10");
-        distributedCache.delete(activityListCacheKey);
+        activityCache.evictAfterCommit(activity.getId());
 
         ActivityPostRespDto response = ActivityPostRespDto.builder()
                 .id(activity.getId())
@@ -197,16 +198,14 @@ public class ActivityServiceImpl implements ActivityService {
         Integer result = activityMapper.update(activity, new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Activity>()
                 .eq(Activity::getId, activity.getId()).ne(Activity::getStatus, 2));
 
-        // 清理缓存
-        String cacheKey = CacheUtil.buildKey("activity", String.valueOf(activityRequestDto.getId()));
-        distributedCache.delete(cacheKey);
-
         if (result <= 0) {
             throw new SystemException(ErrorCode.DB_ERROR);
         }
+        activityCache.evictAfterCommit(activityRequestDto.getId());
     }
 
     @Override
+    @Transactional
     public void deleteActivity(Long id) {
         Activity activity = activityMapper.selectById(id);
         if (activity == null) {
@@ -215,19 +214,16 @@ public class ActivityServiceImpl implements ActivityService {
         if(activity.getStatus() == 2){
             throw new BusinessException(ErrorCode.ACTIVITY_ENDED, "活动已结束，无法删除");
         }
-        if(activity.getUserId() != UserContext.getUserId()){
+        if(!Objects.equals(activity.getUserId(), UserContext.getUserId())){
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         activity.setDeleted(1);
         Integer result = activityMapper.updateById(activity);
 
-        // 清理缓存
-        String cacheKey = CacheUtil.buildKey("activity", String.valueOf(id));
-        distributedCache.delete(cacheKey);
-
         if (result <= 0) {
             throw new SystemException(ErrorCode.DB_ERROR);
         }
+        activityCache.evictAfterCommit(id);
     }
 
     @CircuitBreaker(
@@ -240,23 +236,7 @@ public class ActivityServiceImpl implements ActivityService {
     )
     @Override
     public IPage<ActivityListRespDto> getActivityList(ActivityListRequestDto request) {
-        String cacheKey = CacheUtil.buildKey("activityList",
-                request.getPageNum() != null ? request.getPageNum().toString() : "",
-                request.getPageSize() != null ? request.getPageSize().toString() : "",
-                request.getStatus() != null ? request.getStatus().toString() : "",
-                request.getUserId() != null ? request.getUserId().toString() : "",
-                request.getKeyword() != null ? request.getKeyword() : "",
-                request.getLocation() != null ? request.getLocation() : "",
-                request.getOrderBy() != null ? request.getOrderBy() : "",
-                request.getOrder() != null ? request.getOrder() : ""
-        );
-
-        Page<ActivityListRespDto> cachedPage = distributedCache.get(cacheKey, Page.class);
-        if (cachedPage != null) {
-            log.info("从缓存获取活动列表: key={}", cacheKey);
-            return cachedPage;
-        }
-
+        // This response includes viewer signup state; do not share it across requests.
         LambdaQueryWrapper<Activity> wrapper = new LambdaQueryWrapper<>();
 
         if (request.getStatus() != null) {
@@ -402,8 +382,6 @@ public class ActivityServiceImpl implements ActivityService {
         );
         resultPage.setRecords(recordsDto);
 
-        // 放入缓存，设置过期时间为2分钟
-        distributedCache.put(cacheKey, resultPage, 120);
 
         return resultPage;
     }
@@ -435,40 +413,35 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional
     public ActivityDetailRespDto getActivityDetail(Long id) {
-        // 1. 先查缓存
-        String cacheKey = CacheUtil.buildKey("activity", String.valueOf(id));
-        ActivityDetailRespDto cached = distributedCache.get(cacheKey, ActivityDetailRespDto.class);
-        if (cached != null) {
-            log.info("从缓存获取活动详情: id={}", id);
-            return cached;
-        }
-
+        // Personalized signup, like and follow state must be read for this viewer.
         // 3. 查数据库
         Activity activity = activityMapper.selectById(id);
 
-        if (activity.getAuditStatus() != 1){
+        if (activity == null || !Objects.equals(activity.getDeleted(), 0)
+                || !Objects.equals(activity.getAuditStatus(), 1)){
             throw new BusinessException(ErrorCode.NOT_FOUND);
         }
 
         Long currentUserId = UserContext.getUserId();
         if (currentUserId != null && !currentUserId.equals(activity.getUserId())) {
-            activity.setViewCount(activity.getViewCount() + 1);
-            activityMapper.updateById(activity);
+            activityMapper.update(null,
+                    new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<Activity>()
+                            .eq(Activity::getId, id)
+                            .setSql("view_count = COALESCE(view_count, 0) + 1"));
+            activity.setViewCount((activity.getViewCount() == null ? 0 : activity.getViewCount()) + 1);
         }
 
         LambdaQueryWrapper<ActivitySignup> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ActivitySignup::getActivityId, id)
                 .eq(ActivitySignup::getUserId, currentUserId);
-        ActivitySignup activitySignup = activitySignupMapper.selectOne(queryWrapper);
+        ActivitySignup activitySignup = currentUserId == null ? null : activitySignupMapper.selectOne(queryWrapper);
 
         ActivityDetailRespDto activityDetailRespDto = new ActivityDetailRespDto();
         activityDetailRespDto.setId(activity.getId());
 
-        if (activitySignup != null) {
-            activityDetailRespDto.setIsSignUp(1);
-        }
+        activityDetailRespDto.setIsSignUp(activitySignup != null ? 1 : 0);
 
-        LikeRecord likeRecord = likeRecordMapper.selectOne(
+        LikeRecord likeRecord = currentUserId == null ? null : likeRecordMapper.selectOne(
                 new LambdaQueryWrapper<LikeRecord>()
                         .eq(LikeRecord::getTargetId, id)
                         .eq(LikeRecord::getUserId, currentUserId)
@@ -491,7 +464,7 @@ public class ActivityServiceImpl implements ActivityService {
         LambdaQueryWrapper<Follow> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Follow::getFollowerId, currentUserId);
         wrapper.eq(Follow::getFollowingId, activity.getUserId());
-        Follow follow = followMapper.selectOne(wrapper);
+        Follow follow = currentUserId == null ? null : followMapper.selectOne(wrapper);
         if (follow != null) {
             userSimpleDto.setIsFollow(true);
         }
@@ -515,8 +488,6 @@ public class ActivityServiceImpl implements ActivityService {
         activityDetailRespDto.setUpdateTime(activity.getUpdateTime());
         activityDetailRespDto.setDeleted(activity.getDeleted());
 
-        // 4. 写入缓存（30分钟）
-        distributedCache.put(cacheKey, activityDetailRespDto, 1800);
 
         return activityDetailRespDto;
     }
@@ -562,7 +533,7 @@ public class ActivityServiceImpl implements ActivityService {
         fallbackResp.setUser(emptyUser);
 
         // 缓存降级响应（60秒）
-        distributedCache.put(cacheKey, fallbackResp, 60);
+        distributedCache.put(cacheKey, fallbackResp, 60, TimeUnit.SECONDS);
 
         return fallbackResp;
     }
@@ -647,20 +618,7 @@ public class ActivityServiceImpl implements ActivityService {
 
         // ==================== 锁外操作（不影响性能） ====================
 
-        // 更新缓存（异步）
-        CompletableFuture.runAsync(() -> {
-            // 清除活动缓存
-            String activityCacheKey = CacheUtil.buildKey("activity", String.valueOf(activityId));
-            distributedCache.delete(activityCacheKey);
-            
-            // 清除活动列表缓存
-            String activityListCacheKey = CacheUtil.buildKey("activityList", "1", "10");
-            distributedCache.delete(activityListCacheKey);
-            
-            // 清除用户活动缓存
-            String userActivityCacheKey = CacheUtil.buildKey("userActivity", String.valueOf(currentUserId));
-            distributedCache.delete(userActivityCacheKey);
-        });
+        activityCache.evictAfterCommit(activityId);
 
         // 发送通知（异步）
         Activity finalActivity = activity;
@@ -705,6 +663,7 @@ public class ActivityServiceImpl implements ActivityService {
         }
         activitySignupMapper.deleteById(activitySignup);
         activityMapper.decrementCurrentPeople(id);
+        activityCache.evictAfterCommit(id);
     }
 
     @Override
@@ -860,6 +819,7 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
+    @Transactional
     public void recoverActivity(Long id) {
         Long currentUserId = UserContext.getUserId();
         Activity activity = activityMapper.selectById(id);
@@ -870,11 +830,11 @@ public class ActivityServiceImpl implements ActivityService {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         activity.setDeleted(0);
-        activityMapper.updateById(activity);
+        if (activityMapper.updateById(activity) <= 0) {
+            throw new SystemException(ErrorCode.DB_ERROR);
+        }
 
-        // 清理缓存
-        String cacheKey = CacheUtil.buildKey("activity", String.valueOf(id));
-        distributedCache.delete(cacheKey);
+        activityCache.evictAfterCommit(id);
 
     }
 

@@ -52,6 +52,7 @@ public class DailyPostService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final AuditService auditService;
     private final ApplicationEventPublisher eventPublisher;
+    private final DailyCacheInvalidator cacheInvalidator;
 
     private static final String RECOMMEND_KEY = "rec:daily:";
 
@@ -91,7 +92,7 @@ public class DailyPostService {
         auditService.submit(TargetType.DAILY.getCode(), dailyPost.getId());
 
         // 清除推荐缓存
-        redisTemplate.delete(RECOMMEND_KEY + userId);
+        cacheInvalidator.allAfterCommit();
         eventPublisher.publishEvent(new DailyPostPublishedEvent(this, dailyPost, topicIds));
 
         return convertToDto(dailyPost, userId);
@@ -125,6 +126,7 @@ public class DailyPostService {
                     new LambdaQueryWrapper<DailyPost>()
                             .in(DailyPost::getUserId, followIds)
                             .eq(DailyPost::getAuditStatus, 1)
+                        .eq(DailyPost::getStatus, 1)
                             .orderByDesc(DailyPost::getCreateTime)
                             .last("LIMIT 50")
             );
@@ -135,6 +137,7 @@ public class DailyPostService {
         List<DailyPost> hotPosts = dailyPostMapper.selectList(
                 new LambdaQueryWrapper<DailyPost>()
                         .eq(DailyPost::getAuditStatus, 1)
+                        .eq(DailyPost::getStatus, 1)
                         .orderByDesc(DailyPost::getLikeCount)
                         .orderByDesc(DailyPost::getViewCount)
                         .last("LIMIT 50")
@@ -145,6 +148,7 @@ public class DailyPostService {
         List<DailyPost> freshPosts = dailyPostMapper.selectList(
                 new LambdaQueryWrapper<DailyPost>()
                         .eq(DailyPost::getAuditStatus, 1)
+                        .eq(DailyPost::getStatus, 1)
                         .orderByDesc(DailyPost::getCreateTime)
                         .last("LIMIT 30")
         );
@@ -220,7 +224,7 @@ public class DailyPostService {
                         .eq(LikeRecord::getTargetType, "daily")
         );
 
-        redisTemplate.delete(RECOMMEND_KEY + userId);
+        cacheInvalidator.allAfterCommit();
         eventPublisher.publishEvent(new DailyPostUpdatedEvent(this, id));
 
         if (likeRecord != null) {
@@ -255,6 +259,7 @@ public class DailyPostService {
         }
         post.setStatus(0);
         dailyPostMapper.updateById(post);
+        cacheInvalidator.allAfterCommit();
     }
 
     /**

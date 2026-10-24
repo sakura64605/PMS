@@ -36,7 +36,7 @@ import com.hongjie.pms.modules.user.service.UserService;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
+import com.hongjie.pms.refactor.core.cache.AfterCommitCache;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -234,7 +234,7 @@ public class UserServiceImpl implements UserService {
         if(result > 0){
             // 清理缓存
             String cacheKey = CacheUtil.buildKey("user", String.valueOf(userId));
-            distributedCache.delete(cacheKey);
+            AfterCommitCache.evict(() -> distributedCache.delete(cacheKey));
             
             return UserInfoDto.builder()
                     .userId(userId)
@@ -346,56 +346,42 @@ public class UserServiceImpl implements UserService {
     )
     @Override
     public UserProfileDto getUserProfileInfo(Long userId) {
-        String cacheKey = CacheUtil.buildKey("user", String.valueOf(userId));
-        
-        // 尝试从缓存获取
-        UserProfileDto cachedProfile = distributedCache.get(cacheKey, UserProfileDto.class);
-        if (cachedProfile != null) {
-            return cachedProfile;
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR);
         }
-        
-        // 缓存未命中，从数据库查询
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("id", userId);
-
-        User user = userMapper.selectOne(queryWrapper);
+        // Privacy and relationship state must be evaluated for every request.
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
+        }
 
         UserProfileDto userProfileDto = new UserProfileDto();
 
         Map<String, Boolean> privacySettings = user.getPrivacySettings();
 
-        if(privacySettings.get("phone")){
+        if(privacySettings != null && Boolean.TRUE.equals(privacySettings.get("phone"))){
             userProfileDto.setPhone(user.getPhone());
         }
-        if(privacySettings.get("email")){
+        if(privacySettings != null && Boolean.TRUE.equals(privacySettings.get("email"))){
             userProfileDto.setEmail(user.getEmail());
         }
-        if(privacySettings.get("tags")){
+        if(privacySettings != null && Boolean.TRUE.equals(privacySettings.get("tags"))){
             userProfileDto.setTags(user.getTags());
         }
 
         Long currentUserId = UserContext.getUserId();
 
-        LambdaQueryWrapper<Follow> followWrapper = new LambdaQueryWrapper<>();
-        followWrapper.eq(Follow::getFollowingId, userId);
-        followWrapper.eq(Follow::getFollowerId, currentUserId);
-        Follow follow = followMapper.selectOne(followWrapper);
-        if(follow != null){
-            userProfileDto.setUser(UserSimpleDto.builder()
-                    .userId(user.getId())
-                    .username(user.getUserName())
-                    .nickname(user.getNickName())
-                    .avatar(user.getAvatar())
-                    .isFollow(true)
-                    .build());
-        } else {
-            userProfileDto.setUser(UserSimpleDto.builder()
-                    .userId(user.getId())
-                    .username(user.getUserName())
-                    .nickname(user.getNickName())
-                    .avatar(user.getAvatar())
-                    .build());
+        boolean isFollow = false;
+        if (currentUserId != null) {
+            LambdaQueryWrapper<Follow> followWrapper = new LambdaQueryWrapper<>();
+            followWrapper.eq(Follow::getFollowingId, userId);
+            followWrapper.eq(Follow::getFollowerId, currentUserId);
+            isFollow = followMapper.selectOne(followWrapper) != null;
         }
+        userProfileDto.setUser(UserSimpleDto.builder()
+                .userId(user.getId()).username(user.getUserName())
+                .nickname(user.getNickName()).avatar(user.getAvatar())
+                .isFollow(isFollow).build());
 
         userProfileDto.setSignature(user.getSignature());
         userProfileDto.setFollowerCount(user.getFollowerCount());
@@ -405,8 +391,6 @@ public class UserServiceImpl implements UserService {
         userProfileDto.setLastActiveTime(user.getLastActiveTime());
         userProfileDto.setGender(user.getGender());
         
-        // 放入缓存，设置过期时间为1小时
-        distributedCache.put(cacheKey, userProfileDto, 3600);
         
         return userProfileDto;
     }

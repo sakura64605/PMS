@@ -18,12 +18,14 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class FollowServiceTest {
+    com.hongjie.pms.common.cache.DistributedCache cache;
     FollowMapper follows;UserMapper users;FollowWriteMapper writes;FollowInboxWriter inbox;ApplicationEventPublisher events;PmsFollowServiceImpl service;
     @BeforeAll static void metadata(){TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(),"follow-test"),Follow.class);}
     static User user(long id){var u=new User();u.setId(id);u.setUserName("user"+id);u.setStatus(1);return u;}
     @BeforeEach void setup(){
         UserContext.setUser(new UserInfo(2L,"viewer",0,null,null));follows=mock(FollowMapper.class);users=mock(UserMapper.class);writes=mock(FollowWriteMapper.class);inbox=mock(FollowInboxWriter.class);events=mock(ApplicationEventPublisher.class);
-        service=new PmsFollowServiceImpl(follows,users,writes,inbox,events);
+        cache=mock(com.hongjie.pms.common.cache.DistributedCache.class);
+        service=new PmsFollowServiceImpl(cache,follows,users,writes,inbox,events);
         when(writes.lockUser(1L)).thenReturn(user(1));when(writes.lockUser(2L)).thenReturn(user(2));when(users.selectById(1L)).thenReturn(user(1));
         when(writes.relation(anyLong(),anyLong())).thenReturn(null);
         when(writes.insert(anyLong(),anyLong())).thenReturn(1);when(writes.delete(anyLong(),anyLong(),anyLong())).thenReturn(1);
@@ -56,5 +58,26 @@ class FollowServiceTest {
     @Test void emptyPageKeepsMetadataAndAvoidsEmptyInQuery(){
         when(follows.selectPage(any(Page.class),any())).thenReturn(new Page<Follow>(5,10,3).setRecords(List.of()));
         var result=service.listFollowing(2L,5,10);assertThat(result.getTotal()).isEqualTo(3);assertThat(result.getCurrent()).isEqualTo(5);assertThat(result.getRecords()).isEmpty();verifyNoInteractions(users);
+    }
+    @Test void bothBranchesEvictAfterCommit() {
+        for (Long relation : new Long[]{null,99L}) {
+            reset(cache); when(writes.relation(2L,1L)).thenReturn(relation);
+            org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(true);
+            org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+            try {
+                service.followUser(2L,1L); verifyNoInteractions(cache);
+                org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations().forEach(org.springframework.transaction.support.TransactionSynchronization::afterCommit);
+                verify(cache).delete("user_2"); verify(cache).delete("user_1");
+            } finally { org.springframework.transaction.support.TransactionSynchronizationManager.clear(); }
+        }
+    }
+    @Test void rollbackDoesNotEvictEitherProfile() {
+        org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(true);
+        org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.followUser(2L,1L);
+            org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCompletion(org.springframework.transaction.support.TransactionSynchronization.STATUS_ROLLED_BACK));
+            verifyNoInteractions(cache);
+        } finally { org.springframework.transaction.support.TransactionSynchronizationManager.clear(); }
     }
 }

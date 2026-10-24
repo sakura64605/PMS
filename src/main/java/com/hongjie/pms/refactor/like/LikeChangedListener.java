@@ -18,10 +18,14 @@ public class LikeChangedListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onChanged(LikeChanged event) {
+        if ("pet_post".equals(event.targetType())) {
+            redis.delete("pet_" + event.targetId());
+        }
         if ("pet_activity".equals(event.targetType())) {
-            redis.delete("activity:" + event.targetId());
-            scan.scanAndDelete("activityList:*");
-            redis.delete("userActivity:" + event.actorId());
+            redis.delete("activity_" + event.targetId());
+            redis.delete("activity:fallback_" + event.targetId());
+            scan.scanAndDelete("activityList_*");
+            scan.scanAndDelete("userActivity_*");
         }
         if (event.liked() && !Objects.equals(event.actorId(), event.target().ownerId())) {
             messages.sendLikeNotification(event.target().ownerId(), event.actorId(), event.targetType(),

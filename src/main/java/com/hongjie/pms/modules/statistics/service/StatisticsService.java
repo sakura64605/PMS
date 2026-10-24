@@ -236,13 +236,7 @@ public class StatisticsService {
      * 获取实时统计数据（今日实时）
      */
     public StatisticsResponseDto.DailyStatisticsDto getRealtimeStatistics() {
-        String cacheKey = "statistics:realtime";
-
-        StatisticsResponseDto.DailyStatisticsDto cached = distributedCache.get(cacheKey, StatisticsResponseDto.DailyStatisticsDto.class);
-        if (cached != null) {
-            return cached;
-        }
-
+        // Real-time counters must reflect a completed write on the next request.
         LocalDateTime todayStart = LocalDate.now().atStartOfDay();
         LocalDateTime now = LocalDateTime.now();
 
@@ -262,7 +256,6 @@ public class StatisticsService {
                 .pendingAuditCount(countPendingAudits())
                 .build();
 
-        distributedCache.put(cacheKey, realtime, 60);
         return realtime;
     }
 
@@ -466,6 +459,10 @@ public class StatisticsService {
      * 清理所有统计缓存
      */
     public void clearAllStatisticsCache() {
+        com.hongjie.pms.refactor.core.cache.AfterCommitCache.evict(this::evictStatisticsCache);
+    }
+
+    private void evictStatisticsCache() {
         try {
             // 使用 SCAN 替代 keys()，避免阻塞 Redis
             long deleted = redisScanUtil.scanAndDelete("statistics:*");

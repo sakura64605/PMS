@@ -16,6 +16,12 @@ class LikeChangedListenerTest {
                 new LikeTarget.Snapshot(2L, "title", "/pet/10", 0), true));
         verify(messages).sendLikeNotification(2L, 1L, "pet_post", "title", 10L, "/pet/10");
     }
+    @Test void petUnlikeEvictsTheActualDetailKey() {
+        listener.onChanged(new LikeChanged(1L, 10L, "pet_post",
+                new LikeTarget.Snapshot(2L, "title", "/pet/10", 1), false));
+        verify(redis).delete("pet_10");
+        verifyNoInteractions(messages);
+    }
     @Test void selfLikeAndUnlikeNeverNotify() {
         var self = new LikeTarget.Snapshot(1L, "title", "/pet/10", 0);
         listener.onChanged(new LikeChanged(1L, 10L, "pet_post", self, true));
@@ -25,9 +31,9 @@ class LikeChangedListenerTest {
     @Test void activityUnlikeStillEvictsAllExistingCacheRegions() {
         listener.onChanged(new LikeChanged(1L, 10L, "pet_activity",
                 new LikeTarget.Snapshot(2L, "title", "/activity/10", 1), false));
-        verify(redis).delete("activity:10");
-        verify(redis).delete("userActivity:1");
-        verify(scan).scanAndDelete("activityList:*");
+        verify(redis).delete("activity_10");
+        verify(scan).scanAndDelete("userActivity_*");
+        verify(scan).scanAndDelete("activityList_*");
         verifyNoInteractions(messages);
     }
 }

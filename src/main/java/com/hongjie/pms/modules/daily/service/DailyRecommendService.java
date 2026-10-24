@@ -28,6 +28,7 @@ public class DailyRecommendService {
     private final DailyPostService dailyPostService;
     private final DailyUserInterestService interestService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final DailyCacheInvalidator cacheInvalidator;
 
     private static final String RECOMMEND_CACHE_KEY = "daily:rec:";
 
@@ -70,7 +71,11 @@ public class DailyRecommendService {
                 .distinct()  // 去重
                 .collect(Collectors.toList());
 
-        List<DailyPost> posts = dailyPostMapper.selectBatchIds(resultIds);
+        // Recheck visibility even if a candidate was recalled before a delete/audit commit.
+        List<DailyPost> posts = dailyPostMapper.selectBatchIds(resultIds).stream()
+                .filter(post -> Integer.valueOf(1).equals(post.getStatus())
+                        && Integer.valueOf(1).equals(post.getAuditStatus()))
+                .collect(Collectors.toList());
         Map<Long, DailyPost> postMap = posts.stream()
                 .collect(Collectors.toMap(DailyPost::getId, p -> p, (v1, v2) -> v1));
 
@@ -108,7 +113,7 @@ public class DailyRecommendService {
     public void recordAction(Long userId, Long targetId, String actionType) {
         interestService.updateInterest(userId, targetId, actionType);
         // 清除推荐缓存
-        redisTemplate.delete(RECOMMEND_CACHE_KEY + userId);
+        cacheInvalidator.viewerAfterCommit(userId);
     }
 
     /**
@@ -118,6 +123,7 @@ public class DailyRecommendService {
         List<DailyPost> hotPosts = dailyPostMapper.selectList(
                 new LambdaQueryWrapper<DailyPost>()
                         .eq(DailyPost::getAuditStatus, 1)
+                        .eq(DailyPost::getStatus, 1)
                         .orderByDesc(DailyPost::getLikeCount)
                         .last("LIMIT " + (pageNum * pageSize))
         );

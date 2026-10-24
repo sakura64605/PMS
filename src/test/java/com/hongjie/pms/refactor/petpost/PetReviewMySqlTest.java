@@ -42,6 +42,7 @@ class PetReviewMySqlTest {
     @Import({PmsPetPostServiceImpl.class,PetPostDtoConverter.class,AuditWriteTargets.class,AuditQuerySources.class,AuditCommandService.class,TargetTypeCodec.class,com.hongjie.pms.modules.activity.service.Impl.ActivityServiceImpl.class})
     static class Config{
         @Bean DistributedCache distributedCache(){return mock(DistributedCache.class);}
+        @Bean com.hongjie.pms.modules.activity.cache.ActivityCache activityCache(){return mock(com.hongjie.pms.modules.activity.cache.ActivityCache.class);}
         @Bean OssUtils ossUtils(){return mock(OssUtils.class);}
         @Bean FeedService feedService(){return mock(FeedService.class);}
         @Bean AuditService auditService(){return mock(AuditService.class);}

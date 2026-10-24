@@ -28,6 +28,7 @@ import com.hongjie.pms.refactor.notice.event.NoticeChangedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -228,12 +229,16 @@ public class PmsNoticeServiceImpl implements NoticeService {
         String cacheKey = listCacheKey(pageQuery.normalizedPageNum(), pageQuery.normalizedPageSize());
 
         IPage<NoticeListDto> cached = (IPage<NoticeListDto>) redisTemplate.opsForValue().get(cacheKey);
-        if (cached != null) {
+        LocalDateTime now = LocalDateTime.now();
+        // Expiry needs no write event: refill the whole page to preserve totals/pagination.
+        if (cached != null && cached.getRecords().stream().noneMatch(row ->
+                !NoticeStatus.PUBLISHED.getCode().equals(row.getStatus())
+                        || (row.getPublishTime() != null && row.getPublishTime().isAfter(now))
+                        || (row.getExpireTime() != null && !row.getExpireTime().isAfter(now)))) {
             log.debug("从缓存获取公告列表: key={}", cacheKey);
-            return cached;
+            return forCurrentViewer(cached);
         }
 
-        LocalDateTime now = LocalDateTime.now();
         IPage<Notice> page = noticeMapper.selectPage(pageQuery.toPage(),
                 new LambdaQueryWrapper<Notice>()
                         .eq(Notice::getStatus, NoticeStatus.PUBLISHED.getCode())
@@ -243,34 +248,32 @@ public class PmsNoticeServiceImpl implements NoticeService {
                         .orderByDesc(Notice::getPriority)
                         .orderByDesc(Notice::getPublishTime));
 
-        Map<Long, Boolean> readStatus = readStatusMap(
-                UserContext.getUserId(),
-                page.getRecords().stream().map(Notice::getId).toList());
-
         PageResult<NoticeListDto> result = PageBridge.of(page)
-                .map(notice -> converter.toListDto(notice, readStatus.get(notice.getId())));
+                .map(notice -> converter.toListDto(notice, null));
 
         IPage<NoticeListDto> resultPage = PageBridge.toIPage(result);
         redisTemplate.opsForValue().set(cacheKey, resultPage, LIST_CACHE_SECONDS, TimeUnit.SECONDS);
-        return resultPage;
+        return forCurrentViewer(resultPage);
+    }
+
+    /** Copy even legacy personalized cache entries; never mutate shared DTOs/pages. */
+    private IPage<NoticeListDto> forCurrentViewer(IPage<NoticeListDto> base) {
+        Map<Long, Boolean> readStatus = readStatusMap(UserContext.getUserId(),
+                base.getRecords().stream().map(NoticeListDto::getId).toList());
+        Page<NoticeListDto> response = new Page<>(base.getCurrent(), base.getSize(), base.getTotal());
+        response.setRecords(base.getRecords().stream().map(row -> {
+            NoticeListDto copy = new NoticeListDto();
+            BeanUtils.copyProperties(row, copy);
+            copy.setIsRead(readStatus.get(row.getId()));
+            return copy;
+        }).toList());
+        return response;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public NoticeDetailDto getByIdForUser(Long id) {
         String cacheKey = detailCacheKey(id);
-
-        Object cached = redisTemplate.opsForValue().get(cacheKey);
-        if (cached instanceof NoticeDetailDto detail) {
-            log.debug("从缓存获取公告详情: id={}", id);
-            return detail;
-        }
-        // 老实现这里还有一段「缓存里可能是 Notice 实体」的兼容分支。
-        // 缓存 TTL 只有 30 分钟、格式早已统一，那段迁移代码已经没有必要；
-        // 命中非预期类型时直接当作未命中处理，比原地"修复"缓存更简单也更安全。
-        if (cached != null) {
-            log.warn("公告详情缓存类型异常，按未命中处理: id={}, type={}", id, cached.getClass().getName());
-        }
 
         Notice notice = requireNotice(id);
         // 未发布的公告对普通用户等同于不存在
@@ -283,9 +286,11 @@ public class PmsNoticeServiceImpl implements NoticeService {
         Long userId = UserContext.getUserId();
         markAsRead(id, userId);
 
-        NoticeDetailDto dto = converter.toDetailDto(notice, userId != null);
-        redisTemplate.opsForValue().set(cacheKey, dto, DETAIL_CACHE_SECONDS, TimeUnit.SECONDS);
-        return dto;
+        // Validate and track every read using the fresh row. Legacy shared DTOs may
+        // contain another viewer's read flag, so never return them to this viewer.
+        NoticeDetailDto neutral = converter.toDetailDto(notice, null);
+        redisTemplate.opsForValue().set(cacheKey, neutral, DETAIL_CACHE_SECONDS, TimeUnit.SECONDS);
+        return converter.toDetailDto(notice, userId != null);
     }
 
     @Override

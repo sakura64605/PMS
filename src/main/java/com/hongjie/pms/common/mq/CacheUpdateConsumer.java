@@ -48,7 +48,9 @@ public class CacheUpdateConsumer implements RocketMQListener<String> {
                 }
             }
         } catch (Exception e) {
+            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
             log.error("处理缓存更新消息失败", e);
+            throw new IllegalStateException("Cache eviction failed; retry this message", e);
         }
     }
 }

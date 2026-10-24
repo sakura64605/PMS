@@ -76,6 +76,7 @@ public class DailyRecallService {
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<DailyPost>()
                         .in(DailyPost::getUserId, followIds)
                         .eq(DailyPost::getAuditStatus, 1)
+                        .eq(DailyPost::getStatus, 1)
                         .orderByDesc(DailyPost::getCreateTime)
                         .last("LIMIT " + limit)
         );
@@ -108,6 +109,7 @@ public class DailyRecallService {
         List<DailyPost> freshPosts = dailyPostMapper.selectList(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<DailyPost>()
                         .eq(DailyPost::getAuditStatus, 1)
+                        .eq(DailyPost::getStatus, 1)
                         .orderByDesc(DailyPost::getCreateTime)
                         .last("LIMIT " + limit)
         );
