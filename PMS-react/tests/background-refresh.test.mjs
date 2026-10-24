@@ -10,7 +10,7 @@ for(const name of ['window','document','localStorage','HTMLElement','Event'])Obj
 globalThis.IS_REACT_ACT_ENVIRONMENT=true;
 const {createRoot}=await import('react-dom/client');
 const server=await createServer({configFile:false,root:fileURLToPath(new URL('..',import.meta.url)),plugins:[react()],server:{middlewareMode:true,hmr:false}});
-const {useData,DataState,AppContext}=await server.ssrLoadModule('/src/core.tsx');
+const {useData,DataState,AppContext,Button}=await server.ssrLoadModule('/src/core.tsx');
 const {AtomicRoutes,useRouteLocation}=await server.ssrLoadModule('/src/routeTransition.tsx');
 const {PrivateChat,AIChat}=await server.ssrLoadModule('/src/chat.tsx');
 dom.window.HTMLElement.prototype.scrollIntoView=()=>{};
@@ -181,4 +181,29 @@ test('announcement reference edit icon fetches full draft before opening the edi
 
 test('statistics reference uses five true-value cards and real period queries',async()=>{
  await adminFixture();await adminTab('数据统计');await replyWhere(p=>p.includes('/admin/statistics/query?type=weekly'),{totalNewPosts:8,totalNewUsers:2,totalNewComments:5});await replyWhere(p=>p.endsWith('/admin/statistics/realtime'),{newUserCount:2,newPetPostCount:1,newActivityCount:1,newDailyPostCount:1,newCommentCount:5,newLikeCount:7,pendingAuditCount:14});await flushFrames();assert.equal(visibleStage().querySelectorAll('.governance-stat-cards .stat-tile').length,5);assert.equal(visibleStage().querySelectorAll('.governance-periods button').length,5);assert.ok(visibleStage().textContent.includes('数据重算 / 单日补录'));const month=[...visibleStage().querySelectorAll('.governance-periods button')].find(b=>b.textContent==='月');await act(async()=>month.click());assert.ok(calls.some(c=>c.path.includes('/admin/statistics/query?type=monthly&month=')));
+});
+
+
+test('action buttons keep content without spinner and block duplicate writes',async()=>{
+ let finish,invocations=0;const action=()=>{invocations++;return new Promise(resolve=>finish=resolve);};
+ await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},React.createElement(Button,{action},'Action'))));
+ const button=host.querySelector('button');await act(async()=>button.click());assert.equal(button.disabled,true);assert.equal(button.getAttribute('aria-busy'),'true');assert.equal(button.textContent,'Action');assert.equal(button.querySelector('svg'),null);await act(async()=>button.click());assert.equal(invocations,1);await act(async()=>finish());assert.equal(button.disabled,false);
+});
+
+test('detail unlike is immediate, reconciles server count and never reloads detail',async()=>{
+ await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},React.createElement(Detail,{id:'1'}))));
+ await replyWhere(p=>p.endsWith('/pet/1'),{id:1,title:'pet',status:1,isLiked:true,likeCount:5,user:{id:2},images:[]});
+ const button=host.querySelector('button.reaction-button[aria-pressed="true"]');const reads=calls.length;await act(async()=>button.click());assert.equal(button.getAttribute('aria-pressed'),'false');assert.equal(button.querySelector('.spin'),null);assert.equal(button.disabled,true);assert.ok(button.textContent.includes('4'));
+ await replyWhere(p=>p.endsWith('/like'),{isLiked:false,likeCount:6});assert.equal(button.getAttribute('aria-pressed'),'false');assert.ok(button.textContent.includes('6'));assert.equal(calls.length,reads+1);assert.equal(button.disabled,false);
+});
+
+test('failed optimistic daily unlike restores original state and count',async()=>{
+ const post={id:7,content:'post',commentCount:0,isLiked:true,likeCount:3,images:[]};await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},React.createElement(DiaryCard,{post}))));
+ const button=host.querySelector('button.reaction-button[aria-pressed="true"]');await act(async()=>button.click());assert.equal(button.getAttribute('aria-pressed'),'false');assert.ok(button.textContent.includes('2'));assert.equal(button.querySelector('.spin'),null);await reply(0,null,500);assert.equal(button.getAttribute('aria-pressed'),'true');assert.ok(button.textContent.includes('3'));assert.equal(button.disabled,false);
+});
+
+test('nested comment unlike updates in place without reloading comments',async()=>{
+ const {Comments}=await server.ssrLoadModule('/src/content.tsx');await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},React.createElement(Comments,{id:'1',type:'pet_post'}))));
+ await reply(0,{total:2,records:[{id:10,content:'root',user:{id:2},replies:[{id:11,content:'reply',user:{id:3},isLiked:true,likeCount:2}]}]});
+ const button=host.querySelector('button.reaction-button[aria-pressed="true"]');await act(async()=>button.click());assert.equal(button.getAttribute('aria-pressed'),'false');assert.ok(button.textContent.includes('1'));await reply(1,{isLiked:false,likeCount:1});assert.equal(calls.length,2);assert.equal(button.getAttribute('aria-pressed'),'false');assert.equal(host.textContent.includes('reply'),true);
 });

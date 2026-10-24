@@ -537,11 +537,19 @@ export function Comments({ id, type, embedded = false, onCountChange }: { id: st
               aria-label={c.isLiked ? "取消评论点赞" : "点赞评论"}
               aria-pressed={!!c.isLiked}
               action={async () => {
-                await api("/like", "POST", {
-                  targetType: "pet_comment",
-                  targetId: c.id,
+                const previous = {isLiked: !!c.isLiked, likeCount: c.likeCount || 0};
+                const updateComment = (patch: Row) => request.update((old: Row) => {
+                  const visit = (items: Row[]): Row[] => items.map(item => ({...item, ...(item.id === c.id ? patch : {}), ...(item.replies ? {replies: visit(item.replies)} : {})}));
+                  return Array.isArray(old) ? visit(old) : {...old, records: visit(rows(old))};
                 });
-                request.reload();
+                updateComment({isLiked: !previous.isLiked, likeCount: Math.max(0, previous.likeCount + (previous.isLiked ? -1 : 1))});
+                try {
+                  const result = await api("/like", "POST", {targetType: "pet_comment", targetId: c.id});
+                  updateComment({isLiked: result.isLiked, likeCount: result.likeCount});
+                } catch (error) {
+                  updateComment(previous);
+                  throw error;
+                }
               }}
             >
               <Heart size={13} fill={c.isLiked ? "currentColor" : "none"} />
@@ -630,8 +638,15 @@ export function Detail({
     ended = p.status === 2;
   const target = activity ? "pet_activity" : "pet_post";
   async function like() {
-    const result = await api("/like", "POST", { targetId: id, targetType: target });
-    request.update((old: Row) => ({...old, isLiked: result.isLiked, likeCount: result.likeCount}));
+    const previous = {isLiked: !!p.isLiked, likeCount: p.likeCount || 0};
+    request.update((old: Row) => ({...old, isLiked: !previous.isLiked, likeCount: Math.max(0, previous.likeCount + (previous.isLiked ? -1 : 1))}));
+    try {
+      const result = await api("/like", "POST", { targetId: id, targetType: target });
+      request.update((old: Row) => ({...old, isLiked: result.isLiked, likeCount: result.likeCount}));
+    } catch (error) {
+      request.update((old: Row) => ({...old, ...previous}));
+      throw error;
+    }
   }
   const mutate = async (path: string) => {
     await api(path, "POST");

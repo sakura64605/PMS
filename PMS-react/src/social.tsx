@@ -206,12 +206,19 @@ export function DiaryCard({
             aria-label={liked ? "取消点赞" : "点赞"}
             aria-pressed={liked}
             action={async () => {
-              const result = await api(`/daily/${post.id}/like`, "POST");
-              const next = typeof result === "boolean" ? result : !liked;
-              setCount((n: number) =>
-                Math.max(0, n + (next === liked ? 0 : next ? 1 : -1)),
-              );
-              setLiked(next);
+              const previous = {liked, count};
+              setLiked(!liked);
+              setCount(Math.max(0, count + (liked ? -1 : 1)));
+              try {
+                const result = await api(`/daily/${post.id}/like`, "POST");
+                const next = typeof result === "boolean" ? result : !previous.liked;
+                setLiked(next);
+                setCount(Math.max(0, previous.count + (next === previous.liked ? 0 : next ? 1 : -1)));
+              } catch (error) {
+                setLiked(previous.liked);
+                setCount(previous.count);
+                throw error;
+              }
             }}
           >
             <Heart size={16} fill={liked ? "currentColor" : "none"} />
@@ -386,8 +393,16 @@ export function Feed() {
   const [page, setPage] = useState(1);
   const request = useData(url("/feed/home", { pageNum: page, pageSize: 12 }));
   async function like(p: Row) {
-    const result = await api("/like", "POST", { targetType: p.postType === "activity" ? "pet_activity" : "pet_post", targetId: p.postId });
-    request.update((old: Row) => ({...old, records: rows(old).map(item => item.id === p.id ? {...item, isLiked: result.isLiked, likeCount: result.likeCount} : item)}));
+    const previous = {isLiked: !!p.isLiked, likeCount: p.likeCount || 0};
+    const update = (patch: Row) => request.update((old: Row) => ({...old, records: rows(old).map(item => item.id === p.id && item.postType === p.postType ? {...item, ...patch} : item)}));
+    update({isLiked: !previous.isLiked, likeCount: Math.max(0, previous.likeCount + (previous.isLiked ? -1 : 1))});
+    try {
+      const result = await api("/like", "POST", { targetType: p.postType === "activity" ? "pet_activity" : "pet_post", targetId: p.postId });
+      update({isLiked: result.isLiked, likeCount: result.likeCount});
+    } catch (error) {
+      update(previous);
+      throw error;
+    }
   }
   return (
     <>

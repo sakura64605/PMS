@@ -13,7 +13,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Heart,
-  LoaderCircle,
   PawPrint,
   RotateCcw,
   Search,
@@ -150,7 +149,6 @@ export function Button({
         }
       }}
     >
-      {busy ? <LoaderCircle size={16} className="spin" /> : null}
       {children}
     </button>
   );
