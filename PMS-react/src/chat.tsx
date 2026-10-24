@@ -16,6 +16,9 @@ import {
   PanelLeftClose,
   Sparkles,
   Copy,
+  MoreHorizontal,
+  CheckCheck,
+  X,
 } from "lucide-react";
 import { api, copyText, rows, uid, nick, time, url, type Row } from "./api";
 import {
@@ -60,16 +63,22 @@ export function PrivateChat() {
   );
   const search = useData(keyword ? url("/user/search", { keyword }) : null);
   const end = useRef<HTMLDivElement>(null);
+  const sendLock = useRef(false);
+  const matchedRoute = useRef<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
   useEffect(() => {
     if (messagePage === 1) end.current?.scrollIntoView({ block: "nearest" });
   }, [history.data, messagePage]);
   useEffect(() => {
     const id = new URLSearchParams(route.split('?')[1]).get("conversation");
-    if (id) {
+    if (id && matchedRoute.current !== id) {
       const found = rows(list.data).find(
         (c) => String(c.conversationId) === id,
       );
       if (found) {
+        matchedRoute.current = id;
         setSelected(found);
         setShowList(false);
       }
@@ -84,160 +93,105 @@ export function PrivateChat() {
     refresh();
   }
   async function send() {
-    if (!text.trim() || !selected) return;
-    await api("/message/private/send", "POST", {
-      toUserId: selected.otherUser?.userId || selected.otherUser?.id,
-      content: text.trim(),
-      messageType: 1,
-    });
-    setText("");
-    setMessagePage(1);
-    history.reload();
-    list.reload();
-    refresh();
+    if (!text.trim() || !selected || sendLock.current) return;
+    const draft = text;
+    const conversation = selected;
+    sendLock.current = true;
+    setSending(true);
+    try {
+      await api("/message/private/send", "POST", {
+        toUserId: conversation.otherUser?.userId || conversation.otherUser?.id,
+        content: draft.trim(), messageType: 1,
+      });
+      if (String(selectedRef.current?.conversationId) === String(conversation.conversationId)) {
+        setText(current => current === draft ? "" : current);
+        setMessagePage(1);
+        history.reload();
+      }
+      list.reload();
+      refresh();
+    } finally {
+      sendLock.current = false;
+      setSending(false);
+    }
   }
   return (
-    <>
-      <Intro title="私信" description="和聊得来的宠友，多分享一点生活。">
-        <Button tone="primary" action={() => setFind(true)}>
-          <Plus size={14} />
-          新私信
-        </Button>
-      </Intro>
-      <div className="chat-layout">
+
+    <div className="private-workspace">
+      <div className="chat-layout private-window">
         <aside className={`chat-sidebar ${!showList ? "hidden-mobile" : ""}`}>
-          <h2>我的会话</h2>
-          <DataState request={list} empty={!rows(list.data).length}>
-            {rows(list.data).map((c) => (
-              <button
-                className={`chat-session ${selected?.conversationId === c.conversationId ? "active" : ""}`}
-                key={c.conversationId}
-                onClick={() => {
-                  void choose(c).catch((e) => notify(e.message, true));
-                }}
-              >
-                <Avatar user={c.otherUser} />
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <strong>{nick(c.otherUser)}</strong>
-                  <small>{c.lastMessage || "开始聊聊吧"}</small>
-                  <small>{time(c.lastMessageTime)}</small>
-                </span>
-                {c.unreadCount > 0 && (
-                  <Badge tone="orange">{c.unreadCount}</Badge>
-                )}
-              </button>
-            ))}
-          </DataState>
-          <Pagination
-            page={page}
-            size={20}
-            total={list.data?.total || 0}
-            onChange={setPage}
-          />
+          <header className="private-sidebar-head">
+            <h2>宠友私信会话</h2>
+            <Button tone="ghost small" aria-label="新私信" title="新私信" action={() => setFind(true)}><Plus size={16} /></Button>
+          </header>
+          <div className="private-conversations">
+            <DataState request={list} empty={!rows(list.data).length}>
+              {rows(list.data).map(c => (
+                <button className={`chat-session ${String(selected?.conversationId) === String(c.conversationId) ? "active" : ""}`} key={c.conversationId}
+                  onClick={() => { void choose(c).catch(e => notify(e.message, true)); }}>
+                  <Avatar user={c.otherUser} size={36} />
+                  <span className="private-conversation-copy">
+                    <span className="private-conversation-heading"><strong>{nick(c.otherUser)}</strong><time>{time(c.lastMessageTime)}</time></span>
+                    <span className="private-conversation-preview">{c.lastMessage || "开始聊聊吧"}</span>
+                  </span>
+                  {c.unreadCount > 0 && <span className="private-unread">{c.unreadCount > 99 ? "99+" : c.unreadCount}</span>}
+                </button>
+              ))}
+            </DataState>
+          </div>
+          <footer className="private-sidebar-footer">
+            <Pagination page={page} size={20} total={list.data?.total || 0} onChange={setPage} />
+            <span>支持与送养人沟通领养细则</span>
+          </footer>
         </aside>
         <section className="chat-main">
-          {selected ? (
-            <>
-              <header className="chat-head">
-                <div className="author">
-                  <Button
-                    tone="ghost small"
-                    action={() => setShowList((v) => !v)}
-                    aria-label="切换会话列表"
-                  >
-                    <PanelLeftClose size={17} />
-                  </Button>
-                  <Avatar user={selected.otherUser} size={32} />
-                  <h2>{nick(selected.otherUser)}</h2>
-                </div>
-                <div className="row-actions">
-                  <Button tone="ghost small" action={() => choose(selected)}>
-                    标记已读
-                  </Button>
-                  <Button
-                    tone="ghost small"
-                    action={async () => {
-                      if (confirm("确定清空聊天记录吗？")) {
-                        await api(
-                          `/message/private/messages/${selected.conversationId}`,
-                          "DELETE",
-                        );
-                        history.reload();
-                        list.reload();
-                      }
-                    }}
-                  >
-                    清空
-                  </Button>
-                  <Button
-                    tone="danger small"
-                    action={async () => {
-                      if (confirm("确定删除会话吗？")) {
-                        await api(
-                          `/message/private/conversation/${selected.conversationId}`,
-                          "DELETE",
-                        );
-                        setSelected(null);
-                        list.reload();
-                        setShowList(true);
-                      }
-                    }}
-                  >
-                    删除会话
-                  </Button>
-                </div>
-              </header>
-              <div className="chat-messages">
-                <DataState request={history} empty={!rows(history.data).length}>
-                  {[...rows(history.data)]
-                    .sort((a, b) =>
-                      String(a.createTime).localeCompare(String(b.createTime)),
-                    )
-                    .map((m) => (
-                      <div
-                        className={`bubble-wrap ${String(m.fromUserId) === uid(user) ? "me" : ""}`}
-                        key={m.id}
-                      >
-                        <div className="bubble">{m.content}</div>
-                        <small>{time(m.createTime)}</small>
-                      </div>
-                    ))}
-                </DataState>
-                <Pagination
-                  page={messagePage}
-                  size={20}
-                  total={history.data?.total || 0}
-                  onChange={setMessagePage}
-                />
-                <div ref={end} />
-              </div>
-              <form
-                className="chat-compose"
-                onSubmit={(e) => e.preventDefault()}
-              >
-                <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  maxLength={5000}
-                  aria-label="私信内容"
-                  placeholder="分享一点今天的小事…"
-                />
-                <Button tone="primary" disabled={!text.trim()} action={send}>
-                  <Send size={16} />
-                  发送
-                </Button>
-              </form>
-            </>
-          ) : (
-            <div className="chat-empty">
-              <div>
-                <MessageCircle size={40} />
-                <h2>从一句你好开始</h2>
-                <p>选择会话，或找一位宠友聊聊。</p>
-                <Button action={() => setFind(true)}>寻找宠友</Button>
-              </div>
+          <header className="chat-head">
+            <div className="author">
+              <Button tone="ghost small private-back" aria-label="返回会话列表" action={() => setShowList(true)}><ArrowLeft size={17} /></Button>
+              {selected ? <><Avatar user={selected.otherUser} size={28} /><h2>{nick(selected.otherUser)}</h2></> : <span className="private-contact-placeholder">请选择联系人</span>}
             </div>
-          )}
+            <div className="row-actions">
+              {selected && <details className="private-options">
+                <summary aria-label="会话操作" title="会话操作"><MoreHorizontal size={18} /></summary>
+                <div className="private-options-menu">
+                  <Button tone="ghost small" action={() => choose(selected)}><CheckCheck size={14} />标记已读</Button>
+                  <Button tone="ghost small" action={async () => {
+                    if (confirm("确定清空聊天记录吗？")) {
+                      await api(`/message/private/messages/${selected.conversationId}`, "DELETE");
+                      history.reload(); list.reload();
+                    }
+                  }}><Trash2 size={14} />清空聊天记录</Button>
+                  <Button tone="danger small" action={async () => {
+                    if (confirm("确定删除会话吗？")) {
+                      await api(`/message/private/conversation/${selected.conversationId}`, "DELETE");
+                      setSelected(null); list.reload(); setShowList(true); refresh();
+                    }
+                  }}><Trash2 size={14} />删除会话</Button>
+                </div>
+              </details>}
+              <Button tone="ghost small" aria-label="关闭私信" action={() => navigate("/pets")}><X size={20} /></Button>
+            </div>
+          </header>
+          {selected ? <>
+            <div className="chat-messages" aria-label="聊天记录">
+              <DataState request={history} empty={!rows(history.data).length}>
+                {[...rows(history.data)].sort((a, b) => String(a.createTime).localeCompare(String(b.createTime))).map(m => {
+                  const mine = String(m.fromUserId) === uid(user);
+                  return <div className={`bubble-wrap ${mine ? "me" : ""}`} key={m.id}>
+                    <Avatar user={mine ? user : selected.otherUser} size={28} />
+                    <div className="bubble"><p>{m.content}</p><time>{time(m.createTime)}</time></div>
+                  </div>;
+                })}
+              </DataState>
+              <Pagination page={messagePage} size={20} total={history.data?.total || 0} onChange={setMessagePage} />
+              <div ref={end} />
+            </div>
+            <form className="chat-compose" onSubmit={e => {e.preventDefault(); if (!sending && text.trim()) void send().catch(error => notify(error.message, true));}}>
+              <input value={text} onChange={e => setText(e.target.value)} maxLength={5000} aria-label="私信内容" placeholder="输入私信内容，回车发送..."
+                onKeyDown={e => {if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault();}} />
+              <Button tone="primary" disabled={sending || !text.trim()} action={send}><Send size={14} />发送</Button>
+            </form>
+          </> : <div className="chat-empty"><div><MessageCircle size={32} /><h2>从一句你好开始</h2><p>选择会话，或找一位宠友聊聊。</p><Button action={() => setFind(true)}>寻找宠友</Button></div></div>}
         </section>
       </div>
       {find && (
@@ -273,7 +227,7 @@ export function PrivateChat() {
           </DataState>
         </Modal>
       )}
-    </>
+    </div>
   );
 }
 function Memory({ onClose }: { onClose: () => void }) {

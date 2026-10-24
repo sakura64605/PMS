@@ -8,6 +8,14 @@ import {
   Share2,
   Sparkles,
   Bookmark,
+  CheckCheck,
+  MessageSquare,
+  UserPlus,
+  Calendar,
+  CheckCircle,
+  AlertCircle,
+  Megaphone,
+  Inbox,
 } from "lucide-react";
 import { api, copyText, url, rows, uid, nick, time, images, type Row } from "./api";
 import {
@@ -33,6 +41,7 @@ import {
   useData,
 } from "./core";
 import { Comments, Card, Report } from "./content";
+import {notificationTarget} from "./notifications";
 
 export function Auth({ register = false }: { register?: boolean }) {
   const [form, set] = useState<Row>({
@@ -836,7 +845,7 @@ export function UserPage({ id }: { id: string }) {
   );
 }
 const messageTypes = [
-  ["", "全部"],
+  ["", "全部消息"],
   ["LIKE", "点赞"],
   ["COMMENT", "评论"],
   ["FOLLOW", "关注"],
@@ -850,105 +859,65 @@ const messageTypes = [
   ["PUNISHMENT_END", "惩罚结束"],
   ["NO_SHOW_WARNING", "爽约警告"],
   ["ACTIVITY_STATISTICS", "活动统计报告"],
-  ["NOTICE", "公告"],
+  ["NOTICE", "系统公告"],
   ["SYSTEM", "系统消息"],
 ];
+
+function NotificationSymbol({type}: {type: string}) {
+  if (type === "LIKE") return <Heart size={16} fill="currentColor" />;
+  if (type === "COMMENT") return <MessageSquare size={16} />;
+  if (type === "FOLLOW") return <UserPlus size={16} />;
+  if (["SIGN_UP", "SIGN_IN"].includes(type)) return <Calendar size={16} />;
+  if (type === "AUDIT_PASS") return <CheckCircle size={16} />;
+  if (["AUDIT_REJECT", "PUNISHMENT_START", "PUNISHMENT_END", "NO_SHOW_WARNING"].includes(type)) return <AlertCircle size={16} />;
+  return <Megaphone size={16} />;
+}
 export function Messages() {
-  const [page, setPage] = useState(1),
-    [type, setType] = useState("");
-  const request = useData(
-    url("/message/list", { pageNum: page, pageSize: 20, type }),
-  );
-  const { refresh, notify } = useApp();
-  return (
-    <>
-      <Intro title="消息中心" description="每一份回应，都是来自社区的温暖。">
-        <Button
-          action={async () => {
-            await api(url("/message/read-all", { type }), "PUT");
-            request.reload();
-            refresh();
-            notify("已标记为已读");
-          }}
-        >
-          全部标记已读
-        </Button>
-      </Intro>
-      <section className="panel">
-        <select
-          aria-label="消息类型"
-          value={type}
-          onChange={(e) => {
-            setType(e.target.value);
-            setPage(1);
-          }}
-          style={{ maxWidth: 220 }}
-        >
-          {messageTypes.map(([v, n]) => (
-            <option key={v} value={v}>
-              {n}
-            </option>
-          ))}
-        </select>
-      </section>
-      <DataState request={request} empty={!rows(request.data).length}>
-        {rows(request.data).map((m) => (
-          <article
-            key={m.id}
-            className={`message-row ${m.isRead ? "" : "unread"}`}
-          >
-            <span className="message-symbol">
-              <MessageCircle size={20} />
+  const [page, setPage] = useState(1), [type, setType] = useState("");
+  const request = useData(url("/message/list", {pageNum: page, pageSize: 20, type}));
+  const {refresh, notify} = useApp();
+  async function openMessage(message: Row) {
+    if (!message.isRead) {
+      await api(`/message/read/${message.id}`, "PUT");
+      request.update((old: Row) => ({...old, records: rows(old).map(item => item.id === message.id ? {...item, isRead: 1} : item)}));
+      refresh();
+    }
+    const target = notificationTarget(message);
+    if (target) navigate(target);
+  }
+  return <div className="notification-workspace">
+    <header className="notification-header">
+      <div><h1>消息中心 · 社区通知</h1><p>第一时间获取点赞评论、领养审核反馈与同城活动提醒</p></div>
+      <Button tone="notification-read-all" action={async () => {
+        await api("/message/read-all", "PUT");
+        request.update((old: Row) => ({...old, records: rows(old).map(item => ({...item, isRead: 1}))}));
+        refresh(); notify("已标记为已读");
+      }}><CheckCheck size={16} />全部标记已读</Button>
+    </header>
+    <nav className="notification-categories" aria-label="消息分类">
+      {messageTypes.map(([value, label]) => <button key={value} type="button" aria-pressed={type === value}
+        className={type === value ? "active" : ""} onClick={() => {setType(value); setPage(1);}}>{label}</button>)}
+    </nav>
+    <section className="notification-list" aria-label="社区通知列表">
+      <DataState request={request}>
+        {rows(request.data).map(message => {
+          const target = notificationTarget(message);
+          return <Button key={message.id} tone={`notification-row ${message.isRead ? "" : "is-unread"} type-${String(message.type).toLowerCase()}`}
+            action={() => openMessage(message)}>
+            <span className="notification-icon"><NotificationSymbol type={message.type} /></span>
+            <span className="notification-body">
+              <span className="notification-heading">
+                <span className="notification-title"><strong>{message.title}</strong>{!message.isRead && <span className="notification-dot" aria-label="未读" />}</span>
+                <time>{time(message.createTime)}</time>
+              </span>
+              <span className="notification-description">{message.content}</span>
+              {target && <span className="notification-target">查看相关内容 →</span>}
             </span>
-            <div style={{ flex: 1 }}>
-              <h3>{m.title}</h3>
-              <p>{m.content}</p>
-              <small>{time(m.createTime)}</small>
-              <div className="row-actions">
-                <Button
-                  tone="ghost small"
-                  disabled={!!m.isRead}
-                  action={async () => {
-                    await api(`/message/read/${m.id}`, "PUT");
-                    request.reload();
-                    refresh();
-                  }}
-                >
-                  标记已读
-                </Button>
-                {m.targetId && (
-                  <Button
-                    tone="ghost small"
-                    action={async () => {
-                      await api(`/message/read/${m.id}`, "PUT");
-                      const t = m.targetType;
-                      const route = ["activity", "pet_activity"].includes(t)
-                        ? `/pets/activity/${m.targetId}`
-                        : ["daily"].includes(t)
-                          ? `/daily/${m.targetId}`
-                          : ["notice", "announcement"].includes(t)
-                            ? `/notice/${m.targetId}`
-                            : t === "user"
-                              ? `/user/${m.targetId}`
-                              : `/pets/${m.targetId}`;
-                      navigate(route);
-                    }}
-                  >
-                    查看内容 →
-                  </Button>
-                )}
-              </div>
-            </div>
-            {!m.isRead && <Badge>未读</Badge>}
-          </article>
-        ))}
+          </Button>;
+        })}
+        {!request.loading && !request.error && !rows(request.data).length && <div className="notification-empty"><Inbox size={32} /><p>暂无此类通知消息</p></div>}
       </DataState>
-      <Pagination
-        page={page}
-        size={20}
-        total={request.data?.total || 0}
-        onChange={setPage}
-      />
-    </>
-  );
+    </section>
+    <Pagination page={page} size={20} total={request.data?.total || 0} onChange={setPage} />
+  </div>;
 }

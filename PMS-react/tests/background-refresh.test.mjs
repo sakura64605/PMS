@@ -14,7 +14,7 @@ const {useData,DataState,AppContext,Button}=await server.ssrLoadModule('/src/cor
 const {AtomicRoutes,useRouteLocation}=await server.ssrLoadModule('/src/routeTransition.tsx');
 const {PrivateChat,AIChat}=await server.ssrLoadModule('/src/chat.tsx');
 dom.window.HTMLElement.prototype.scrollIntoView=()=>{};
-const {DiaryCard}=await server.ssrLoadModule('/src/social.tsx');
+const {DiaryCard,Messages}=await server.ssrLoadModule('/src/social.tsx');
 const {default:Admin}=await server.ssrLoadModule('/src/admin.tsx');
 dom.window.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
 dom.window.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');};
@@ -206,4 +206,56 @@ test('nested comment unlike updates in place without reloading comments',async()
  const {Comments}=await server.ssrLoadModule('/src/content.tsx');await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},React.createElement(Comments,{id:'1',type:'pet_post'}))));
  await reply(0,{total:2,records:[{id:10,content:'root',user:{id:2},replies:[{id:11,content:'reply',user:{id:3},isLiked:true,likeCount:2}]}]});
  const button=host.querySelector('button.reaction-button[aria-pressed="true"]');await act(async()=>button.click());assert.equal(button.getAttribute('aria-pressed'),'false');assert.ok(button.textContent.includes('1'));await reply(1,{isLiked:false,likeCount:1});assert.equal(calls.length,2);assert.equal(button.getAttribute('aria-pressed'),'false');assert.equal(host.textContent.includes('reply'),true);
+});
+
+test('notification reference keeps real categories, type icons and business links',async()=>{
+ window.history.replaceState({},'', '/message');
+ await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},React.createElement(Messages))));
+ await reply(0,{total:2,records:[{id:10,type:'LIKE',title:'real like',content:'liked your post',isRead:0,link:'/pet/7?commentId=3',businessId:7},{id:11,type:'COMMENT',title:'real comment',content:'reply',isRead:1,link:'/activity/63'}]});
+ assert.ok(host.textContent.includes('消息中心 · 社区通知'));
+ assert.equal(host.querySelectorAll('.notification-categories button').length,16);
+ assert.equal(host.querySelectorAll('.notification-list .notification-row').length,2);
+ assert.equal(host.querySelector('.type-like .notification-icon svg').getAttribute('width'),'16');
+ assert.equal(host.querySelectorAll('.notification-dot').length,1);
+ assert.ok(host.querySelector('.type-like .notification-target'));
+ await act(async()=>[...host.querySelectorAll('.notification-categories button')].find(b=>b.textContent==='点赞').click());
+ assert.ok(calls.some(c=>c.path.includes('/message/list?') && c.path.includes('type=LIKE')));
+});
+
+test('notification row uses actual link contract after marking unread message read',async()=>{
+ globalThis.PopStateEvent=dom.window.PopStateEvent;window.history.replaceState({},'', '/message');
+ await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},React.createElement(Messages))));
+ await reply(0,{total:1,records:[{id:12,type:'COMMENT',title:'reply',content:'body',isRead:0,link:'/activity/63?commentId=9'}]});
+ await act(async()=>host.querySelector('.notification-row').click());assert.ok(calls[1].path.endsWith('/message/read/12'));assert.equal(calls[1].options.method,'PUT');
+ await reply(1,true);assert.equal(window.location.pathname,'/pets/activity/63');assert.equal(window.location.search,'?commentId=9');assert.equal(host.querySelector('.notification-dot'),null);
+});
+
+test('notification mark all uses global read-all even with a category selected',async()=>{
+ window.history.replaceState({},'', '/message');
+ await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},React.createElement(Messages))));
+ await reply(0,{total:0,records:[]});
+ await act(async()=>[...host.querySelectorAll('.notification-categories button')].find(b=>b.textContent==='点赞').click());
+ await reply(1,{total:1,records:[{id:2,type:'LIKE',title:'like',isRead:0}]});
+ await act(async()=>host.querySelector('.notification-read-all').click());
+ assert.equal(calls[2].path,'/pet-system/message/read-all');assert.equal(calls[2].options.method,'PUT');await reply(2,true);assert.equal(host.querySelector('.notification-dot'),null);
+});
+
+test('notification targets accept legacy internal paths without guessing ambiguous business IDs',async()=>{
+ const {notificationTarget}=await server.ssrLoadModule('/src/notifications.ts');
+ assert.equal(notificationTarget({link:'/pet/8?commentId=2'}),'/pets/8?commentId=2');
+ assert.equal(notificationTarget({link:'/activity/4'}),'/pets/activity/4');
+ assert.equal(notificationTarget({link:'/daily/9'}),'/daily/9');
+ assert.equal(notificationTarget({type:'NOTICE',businessId:3}),'/notice/3');
+ assert.equal(notificationTarget({type:'LIKE',businessId:3}),null);
+ assert.equal(notificationTarget({link:'javascript:alert(1)'}),null);
+ assert.equal(notificationTarget({link:'//external.test/pet/2'}),null);
+});
+
+test('private reference layout renders avatars and bubbles without changing history requests',async()=>{
+ window.history.replaceState({},'', '/private-message?conversation=42');
+ await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},React.createElement(PrivateChat))));
+ await replyWhere(p=>p.includes('/private/conversations?'),{total:1,records:[{conversationId:42,otherUser:{userId:2,nickName:'friend'},lastMessage:'hello',unreadCount:2}]});
+ await replyWhere(p=>p.includes('/private/messages?'),{total:2,records:[{id:1,fromUserId:2,content:'their message',createTime:'2026-10-24T12:01:00'},{id:2,fromUserId:1,content:'my message',createTime:'2026-10-24T12:02:00'}]});
+ assert.ok(host.querySelector('.private-window'));assert.ok(host.textContent.includes('宠友私信会话'));assert.equal(host.querySelectorAll('.bubble-wrap').length,2);assert.equal(host.querySelectorAll('.bubble-wrap.me').length,1);assert.equal(host.querySelector('.bubble-wrap .avatar').style.width,'28px');
+ assert.ok(host.querySelector('.chat-compose input'));assert.ok(host.querySelector('.private-options'));assert.equal(calls.length,2);
 });
