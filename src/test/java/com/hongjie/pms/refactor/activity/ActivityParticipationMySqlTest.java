@@ -40,8 +40,10 @@ class ActivityParticipationMySqlTest {
 
     @Configuration(proxyBeanMethods=false)
     @EnableTransactionManagement(proxyTargetClass=true)
-    @Import({ActivityParticipationCommands.class,ActivityParticipationListener.class,ActivityController.class})
+    @Import({PmsActivityServiceImpl.class,ActivityParticipationCommands.class,ActivityParticipationListener.class,ActivityController.class})
     static class Config {
+        @Bean ActivityQueries queries(){return mock(ActivityQueries.class);}
+        @Bean ActivityLifecycleCommands lifecycle(){return mock(ActivityLifecycleCommands.class);}
         @Bean ActivityContentCommands content(){return mock(ActivityContentCommands.class);}
         @Bean ActivityCache cache(){return mock(ActivityCache.class);}
         @Bean MessageService messages(){return mock(MessageService.class);}
@@ -77,7 +79,7 @@ class ActivityParticipationMySqlTest {
         });
     }
     @BeforeEach void fixtures() {
-        reset(messages,cache,context.getBean(ActivityService.class));
+        reset(messages,cache,context.getBean("oldService",ActivityService.class));
         owner=insert("INSERT INTO user(user_name,password,status) VALUES(?,?,1)",marker+"o","fixture");
         a=insert("INSERT INTO user(user_name,password,status) VALUES(?,?,1)",marker+"a","fixture");
         b=insert("INSERT INTO user(user_name,password,status) VALUES(?,?,1)",marker+"b","fixture");
@@ -171,7 +173,7 @@ class ActivityParticipationMySqlTest {
     @Test void controllerRoutesParticipationToNewCommands() {
         as(a,()->context.getBean(ActivityController.class).signUp(request()));
         as(owner,()->context.getBean(ActivityController.class).signIn(activity,a));
-        verifyNoInteractions(context.getBean(ActivityService.class));assertThat(seats()).isEqualTo(1);
+        verifyNoInteractions(context.getBean("oldService",ActivityService.class));assertThat(seats()).isEqualTo(1);
     }
     @Test void notificationFailureDoesNotUndoCommittedSignupOrSkipOtherRecipients() {
         doThrow(new IllegalStateException("offline")).when(messages).sendActivityFullNotification(owner,marker,activity);
@@ -212,6 +214,6 @@ class ActivityParticipationMySqlTest {
         as(b,()->assertThatThrownBy(()->context.getBean(ActivityController.class).signIn(activity,a)).isInstanceOf(BusinessException.class));
         as(a,()->context.getBean(ActivityController.class).cancelSignUp(activity));
         assertThat(rows()).isZero();assertThat(seats()).isZero();
-        verifyNoInteractions(context.getBean(ActivityService.class));
+        verifyNoInteractions(context.getBean("oldService",ActivityService.class));
     }
 }

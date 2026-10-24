@@ -35,3 +35,6 @@ ActivityContentMySqlTest 使用本机 pet_system_test，覆盖发布、编辑重
 ## 剩余范围
 列表、详情、报名名单、删除和回收站仍使用旧活动服务。
 后续继续迁移这些查询与命令；任务统计幂等、XXL-JOB 与通知可靠重放另行处理。
+
+
+Current follow-up: all activity service operations are now taken over by PmsActivityServiceImpl. See activity-takeover-refactor.md for the final scope.

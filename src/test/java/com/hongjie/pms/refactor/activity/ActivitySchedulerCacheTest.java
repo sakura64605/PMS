@@ -56,11 +56,12 @@ class ActivitySchedulerCacheTest {
     }
     @Test void delayedStatisticsEvictsEndAndSignupChanges() {
         when(mapper.selectById(7L)).thenReturn(activity(1));
-        when(mapper.updateById(any(Activity.class))).thenReturn(1);
+        when(mapper.finishForStatisticsIfDue(eq(7L), any())).thenReturn(1);
         var signup = new ActivitySignup();
         when(signups.selectList(any())).thenReturn(List.of(signup));
         when(signups.updateById(signup)).thenReturn(1);
         handler.handleActivityStatistics(7L); verify(cache, times(2)).evictAfterCommit(7L);
-        verify(mapper).updateById(argThat((Activity change) -> change.getCurrentPeople() == null && change.getMaxPeople() == null && change.getTitle() == null));
+        verify(mapper).finishForStatisticsIfDue(eq(7L), any());
+        verify(mapper, never()).updateById(any(Activity.class));
     }
 }

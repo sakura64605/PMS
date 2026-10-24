@@ -48,6 +48,11 @@ public class DelayTaskHandler {
             return;
         }
 
+        LocalDateTime reminderNow = LocalDateTime.now();
+        if (!Integer.valueOf(0).equals(activity.getDeleted()) || !Integer.valueOf(1).equals(activity.getAuditStatus())
+                || activity.getStartTime() == null || !activity.getStartTime().isAfter(reminderNow)
+                || activity.getStartTime().isAfter(reminderNow.plusMinutes(30))) return;
+
         // 查询所有报名用户
         List<ActivitySignup> signups = activitySignupMapper.selectList(
                 new LambdaQueryWrapper<ActivitySignup>()
@@ -97,13 +102,8 @@ public class DelayTaskHandler {
             log.warn("活动未结束，跳过统计: activityId={}", activityId);
             return;
         } else {
-            Activity change = new Activity();
-            change.setId(activityId);
-            change.setStatus(2);
-            change.setUpdateTime(now);
-            if (activityMapper.updateById(change) > 0) {
-                activityCache.evictAfterCommit(activityId);
-            }
+            if (activityMapper.finishForStatisticsIfDue(activityId, now) != 1) return;
+            activityCache.evictAfterCommit(activityId);
         }
 
         // 查询所有报名用户

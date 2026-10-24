@@ -15,8 +15,6 @@ import com.hongjie.pms.modules.activity.dto.request.ActivityRequestDto;
 import com.hongjie.pms.modules.activity.dto.response.ActivityPostRespDto;
 import com.hongjie.pms.modules.activity.dto.response.SignUpResponse;
 import com.hongjie.pms.modules.activity.service.ActivityService;
-import com.hongjie.pms.refactor.activity.ActivityParticipationCommands;
-import com.hongjie.pms.refactor.activity.ActivityContentCommands;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,8 +33,6 @@ import java.util.concurrent.TimeUnit;
 public class ActivityController {
 
     private final ActivityService activityService;
-    private final ActivityParticipationCommands participation;
-    private final ActivityContentCommands content;
 
     /**
      * 创建活动
@@ -45,7 +41,7 @@ public class ActivityController {
     @Idempotent(key = "#request.title", keyTimeout = 300, message = "创建活动操作正在处理中，请稍后再试")
     @PostMapping("/post")
     public CommonResult<ActivityPostRespDto> postActivity(@RequestBody @Valid ActivityRequestDto request) {
-        ActivityPostRespDto activityListDto = content.publish(request);
+        ActivityPostRespDto activityListDto = activityService.postActivity(request);
         return CommonResult.success(activityListDto);
     }
 
@@ -58,7 +54,7 @@ public class ActivityController {
         if (activityRequestDto.getId() != null && !id.equals(activityRequestDto.getId()))
             throw new BusinessException(ErrorCode.PARAM_ERROR);
         activityRequestDto.setId(id);
-        content.edit(activityRequestDto);
+        activityService.updateActivity(activityRequestDto);
         return CommonResult.success("活动更新成功");
     }
 
@@ -142,7 +138,7 @@ public class ActivityController {
     @PostMapping("/signUp")
     public CommonResult<String> signUp(@RequestBody @Valid SignUpInfoRequest request) {
         log.info("用户报名活动");
-        participation.signUp(request);
+        activityService.signUp(request);
         return CommonResult.success("报名成功");
     }
 
@@ -153,7 +149,7 @@ public class ActivityController {
     @PostMapping("/signIn")
     public CommonResult<String> signIn(@RequestParam Long activityId, @RequestParam Long userId) {
         log.info("用户签到");
-        participation.signIn(activityId, userId);
+        activityService.signIn(activityId, userId);
         return CommonResult.success("签到成功");
     }
 
@@ -165,7 +161,7 @@ public class ActivityController {
     @PostMapping("/cancelSignUp/{id}")
     public CommonResult<String> cancelSignUp(@PathVariable Long id) {
         log.info("用户取消报名");
-        participation.cancel(id);
+        activityService.cancelSignUp(id);
         return CommonResult.success("取消报名成功");
     }
 
@@ -177,6 +173,7 @@ public class ActivityController {
     public CommonResult<IPage<ActivityListRespDto>> getMyActivityList(ActivityListRequestDto request) {
         log.info("获取我的活动列表");
         Long userId = UserContext.getUserId();
+        if (userId == null) throw new BusinessException(ErrorCode.UNAUTHORIZED);
         request.setUserId(userId);
         IPage<ActivityListRespDto> activityList = activityService.getActivityList(request);
         return CommonResult.success(activityList);

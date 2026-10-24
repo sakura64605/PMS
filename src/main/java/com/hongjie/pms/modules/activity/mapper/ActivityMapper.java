@@ -29,4 +29,6 @@ public interface ActivityMapper extends BaseMapper<Activity> {
 
     @Update("UPDATE activity SET status=2,update_time=#{now} WHERE id=#{id} AND status=1 AND deleted=0 AND end_time<=#{now}")
     int finishIfDue(@Param("id") Long id, @Param("now") java.time.LocalDateTime now);
+    @Update("UPDATE activity SET status=2,update_time=#{now} WHERE id=#{id} AND status IN (0,1,2) AND deleted=0 AND audit_status=1 AND end_time<=#{now}")
+    int finishForStatisticsIfDue(@Param("id") Long id, @Param("now") java.time.LocalDateTime now);
 }

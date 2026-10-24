@@ -20,12 +20,16 @@ public class ActivityScheduleWriter {
 
     @Transactional(propagation = Propagation.MANDATORY)
     public void replace(Long id, LocalDateTime start, LocalDateTime end, LocalDateTime now) {
-        tasks.delete(new LambdaQueryWrapper<DelayTask>()
-                .eq(DelayTask::getBusinessId, id).eq(DelayTask::getStatus, 0)
-                .in(DelayTask::getTaskType, List.of("ACTIVITY_REMIND", "ACTIVITY_START", "ACTIVITY_STATISTICS")));
+        cancel(id);
         LocalDateTime reminder = start.minusMinutes(30);
         if (reminder.isAfter(now)) scheduler.addTask("ACTIVITY_REMIND", id, reminder);
         scheduler.addTask("ACTIVITY_START", id, start);
         scheduler.addTask("ACTIVITY_STATISTICS", id, end.plusMinutes(1));
+    }
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void cancel(Long id) {
+        tasks.delete(new LambdaQueryWrapper<DelayTask>()
+                .eq(DelayTask::getBusinessId, id).eq(DelayTask::getStatus, 0)
+                .in(DelayTask::getTaskType, List.of("ACTIVITY_REMIND", "ACTIVITY_START", "ACTIVITY_STATISTICS")));
     }
 }

@@ -53,9 +53,11 @@ class ActivityContentMySqlTest {
     }
     @Configuration(proxyBeanMethods=false)
     @EnableTransactionManagement(proxyTargetClass=true)
-    @Import({ActivityContentCommands.class,ActivityScheduleWriter.class,ActivityContentListener.class,
+    @Import({PmsActivityServiceImpl.class,ActivityContentCommands.class,ActivityScheduleWriter.class,ActivityContentListener.class,
             AuditWriteTargets.class,AuditCommandService.class,DelayTaskService.class,ActivityController.class})
     static class Config {
+        @Bean ActivityQueries queries(){return mock(ActivityQueries.class);}
+        @Bean ActivityLifecycleCommands lifecycle(){return mock(ActivityLifecycleCommands.class);}
         @Bean ActivityCache cache(){return mock(ActivityCache.class);}
         @Bean FeedService feed(){return mock(FeedService.class);}
         @Bean ActivityService legacy(){return mock(ActivityService.class);}
@@ -94,7 +96,7 @@ class ActivityContentMySqlTest {
         });
     }
     @BeforeEach void fixture(){
-        reset(feed,context.getBean(ActivityService.class),context.getBean(ActivityCache.class));
+        reset(feed,context.getBean("legacy",ActivityService.class),context.getBean(ActivityCache.class));
         recorder.indexed.clear();
         owner=insert("INSERT INTO user(user_name,password,status) VALUES(?,?,1)",marker+"o","fixture");
         admin=insert("INSERT INTO user(user_name,password,status) VALUES(?,?,1)",marker+"a","fixture");
@@ -196,7 +198,7 @@ class ActivityContentMySqlTest {
         assertThat(request.getId()).isEqualTo(activity);assertThat(rounds(0)).isEqualTo(1);
         request.setId(activity+1);
         as(owner,0,()->assertThatThrownBy(()->context.getBean(ActivityController.class).updateActivity(activity,request)).isInstanceOf(BusinessException.class));
-        verifyNoInteractions(context.getBean(ActivityService.class));
+        verifyNoInteractions(context.getBean("legacy",ActivityService.class));
     }
     @Test void publishingCreatesActivityReviewTasksAndResponse(){
         var request=request("created");request.setId(null);request.setUserId(admin);
@@ -212,7 +214,7 @@ class ActivityContentMySqlTest {
             assertThat(recorder.indexed).containsExactly(id);
             verify(feed).pushToFans(eq(owner),eq(id),eq("activity"),eq(marker),eq(List.of()),eq(marker+"o"),isNull(),any());
         });
-        verifyNoInteractions(context.getBean(ActivityService.class));
+        verifyNoInteractions(context.getBean("legacy",ActivityService.class));
     }
     @Test void outerRollbackRestoresActivityReviewTasksAndSuppressesSearchEvent(){
         var request=request("rollback");request.setStartTime(start.plusHours(1));request.setEndTime(end.plusHours(1));

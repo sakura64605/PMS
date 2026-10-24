@@ -9,3 +9,6 @@ Immutable events deliver notifications after commit using independent transactio
 Validation: 14 real-MySQL cases in ActivityParticipationMySqlTest cover capacity races, duplicate signup/cancellation/check-in, rollback, inconsistent counters, activity/account states, ownership, controller routing, commit-duration locking, notification failure and fallback database commits. Fixtures are isolated in local pet_system_test. The full regression suite enables all existing opt-in database tests and excludes PmsApplicationTests, which requires the complete external environment.
 
 Next: migrate query assembly, deletion and recycle-bin operations; review task state-transition conditions, absence-statistics idempotency and XXL-JOB. This batch does not integrate XXL-JOB or durable notification replay.
+
+
+Current follow-up: all activity service operations are now taken over by PmsActivityServiceImpl. See activity-takeover-refactor.md for the final scope.
