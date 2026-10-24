@@ -380,6 +380,10 @@ export function PublishDiary() {
 export function Feed() {
   const [page, setPage] = useState(1);
   const request = useData(url("/feed/home", { pageNum: page, pageSize: 12 }));
+  async function like(p: Row) {
+    await api("/like", "POST", { targetType: p.postType === "activity" ? "pet_activity" : "pet_post", targetId: p.postId });
+    request.reload();
+  }
   return (
     <>
       <Intro
@@ -402,7 +406,7 @@ export function Feed() {
                 },
                 images: p.coverImage ? [p.coverImage] : [],
               }}
-            />
+            ><Button tone={p.isLiked ? "primary small" : "ghost small"} action={() => like(p)}><Heart size={14}/>{p.isLiked ? "已点赞" : "点赞"} {p.likeCount || 0}</Button></Card>
           ))}
         </div>
       </DataState>

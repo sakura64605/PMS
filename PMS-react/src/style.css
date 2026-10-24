@@ -1673,3 +1673,6 @@ textarea {
 }
 
 @media(max-width:540px){.toolbar .btn{white-space:nowrap;min-width:76px}.toolbar select{flex:1 1 120px}.toolbar .search-input{min-width:0;width:100%}.profile-banner{flex-wrap:wrap}}
+
+.chat-layout.sidebar-collapsed{grid-template-columns:minmax(0,1fr)}
+.chat-layout.sidebar-collapsed .chat-sidebar{display:none}

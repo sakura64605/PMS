@@ -409,7 +409,7 @@ export function AIChat() {
         title="AI 养宠顾问"
         description="关于毛孩子的每个小问题，都值得认真回答。"
       />
-      <div className="chat-layout">
+      <div className={`chat-layout ${!showList ? "sidebar-collapsed" : ""}`}>
         <aside className={`chat-sidebar ${!showList ? "hidden-mobile" : ""}`}>
           <div className="panel-title">
             <h2>历史对话</h2>
