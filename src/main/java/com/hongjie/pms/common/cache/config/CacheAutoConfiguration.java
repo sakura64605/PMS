@@ -51,6 +51,7 @@ public class CacheAutoConfiguration {
     
     @Bean
     // 注册 DistributedCache 类型的 Bean
+    @org.springframework.context.annotation.Primary
     public DistributedCache distributedCache(StringRedisTemplateProxy stringRedisTemplateProxy) {
         return stringRedisTemplateProxy;
     }

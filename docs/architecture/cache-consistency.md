@@ -24,8 +24,10 @@ HTTP routes and DTO contracts are retained, including null interaction flags for
 
 Shared personalized activity/profile DTO caches are deliberately bypassed; neutral notice lists, pet public detail and daily recommendation caches remain. No global Redis flush, schema migration, server configuration change or frontend rebuild is needed.
 
+The cache facade is explicitly primary: production registers both the concrete proxy and DistributedCache facade for the same instance. A real CacheAutoConfiguration wiring regression includes both registrations and the new consumers.
+
 ## Validation
 
-420 backend tests passed, zero failures/errors/skips. This includes opt-in MySQL suites on local pet_system_test for follow, report, audit, pet review, feed, private messages and notifications, plus DB equivalence tests. PmsApplicationTests (full external-service startup) is excluded; server startup and HTTP probes are checked separately at deployment. Added transaction-commit/rollback, matching key patterns, cache delivery failure, viewer isolation, notice read/expiry and realtime counter regressions.
+421 backend tests passed, zero failures/errors/skips. This includes opt-in MySQL suites on local pet_system_test for follow, report, audit, pet review, feed, private messages and notifications, plus DB equivalence tests. PmsApplicationTests (full external-service startup) is excluded; server startup and HTTP probes are checked separately at deployment. Added transaction-commit/rollback, matching key patterns, cache delivery failure, viewer isolation, notice read/expiry and realtime counter regressions.
 
 Build uses the existing target/report-build-settings.xml because the default Maven mirror is unavailable. No credentials are recorded in this document.
