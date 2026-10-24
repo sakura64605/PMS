@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { api, type Row, nick, rows, time } from "./api";
+import { queryCache, queryKey } from "./queryCache.ts";
 export const AppContext = createContext<{
   user: Row | null;
   refreshUser: () => Promise<void>;
@@ -76,33 +77,52 @@ export function usePath() {
   return path;
 }
 export function useData<T = any>(path: string | null, key = 0) {
-  const [data, setData] = useState<T | null>(null),
-    [error, setError] = useState(""),
-    [loading, setLoading] = useState(!!path),
-    [local, reload] = useState(0);
   const { revision } = useApp();
+  const session = localStorage.getItem('token') || 'guest';
+  const cacheKey = path ? queryKey(session, path) : '';
+  const cached = path ? queryCache.get(cacheKey) : undefined;
+  const [state, setState] = useState<{key: string; data: T | null; error: string; pending: boolean}>(() => ({key: cacheKey, data: cached?.data ?? null, error: '', pending: !!path && !cached}));
+  const [local, reload] = useState(0);
+  // Unread-count/read actions must not invalidate unrelated forms and details.
+  const revisionKey = path?.startsWith('/message/') || path?.startsWith('/feed/') ? revision : 0;
+  const previous = useRef({cacheKey: '', local: -1, revisionKey: -1, key: -1});
+  const data = state.key === cacheKey ? state.data : cached?.data ?? null;
   useEffect(() => {
-    if (!path) {
-      setData(null);
-      setLoading(false);
-      setError("");
+    if (!path) { setState({key: cacheKey, data: null, error: '', pending: false}); return; }
+    const prior = previous.current;
+    const forced = prior.cacheKey === cacheKey && (prior.local !== local || prior.revisionKey !== revisionKey || prior.key !== key);
+    previous.current = {cacheKey, local, revisionKey, key};
+    const snapshot = queryCache.get(cacheKey);
+    if (!forced && snapshot && queryCache.fresh(snapshot)) {
+      setState({key: cacheKey, data: snapshot.data, error: '', pending: false});
       return;
     }
     const controller = new AbortController();
-    setLoading(true);
-    setError("");
-    setData(null);
-    api<T>(path, "GET", undefined, controller.signal)
-      .then(value => { if (!controller.signal.aborted) setData(value); })
-      .catch((e) => {
-        if (!controller.signal.aborted) setError(e.message);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
+    setState(prev => ({key: cacheKey, data: prev.key === cacheKey ? prev.data : snapshot?.data ?? null, error: '', pending: true}));
+    api<T>(path, 'GET', undefined, controller.signal).then(value => {
+      if (controller.signal.aborted) return;
+      queryCache.put(cacheKey, path, value);
+      setState({key: cacheKey, data: value, error: '', pending: false});
+    }).catch(error => {
+      if (!controller.signal.aborted) setState(prev => prev.key === cacheKey ? {...prev, error: error.message, pending: false} : prev);
+    });
     return () => controller.abort();
-  }, [path, key, local, revision]);
-  return { data, error, loading, reload: () => reload((v) => v + 1) };
+  }, [cacheKey, path, key, local, revisionKey]);
+  return {
+    data: data as T | null,
+    error: state.key === cacheKey ? state.error : '',
+    loading: !!path && data == null && (state.key !== cacheKey || state.pending),
+    refreshing: state.key === cacheKey && state.pending,
+    reload: () => reload(v => v + 1),
+    update: (updater: (old: T) => T) => {
+      setState(prev => {
+        if (prev.key !== cacheKey || prev.data == null || !path) return prev;
+        const next = updater(prev.data);
+        queryCache.put(cacheKey, path, next);
+        return {...prev, data: next, error: ''};
+      });
+    },
+  };
 }
 export function Button({
   children,
@@ -176,7 +196,7 @@ export function DataState({
   empty?: boolean;
 }) {
   if (request.loading) return <Busy />;
-  if (request.error)
+  if (request.error && request.data == null)
     return (
       <div className="state" role="alert">
         <p>{request.error}</p>
@@ -187,7 +207,7 @@ export function DataState({
       </div>
     );
   if (empty) return <Empty />;
-  return <>{children}</>;
+  return <>{request.error && <div className="background-error" role="status">更新失败，暂时保留当前内容。<Button tone="ghost small" action={request.reload}>重试</Button></div>}{children}</>;
 }
 export function Intro({
   title,

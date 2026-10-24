@@ -1676,3 +1676,5 @@ textarea {
 
 .chat-layout.sidebar-collapsed{grid-template-columns:minmax(0,1fr)}
 .chat-layout.sidebar-collapsed .chat-sidebar{display:none}
+
+.background-error{display:flex;align-items:center;gap:8px;color:#a85e45;font-size:12px;padding:8px 12px;border:1px solid #ecd7cd;background:#fff6f0;border-radius:10px;margin-bottom:12px}

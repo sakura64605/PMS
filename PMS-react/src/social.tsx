@@ -381,8 +381,8 @@ export function Feed() {
   const [page, setPage] = useState(1);
   const request = useData(url("/feed/home", { pageNum: page, pageSize: 12 }));
   async function like(p: Row) {
-    await api("/like", "POST", { targetType: p.postType === "activity" ? "pet_activity" : "pet_post", targetId: p.postId });
-    request.reload();
+    const result = await api("/like", "POST", { targetType: p.postType === "activity" ? "pet_activity" : "pet_post", targetId: p.postId });
+    request.update((old: Row) => ({...old, records: rows(old).map(item => item.id === p.id ? {...item, isLiked: result.isLiked, likeCount: result.likeCount} : item)}));
   }
   return (
     <>

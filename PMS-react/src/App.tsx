@@ -1,3 +1,4 @@
+import { queryCache } from "./queryCache.ts";
 import {
   lazy,
   Suspense,
@@ -309,6 +310,7 @@ export default function App() {
         .catch((e) => notify(e.message, true))
         .finally(() => setBoot(false));
     const clear = () => {
+      queryCache.clear();
       setUser(null);
       setBoot(false);
     };

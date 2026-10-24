@@ -1,3 +1,4 @@
+import { queryCache, invalidateMutation } from "./queryCache.ts";
 export type Row = Record<string, any>;
 export function url(path: string, params: Row = {}) {
   const q = new URLSearchParams();
@@ -37,6 +38,7 @@ export async function api<T = any>(
     .json()
     .catch(() => ({ message: "服务返回格式异常，请稍后重试" }));
   if (response.status === 401 || result.code === 401) {
+    queryCache.clear();
     localStorage.removeItem("token");
     localStorage.removeItem("userInfo");
     window.dispatchEvent(new Event("auth-cleared"));
@@ -45,6 +47,7 @@ export async function api<T = any>(
     throw new Error(
       result.message || result.msg || `请求失败（${response.status}）`,
     );
+  if (method !== "GET") invalidateMutation(path);
   return result.data;
 }
 export const rows = (data: any): Row[] =>

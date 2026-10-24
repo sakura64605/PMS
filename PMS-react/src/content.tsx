@@ -620,8 +620,8 @@ export function Detail({
     ended = p.status === 2;
   const target = activity ? "pet_activity" : "pet_post";
   async function like() {
-    await api("/like", "POST", { targetId: id, targetType: target });
-    request.reload();
+    const result = await api("/like", "POST", { targetId: id, targetType: target });
+    request.update((old: Row) => ({...old, isLiked: result.isLiked, likeCount: result.likeCount}));
   }
   const mutate = async (path: string) => {
     await api(path, "POST");
