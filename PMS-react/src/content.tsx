@@ -15,6 +15,7 @@ import {
   Copy,
   Flag,
   Megaphone,
+  Send,
 } from "lucide-react";
 import {
   api,
@@ -476,7 +477,7 @@ export function Report({
     </Modal>
   );
 }
-export function Comments({ id, type }: { id: string; type: string }) {
+export function Comments({ id, type, embedded = false, onCountChange }: { id: string; type: string; embedded?: boolean; onCountChange?: (count: number) => void }) {
   const [page, setPage] = useState(1),
     [text, setText] = useState(""),
     [reply, setReply] = useState<Row | null>(null),
@@ -490,6 +491,9 @@ export function Comments({ id, type }: { id: string; type: string }) {
     }),
   );
   const { user, notify } = useApp();
+  useEffect(() => {
+    if (request.data != null) onCountChange?.(request.data.total ?? rows(request.data).length);
+  }, [request.data, onCountChange]);
   async function submit() {
     if (!user) {
       navigate("/login");
@@ -529,7 +533,9 @@ export function Comments({ id, type }: { id: string; type: string }) {
               回复
             </Button>
             <Button
-              tone="ghost small"
+              tone={`reaction-button ${c.isLiked ? "is-liked" : ""}`}
+              aria-label={c.isLiked ? "取消评论点赞" : "点赞评论"}
+              aria-pressed={!!c.isLiked}
               action={async () => {
                 await api("/like", "POST", {
                   targetType: "pet_comment",
@@ -538,7 +544,7 @@ export function Comments({ id, type }: { id: string; type: string }) {
                 request.reload();
               }}
             >
-              <Heart size={13} />
+              <Heart size={13} fill={c.isLiked ? "currentColor" : "none"} />
               {c.likeCount || 0}
             </Button>
             <Button tone="ghost small" action={() => setReport(String(c.id))}>
@@ -555,10 +561,10 @@ export function Comments({ id, type }: { id: string; type: string }) {
     );
   }
   return (
-    <section className="panel" id="comments">
+    <section className={`comment-section ${embedded ? "embedded-comments" : "panel"}`} id={embedded ? undefined : "comments"}>
       <div className="panel-title">
         <h2>
-          聊一聊 · {request.data?.total || rows(request.data).length} 条评论
+          留言与回应 · {request.data?.total || rows(request.data).length} 条评论
         </h2>
         {reply && (
           <Button tone="ghost small" action={() => setReply(null)}>
@@ -567,22 +573,23 @@ export function Comments({ id, type }: { id: string; type: string }) {
         )}
       </div>
       <form
-        className="comment-form"
+        className="comment-form reference-comment-form"
         onSubmit={(e) => {
           e.preventDefault();
         }}
       >
+        <Avatar user={user} size={32} />
         <textarea
           value={text}
           maxLength={2000}
           onChange={(e) => setText(e.target.value)}
           placeholder={
-            reply ? `回复 ${nick(reply.user)}…` : "留下你的关心与想法…"
+            reply ? `回复 ${nick(reply.user)}…` : "说点暖心的话，和宠友聊聊吧…"
           }
           aria-label="评论内容"
         />
-        <Button tone="primary" action={submit}>
-          发送
+        <Button tone="primary" disabled={!text.trim()} action={submit}>
+          <Send size={14} />发送
         </Button>
       </form>
       <DataState request={request}>
@@ -738,9 +745,9 @@ export function Detail({
                   ),
               )}
               <div className="row-actions">
-                <Button tone={p.isLiked ? "primary" : ""} action={like}>
-                  <Heart size={15} />
-                  {p.isLiked ? "已点赞" : "点赞"} {p.likeCount || 0}
+                <Button tone={`reaction-button ${p.isLiked ? "is-liked" : ""}`} aria-label={p.isLiked ? "取消点赞" : "点赞"} aria-pressed={!!p.isLiked} action={like}>
+                  <Heart size={15} fill={p.isLiked ? "currentColor" : "none"} />
+                  {p.likeCount || 0} 赞
                 </Button>
                 {!activity && (
                   <Button

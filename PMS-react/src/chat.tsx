@@ -14,8 +14,10 @@ import {
   Trash2,
   Users,
   PanelLeftClose,
+  Sparkles,
+  Copy,
 } from "lucide-react";
-import { api, rows, uid, nick, time, url, type Row } from "./api";
+import { api, copyText, rows, uid, nick, time, url, type Row } from "./api";
 import {
   Avatar,
   Badge,
@@ -407,25 +409,23 @@ export function AIChat() {
     }
   }
   return (
-    <>
-      <Intro
-        title="AI 养宠顾问"
-        description="关于毛孩子的每个小问题，都值得认真回答。"
-      />
+    <div className="ai-workspace">
       <div className={`chat-layout ${!showList ? "sidebar-collapsed" : ""}`}>
         <aside className={`chat-sidebar ${!showList ? "hidden-mobile" : ""}`}>
-          <div className="panel-title">
-            <h2>历史对话</h2>
+          <div className="ai-sidebar-heading">
+            <span className="ai-eyebrow">PETCIRCLE ASSISTANT</span>
+            <Button tone="ghost small ai-mobile-close" aria-label="收起历史会话" action={() => setShowList(false)}><PanelLeftClose size={17}/></Button>
             <Button
-              tone="ghost small"
+              tone="primary ai-new-chat"
               disabled={sending}
               action={() => {
                 setSession("");
                 setOptimistic([]);
               }}
             >
-              ＋
+              <Plus size={16} />开启新咨询
             </Button>
+            <h2>历史会话</h2>
           </div>
           <DataState request={sessions}>
             {rows(sessions.data).map((s) => (
@@ -448,7 +448,7 @@ export function AIChat() {
                     setShowList(false);
                   }}
                 >
-                  <strong>养宠对话</strong>
+                  <strong>{s.title || s.sessionName || "养宠对话"}</strong>
                   <small>{time(s.updatedAt || s.createdAt)}</small>
                 </button>
                 <Button
@@ -468,6 +468,7 @@ export function AIChat() {
               </div>
             ))}
           </DataState>
+          <div className="ai-sidebar-note"><Sparkles size={18}/><span>用心倾听，温暖陪伴<small>记录你和毛孩子的每一次交流</small></span></div>
         </aside>
         <section className="chat-main">
           <header className="chat-head">
@@ -479,13 +480,13 @@ export function AIChat() {
               >
                 <PanelLeftClose size={17} />
               </Button>
-              <Bot size={24} color="#5f7161" />
+              <span className="ai-brand-icon"><Bot size={19} /></span>
               <div>
-                <h2>宠小伴</h2>
-                <small>{sending ? "正在认真思考…" : "你的养宠小帮手"}</small>
+                <h2>PetCircle AI 养宠顾问 <span className="ai-service-badge">AI 助手</span></h2>
+                <small>{sending ? "正在认真思考…" : "营养、日常护理与行为习惯，陪你一起了解毛孩子"}</small>
               </div>
             </div>
-            <div className="row-actions">
+            <div className="row-actions ai-tools" aria-label="AI 会话工具">
               <Button tone="ghost small" action={() => setMemory(true)}>
                 <NotebookPen size={14} />
                 长期记忆
@@ -524,13 +525,13 @@ export function AIChat() {
             {!session && !displayed.length && !sending ? (
               <div className="chat-empty">
                 <div>
-                  <Bot size={48} color="#8ca180" />
-                  <h2>你好呀，我是宠小伴</h2>
-                  <p>一起聊聊你和毛孩子的生活吧。</p>
+                  <span className="ai-welcome-icon"><Sparkles size={34} /></span>
+                  <span className="ai-eyebrow">YOUR PET COMPANION</span><h2>你好呀，我是你的养宠小伙伴</h2>
+                  <p>从一日三餐到生活里的小习惯，<br/>一起聊聊你和毛孩子的故事。</p>
                   <div className="suggestions">
                     {(suggestions.data || []).map((s: string) => (
                       <Button key={s} tone="small" action={() => setText(s)}>
-                        {s}
+                        <MessageCircle size={15} />{s}
                       </Button>
                     ))}
                   </div>
@@ -543,7 +544,8 @@ export function AIChat() {
                     className={`bubble-wrap ${m.role === "user" ? "me" : ""}`}
                     key={m.id || i}
                   >
-                    <div
+                    <span className="ai-message-avatar" aria-hidden="true">{m.role === "user" ? "我" : "AI"}</span>
+                    <div className="ai-message-body"><div
                       className="bubble markdown"
                       dangerouslySetInnerHTML={{
                         __html: DOMPurify.sanitize(
@@ -555,7 +557,8 @@ export function AIChat() {
                     />
                     <small>{time(m.createdAt)}</small>
                     {m.role !== "user" && m.id && (
-                      <div className="row-actions">
+                      <div className="row-actions ai-message-actions">
+                        <Button tone="ghost small" aria-label="复制回答" action={async () => {await copyText(String(m.content || ''));notify('回答已复制');}}><Copy size={13}/></Button>
                         <Button
                           tone="ghost small"
                           aria-label="有帮助"
@@ -590,14 +593,13 @@ export function AIChat() {
                         </Button>
                       </div>
                     )}
+                    </div>
                   </div>
                 ))}
               </DataState>
             )}
             {sending && (
-              <div className="bubble-wrap">
-                <div className="bubble">宠小伴正在思考，请稍候…</div>
-              </div>
+              <div className="bubble-wrap"><span className="ai-message-avatar" aria-hidden="true">AI</span><div className="bubble ai-thinking" role="status"><span/><span/><span/><small>正在整理思路…</small></div></div>
             )}
             {lastError && (
               <p className="inline-error" role="alert">
@@ -614,6 +616,7 @@ export function AIChat() {
               disabled={sending}
               placeholder="想了解毛孩子的什么呢？"
               aria-label="给 AI 的问题"
+              onKeyDown={e => {if(e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing){e.preventDefault();if(!sending && text.trim()) void send().catch(error => notify(error.message,true));}}}
             />
             <Button
               tone="primary"
@@ -624,9 +627,10 @@ export function AIChat() {
               发送
             </Button>
           </form>
+          <div className="ai-compose-hint">Enter 发送 · Shift+Enter 换行</div>
         </section>
       </div>
       {memory && <Memory onClose={() => setMemory(false)} />}
-    </>
+    </div>
   );
 }

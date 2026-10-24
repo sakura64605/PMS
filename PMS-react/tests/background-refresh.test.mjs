@@ -12,8 +12,9 @@ const {createRoot}=await import('react-dom/client');
 const server=await createServer({configFile:false,root:fileURLToPath(new URL('..',import.meta.url)),plugins:[react()],server:{middlewareMode:true,hmr:false}});
 const {useData,DataState,AppContext}=await server.ssrLoadModule('/src/core.tsx');
 const {AtomicRoutes,useRouteLocation}=await server.ssrLoadModule('/src/routeTransition.tsx');
-const {PrivateChat}=await server.ssrLoadModule('/src/chat.tsx');
+const {PrivateChat,AIChat}=await server.ssrLoadModule('/src/chat.tsx');
 dom.window.HTMLElement.prototype.scrollIntoView=()=>{};
+const {DiaryCard}=await server.ssrLoadModule('/src/social.tsx');
 const {Detail,Editor}=await server.ssrLoadModule('/src/content.tsx');
 let root,host,calls,current,mounts,unmounts;
 let frames=new Map(),frameSequence=0,scrolls=0;
@@ -66,7 +67,7 @@ test('first request keeps the actual content container and input mounted while d
 test('real detail layout, static labels, sidebar and comment draft exist before data and retain DOM identity',async()=>{
  await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},React.createElement(Detail,{id:'1'}))));
  const layout=host.querySelector('.detail-layout'),article=layout.querySelector('article'),sidebar=layout.querySelector('aside'),draft=host.querySelector('textarea');assert.ok(layout);assert.ok(article);assert.ok(sidebar);assert.ok(draft);assert.ok(host.textContent.includes('宠物名字'));assert.ok(host.textContent.includes('把陪伴带回家'));assert.ok(host.querySelector('.data-value[data-pending]'));assert.equal(host.querySelector('.page-skeleton'),null);
- const like=[...host.querySelectorAll('button')].find(b=>b.textContent.includes('点赞'));assert.equal(like.disabled,true);
+ const like=[...host.querySelectorAll('button')].find(b=>b.getAttribute('aria-label')==='点赞');assert.equal(like.disabled,true);
  await act(async()=>{Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype,'value').set.call(draft,'preserved draft');draft.dispatchEvent(new dom.window.Event('input',{bubbles:true}));});const detailIndex=calls.findIndex(c=>c.path.endsWith('/pet/1'));assert.ok(detailIndex>=0);await reply(detailIndex,{id:1,title:'小猫找家',petName:'小橘',status:1,content:'real description',images:[],user:{id:2,nickName:'宠友'}});
  assert.equal(host.querySelector('.detail-layout'),layout);assert.equal(layout.querySelector('article'),article);assert.equal(layout.querySelector('aside'),sidebar);assert.equal(host.querySelector('textarea'),draft);assert.equal(draft.value,'preserved draft');assert.ok(host.textContent.includes('小猫找家'));assert.ok(host.textContent.includes('小橘'));assert.equal(like.disabled,false);
 });
@@ -129,3 +130,17 @@ test('private conversation link fetches history in parallel with the conversatio
  await reply(history,{records:[{id:1,content:'existing private history',fromUserId:2,createTime:'2026-10-24'}],total:1});await flushFrames();assert.equal(visibleStage(),old);
  await reply(list,{records:[{conversationId:42,otherUser:{id:2,nickName:'friend'},lastMessage:'existing private history'}],total:1});await flushFrames();assert.equal(calls.length,3);assert.ok(visibleStage().textContent.includes('existing private history'));assert.equal(visibleStage().textContent.includes('正在获取内容'),false);
 });
+
+test('reference diary comments expand in-place and preserve a draft after collapsing',async()=>{
+ const post={id:7,content:'real post',commentCount:0,isLiked:false,likeCount:2,images:[]};
+ await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},React.createElement(DiaryCard,{post}))));assert.equal(calls.length,0);
+ const toggle=[...host.querySelectorAll('button')].find(b=>b.textContent.includes('条评论'));await act(async()=>toggle.click());assert.equal(calls.length,1);assert.ok(calls[0].path.includes('targetType=daily'));await reply(0,{records:[],total:0});const draft=host.querySelector('textarea');await act(async()=>{Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype,'value').set.call(draft,'keep this draft');draft.dispatchEvent(new dom.window.Event('input',{bubbles:true}));});
+ await act(async()=>toggle.click());assert.equal(toggle.getAttribute('aria-expanded'),'false');await act(async()=>toggle.click());assert.equal(host.querySelector('textarea'),draft);assert.equal(draft.value,'keep this draft');assert.equal(calls.length,1);
+ const like=host.querySelector('button[aria-label="点赞"]');await act(async()=>like.click());assert.ok(calls[1].path.endsWith('/daily/7/like'));await reply(1,true);assert.equal(like.getAttribute('aria-pressed'),'true');assert.ok(like.textContent.includes('3 赞'));assert.ok(like.classList.contains('is-liked'));
+});
+
+test('reference AI layout keeps all three real tools in the existing chat header',async()=>{
+ await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},React.createElement(AIChat))));
+ const tools=host.querySelector('.ai-workspace .chat-head .ai-tools');assert.ok(tools);assert.deepEqual([...tools.querySelectorAll('button')].map(b=>b.textContent.trim()),['长期记忆','清除记忆','转人工']);assert.ok(host.querySelector('.ai-new-chat'));assert.ok(host.querySelector('.ai-mobile-close'));assert.ok(host.querySelector('textarea[aria-label="给 AI 的问题"]'));assert.ok(host.textContent.includes('Shift+Enter'));assert.equal(calls.length,2);assert.equal(calls.some(c=>c.options.method!=='GET'),false);
+});
+

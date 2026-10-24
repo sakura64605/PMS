@@ -172,6 +172,9 @@ export function DiaryCard({
   detail?: boolean;
 }) {
   const { notify } = useApp();
+  const [commentsOpen, setCommentsOpen] = useState(detail), [commentsStarted, setCommentsStarted] = useState(detail);
+  const [commentCount, setCommentCount] = useState(post.commentCount || 0);
+  useEffect(() => setCommentCount(post.commentCount || 0), [post.commentCount]);
   const [liked, setLiked] = useState(!!post.isLiked),
     [count, setCount] = useState(post.likeCount || 0);
   useEffect(() => {
@@ -199,7 +202,9 @@ export function DiaryCard({
       <div className="card-footer">
         <div className="row-actions">
           <Button
-            tone={liked ? "primary small" : "ghost small"}
+            tone={`reaction-button ${liked ? "is-liked" : ""}`}
+            aria-label={liked ? "取消点赞" : "点赞"}
+            aria-pressed={liked}
             action={async () => {
               const result = await api(`/daily/${post.id}/like`, "POST");
               const next = typeof result === "boolean" ? result : !liked;
@@ -209,13 +214,13 @@ export function DiaryCard({
               setLiked(next);
             }}
           >
-            <Heart size={14} />
-            {count}
+            <Heart size={16} fill={liked ? "currentColor" : "none"} />
+            {count} 赞
           </Button>
-          <Link className="btn ghost small" to={`/daily/${post.id}#comments`}>
-            <MessageCircle size={14} />
-            {post.commentCount || 0}
-          </Link>
+          <Button tone={`reaction-button ${commentsOpen ? 'is-open' : ''}`} aria-expanded={commentsOpen} action={() => {setCommentsStarted(true);setCommentsOpen(value => !value);}}>
+            <MessageCircle size={16} />
+            {commentCount} 条评论
+          </Button>
         </div>
         <Button
           tone="ghost small"
@@ -230,6 +235,7 @@ export function DiaryCard({
           分享
         </Button>
       </div>
+      {commentsStarted && post.id && <div hidden={!commentsOpen}><Comments id={String(post.id)} type="daily" embedded onCountChange={setCommentCount} /></div>}
     </article>
   );
 }
@@ -256,9 +262,7 @@ export function Diaries({ id }: { id?: string }) {
             ? <DiaryCard post={request.data || {}} detail />
             : rows(request.data).map((p) => <DiaryCard post={p} key={p.id} />)}
         </DataState>
-        {id ? (
-          <Comments id={id} type="daily" />
-        ) : (
+        {!id && (
           <Pagination
             page={page}
             total={request.data?.total || 0}
@@ -407,7 +411,7 @@ export function Feed() {
                 },
                 images: p.coverImage ? [p.coverImage] : [],
               }}
-            ><Button tone={p.isLiked ? "primary small" : "ghost small"} action={() => like(p)}><Heart size={14}/>{p.isLiked ? "已点赞" : "点赞"} {p.likeCount || 0}</Button></Card>
+            ><Button tone={`reaction-button ${p.isLiked ? "is-liked" : ""}`} aria-pressed={!!p.isLiked} action={() => like(p)}><Heart size={15} fill={p.isLiked ? "currentColor" : "none"}/>{p.likeCount || 0} 赞</Button></Card>
           ))}
         </div>
       </DataState>

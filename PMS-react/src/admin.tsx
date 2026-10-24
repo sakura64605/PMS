@@ -11,6 +11,7 @@ import {
   Plus,
   ShieldCheck,
   Users,
+  PawPrint,
 } from "lucide-react";
 import {
   api,
@@ -57,7 +58,7 @@ export default function Admin() {
   const [displayedTab, setDisplayedTab] = useState("pending");
   if (user?.role !== 1) return <Empty text="仅管理员可访问此页面" />;
   return (
-    <>
+    <section className="admin-workspace">
       <Intro
         eyebrow="COMMUNITY WORKSPACE"
         title="社区管理工作台"
@@ -97,7 +98,7 @@ export default function Admin() {
           )}
         </>}</AtomicRoutes></div>
       </div>
-    </>
+    </section>
   );
 }
 function AuditList({ history = false }: { history?: boolean }) {
@@ -214,9 +215,9 @@ function AuditList({ history = false }: { history?: boolean }) {
           const content = p.content || p.targetContent || "";
           const id = history ? p.targetId : p.id;
           return (
-            <article className="panel" key={`${p.targetType}-${p.id}`}>
+            <article className="panel audit-record" key={`${p.targetType}-${p.id}`}>
               <div
-                className="row-actions"
+                className="row-actions audit-record-meta"
                 style={{ justifyContent: "space-between" }}
               >
                 <div className="row-actions">
@@ -247,7 +248,7 @@ function AuditList({ history = false }: { history?: boolean }) {
                 </div>
                 <small>{time(history ? p.auditTime : p.createTime)}</small>
               </div>
-              <h3 style={{ marginTop: 14 }}>{p.title || p.targetTitle}</h3>
+              <div className="audit-record-main"><h3>{p.title || p.targetTitle}</h3>
               {p.user && <Author user={p.user} date={p.createTime} />}
               <p className="card-description">{content}</p>
               {p.rejectReason && (
@@ -256,10 +257,9 @@ function AuditList({ history = false }: { history?: boolean }) {
               {history && (
                 <p className="muted">审核人：{p.auditorName || "—"}</p>
               )}
-              {images(p.images).length > 0 && (
-                <Gallery value={images(p.images).slice(0, 3)} />
-              )}
-              <div className="row-actions">
+              </div>
+              <div className="audit-record-media">{images(p.images).length ? <Gallery value={images(p.images).slice(0, 1)} /> : <PawPrint size={24} />}</div>
+              <div className="row-actions audit-record-actions">
                 <Link
                   className="btn small"
                   to={`/audit/${id}?targetType=${p.targetType}`}
