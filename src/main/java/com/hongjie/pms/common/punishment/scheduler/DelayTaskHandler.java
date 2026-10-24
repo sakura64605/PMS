@@ -97,9 +97,11 @@ public class DelayTaskHandler {
             log.warn("活动未结束，跳过统计: activityId={}", activityId);
             return;
         } else {
-            activity.setStatus(2);
-            activity.setUpdateTime(now);
-            if (activityMapper.updateById(activity) > 0) {
+            Activity change = new Activity();
+            change.setId(activityId);
+            change.setStatus(2);
+            change.setUpdateTime(now);
+            if (activityMapper.updateById(change) > 0) {
                 activityCache.evictAfterCommit(activityId);
             }
         }
@@ -298,9 +300,11 @@ public class DelayTaskHandler {
             log.warn("活动状态不是报名中，跳过开始: activityId={}, status={}", businessId, activity.getStatus());
             return;
         }
-        activity.setStatus(1);
-        activity.setUpdateTime(LocalDateTime.now());
-        if (activityMapper.updateById(activity) > 0) {
+        Activity change = new Activity();
+        change.setId(businessId);
+        change.setStatus(1);
+        change.setUpdateTime(LocalDateTime.now());
+        if (activityMapper.updateById(change) > 0) {
             activityCache.evictAfterCommit(businessId);
         }
         log.info("活动已自动变更为进行中: activityId={}", businessId);

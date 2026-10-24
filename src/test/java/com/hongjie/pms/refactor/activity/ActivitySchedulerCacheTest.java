@@ -29,7 +29,8 @@ class ActivitySchedulerCacheTest {
 
     Activity activity(int status) {
         var activity = new Activity(); activity.setId(7L); activity.setStatus(status);
-        activity.setEndTime(LocalDateTime.now().minusMinutes(2)); return activity;
+        activity.setEndTime(LocalDateTime.now().minusMinutes(2));
+        activity.setCurrentPeople(5); activity.setMaxPeople(10); activity.setTitle("fixture"); return activity;
     }
     @Test void scheduledStartAndEndEvictAllRegions() {
         var start = activity(0); var end = activity(1); end.setId(8L);
@@ -37,6 +38,7 @@ class ActivitySchedulerCacheTest {
         when(mapper.updateById(any(Activity.class))).thenReturn(1);
         scheduler.syncActivityStatus();
         verify(cache).evictAfterCommit(7L); verify(cache).evictAfterCommit(8L);
+        verify(mapper, times(2)).updateById(argThat((Activity change) -> change.getCurrentPeople() == null && change.getMaxPeople() == null && change.getTitle() == null));
     }
     @Test void failedScheduledWritesDoNotEvict() {
         when(mapper.selectList(any())).thenReturn(List.of(activity(0)), List.of());
@@ -46,6 +48,7 @@ class ActivitySchedulerCacheTest {
         when(mapper.selectById(7L)).thenReturn(activity(0));
         when(mapper.updateById(any(Activity.class))).thenReturn(1);
         handler.handleActivityStart(7L); verify(cache).evictAfterCommit(7L);
+        verify(mapper).updateById(argThat((Activity change) -> change.getCurrentPeople() == null && change.getMaxPeople() == null && change.getTitle() == null));
     }
     @Test void delayedStatisticsEvictsEndAndSignupChanges() {
         when(mapper.selectById(7L)).thenReturn(activity(1));
@@ -54,5 +57,6 @@ class ActivitySchedulerCacheTest {
         when(signups.selectList(any())).thenReturn(List.of(signup));
         when(signups.updateById(signup)).thenReturn(1);
         handler.handleActivityStatistics(7L); verify(cache, times(2)).evictAfterCommit(7L);
+        verify(mapper).updateById(argThat((Activity change) -> change.getCurrentPeople() == null && change.getMaxPeople() == null && change.getTitle() == null));
     }
 }

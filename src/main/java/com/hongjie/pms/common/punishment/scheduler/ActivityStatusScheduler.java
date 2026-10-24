@@ -30,9 +30,11 @@ public class ActivityStatusScheduler {
                 .le(Activity::getStartTime, now));
         for (Activity activity : starting) {
             try {
-                activity.setStatus(1);
-                activity.setUpdateTime(now);
-                if (activityMapper.updateById(activity) > 0) {
+                Activity change = new Activity();
+                change.setId(activity.getId());
+                change.setStatus(1);
+                change.setUpdateTime(now);
+                if (activityMapper.updateById(change) > 0) {
                     activityCache.evictAfterCommit(activity.getId());
                 }
                 log.info("定时任务：活动已变更为进行中: id={}", activity.getId());
@@ -47,9 +49,11 @@ public class ActivityStatusScheduler {
                 .le(Activity::getEndTime, now));
         for (Activity activity : ending) {
             try {
-                activity.setStatus(2);
-                activity.setUpdateTime(now);
-                if (activityMapper.updateById(activity) > 0) {
+                Activity change = new Activity();
+                change.setId(activity.getId());
+                change.setStatus(2);
+                change.setUpdateTime(now);
+                if (activityMapper.updateById(change) > 0) {
                     activityCache.evictAfterCommit(activity.getId());
                 }
                 log.info("定时任务：活动已变更为已结束: id={}", activity.getId());

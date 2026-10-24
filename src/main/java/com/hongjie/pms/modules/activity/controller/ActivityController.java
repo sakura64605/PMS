@@ -13,6 +13,7 @@ import com.hongjie.pms.modules.activity.dto.request.ActivityRequestDto;
 import com.hongjie.pms.modules.activity.dto.response.ActivityPostRespDto;
 import com.hongjie.pms.modules.activity.dto.response.SignUpResponse;
 import com.hongjie.pms.modules.activity.service.ActivityService;
+import com.hongjie.pms.refactor.activity.ActivityParticipationCommands;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 public class ActivityController {
 
     private final ActivityService activityService;
+    private final ActivityParticipationCommands participation;
 
     /**
      * 创建活动
@@ -133,7 +135,7 @@ public class ActivityController {
     @PostMapping("/signUp")
     public CommonResult<String> signUp(@RequestBody @Valid SignUpInfoRequest request) {
         log.info("用户报名活动");
-        activityService.signUp(request);
+        participation.signUp(request);
         return CommonResult.success("报名成功");
     }
 
@@ -144,7 +146,7 @@ public class ActivityController {
     @PostMapping("/signIn")
     public CommonResult<String> signIn(@RequestParam Long activityId, @RequestParam Long userId) {
         log.info("用户签到");
-        activityService.signIn(activityId, userId);
+        participation.signIn(activityId, userId);
         return CommonResult.success("签到成功");
     }
 
@@ -156,7 +158,7 @@ public class ActivityController {
     @PostMapping("/cancelSignUp/{id}")
     public CommonResult<String> cancelSignUp(@PathVariable Long id) {
         log.info("用户取消报名");
-        activityService.cancelSignUp(id);
+        participation.cancel(id);
         return CommonResult.success("取消报名成功");
     }
 
