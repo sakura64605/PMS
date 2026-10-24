@@ -35,10 +35,13 @@ class ActivitySchedulerCacheTest {
     @Test void scheduledStartAndEndEvictAllRegions() {
         var start = activity(0); var end = activity(1); end.setId(8L);
         when(mapper.selectList(any())).thenReturn(List.of(start), List.of(end));
-        when(mapper.updateById(any(Activity.class))).thenReturn(1);
+        when(mapper.startIfDue(eq(7L), any())).thenReturn(1);
+        when(mapper.finishIfDue(eq(8L), any())).thenReturn(1);
         scheduler.syncActivityStatus();
         verify(cache).evictAfterCommit(7L); verify(cache).evictAfterCommit(8L);
-        verify(mapper, times(2)).updateById(argThat((Activity change) -> change.getCurrentPeople() == null && change.getMaxPeople() == null && change.getTitle() == null));
+        verify(mapper).startIfDue(eq(7L), any());
+        verify(mapper).finishIfDue(eq(8L), any());
+        verify(mapper, never()).updateById(any(Activity.class));
     }
     @Test void failedScheduledWritesDoNotEvict() {
         when(mapper.selectList(any())).thenReturn(List.of(activity(0)), List.of());
@@ -46,9 +49,10 @@ class ActivitySchedulerCacheTest {
     }
     @Test void delayedStartEvicts() {
         when(mapper.selectById(7L)).thenReturn(activity(0));
-        when(mapper.updateById(any(Activity.class))).thenReturn(1);
+        when(mapper.startIfDue(eq(7L), any())).thenReturn(1);
         handler.handleActivityStart(7L); verify(cache).evictAfterCommit(7L);
-        verify(mapper).updateById(argThat((Activity change) -> change.getCurrentPeople() == null && change.getMaxPeople() == null && change.getTitle() == null));
+        verify(mapper).startIfDue(eq(7L), any());
+        verify(mapper, never()).updateById(any(Activity.class));
     }
     @Test void delayedStatisticsEvictsEndAndSignupChanges() {
         when(mapper.selectById(7L)).thenReturn(activity(1));

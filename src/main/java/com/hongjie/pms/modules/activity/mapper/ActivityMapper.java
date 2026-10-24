@@ -23,4 +23,10 @@ public interface ActivityMapper extends BaseMapper<Activity> {
 
     @Update("UPDATE activity SET current_people = current_people - 1 WHERE id = #{id}")
     void decrementCurrentPeople(Long id);
+    /** Conditional transitions recheck live data after waiting for an editor's row lock. */
+    @Update("UPDATE activity SET status=1,update_time=#{now} WHERE id=#{id} AND status=0 AND audit_status=1 AND deleted=0 AND start_time<=#{now} AND end_time>#{now}")
+    int startIfDue(@Param("id") Long id, @Param("now") java.time.LocalDateTime now);
+
+    @Update("UPDATE activity SET status=2,update_time=#{now} WHERE id=#{id} AND status=1 AND deleted=0 AND end_time<=#{now}")
+    int finishIfDue(@Param("id") Long id, @Param("now") java.time.LocalDateTime now);
 }

@@ -42,6 +42,7 @@ class ActivityParticipationMySqlTest {
     @EnableTransactionManagement(proxyTargetClass=true)
     @Import({ActivityParticipationCommands.class,ActivityParticipationListener.class,ActivityController.class})
     static class Config {
+        @Bean ActivityContentCommands content(){return mock(ActivityContentCommands.class);}
         @Bean ActivityCache cache(){return mock(ActivityCache.class);}
         @Bean MessageService messages(){return mock(MessageService.class);}
         @Bean ActivityService oldService(){return mock(ActivityService.class);}

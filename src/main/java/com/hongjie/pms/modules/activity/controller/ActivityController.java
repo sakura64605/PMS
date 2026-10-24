@@ -5,6 +5,8 @@ import com.hongjie.pms.common.idempotent.annotation.Idempotent;
 import com.hongjie.pms.common.annotation.RedisRateLimit;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.pojo.CommonResult;
+import com.hongjie.pms.common.enums.ErrorCode;
+import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.modules.activity.dto.request.ActivityListRequestDto;
 import com.hongjie.pms.modules.activity.dto.request.SignUpInfoRequest;
 import com.hongjie.pms.modules.activity.dto.response.ActivityDetailRespDto;
@@ -14,6 +16,7 @@ import com.hongjie.pms.modules.activity.dto.response.ActivityPostRespDto;
 import com.hongjie.pms.modules.activity.dto.response.SignUpResponse;
 import com.hongjie.pms.modules.activity.service.ActivityService;
 import com.hongjie.pms.refactor.activity.ActivityParticipationCommands;
+import com.hongjie.pms.refactor.activity.ActivityContentCommands;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +36,7 @@ public class ActivityController {
 
     private final ActivityService activityService;
     private final ActivityParticipationCommands participation;
+    private final ActivityContentCommands content;
 
     /**
      * 创建活动
@@ -41,17 +45,20 @@ public class ActivityController {
     @Idempotent(key = "#request.title", keyTimeout = 300, message = "创建活动操作正在处理中，请稍后再试")
     @PostMapping("/post")
     public CommonResult<ActivityPostRespDto> postActivity(@RequestBody @Valid ActivityRequestDto request) {
-        ActivityPostRespDto activityListDto = activityService.postActivity(request);
+        ActivityPostRespDto activityListDto = content.publish(request);
         return CommonResult.success(activityListDto);
     }
 
     /**
      * 修改活动
      */
-    @Idempotent(key = "#activityRequestDto.id", keyTimeout = 300, message = "更新活动操作正在处理中，请稍后再试")
+    @Idempotent(key = "#id", keyTimeout = 300, message = "更新活动操作正在处理中，请稍后再试")
     @PostMapping("/update/{id}")
-    public CommonResult<String> updateActivity(@RequestBody @Valid ActivityRequestDto activityRequestDto) {
-        activityService.updateActivity(activityRequestDto);
+    public CommonResult<String> updateActivity(@PathVariable Long id, @RequestBody @Valid ActivityRequestDto activityRequestDto) {
+        if (activityRequestDto.getId() != null && !id.equals(activityRequestDto.getId()))
+            throw new BusinessException(ErrorCode.PARAM_ERROR);
+        activityRequestDto.setId(id);
+        content.edit(activityRequestDto);
         return CommonResult.success("活动更新成功");
     }
 

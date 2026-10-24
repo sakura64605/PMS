@@ -26,15 +26,12 @@ public class ActivityStatusScheduler {
 
         List<Activity> starting = activityMapper.selectList(new LambdaQueryWrapper<Activity>()
                 .eq(Activity::getStatus, 0)
+                .eq(Activity::getAuditStatus, 1)
                 .eq(Activity::getDeleted, 0)
                 .le(Activity::getStartTime, now));
         for (Activity activity : starting) {
             try {
-                Activity change = new Activity();
-                change.setId(activity.getId());
-                change.setStatus(1);
-                change.setUpdateTime(now);
-                if (activityMapper.updateById(change) > 0) {
+                if (activityMapper.startIfDue(activity.getId(), now) > 0) {
                     activityCache.evictAfterCommit(activity.getId());
                 }
                 log.info("定时任务：活动已变更为进行中: id={}", activity.getId());
@@ -49,11 +46,7 @@ public class ActivityStatusScheduler {
                 .le(Activity::getEndTime, now));
         for (Activity activity : ending) {
             try {
-                Activity change = new Activity();
-                change.setId(activity.getId());
-                change.setStatus(2);
-                change.setUpdateTime(now);
-                if (activityMapper.updateById(change) > 0) {
+                if (activityMapper.finishIfDue(activity.getId(), now) > 0) {
                     activityCache.evictAfterCommit(activity.getId());
                 }
                 log.info("定时任务：活动已变更为已结束: id={}", activity.getId());
