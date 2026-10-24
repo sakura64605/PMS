@@ -10,7 +10,7 @@ for(const name of ['window','document','localStorage','HTMLElement','Event'])Obj
 globalThis.IS_REACT_ACT_ENVIRONMENT=true;
 const {createRoot}=await import('react-dom/client');
 const server=await createServer({configFile:false,root:fileURLToPath(new URL('..',import.meta.url)),plugins:[react()],server:{middlewareMode:true,hmr:false}});
-const {useData,DataState,AppContext}=await server.ssrLoadModule('/src/core.tsx');
+const {useData,DataState,AppContext,PageSkeleton}=await server.ssrLoadModule('/src/core.tsx');
 const {queryCache}=await server.ssrLoadModule('/src/queryCache.ts');
 let root,host,calls,current,mounts,unmounts;
 function Child(){React.useEffect(()=>{mounts++;return()=>{unmounts++;};},[]);return React.createElement('input',{'aria-label':'draft',defaultValue:'unfinished draft'});}
@@ -44,4 +44,15 @@ test('background failure retains existing content and draft with retry feedback'
 });
 test('a different login never receives another session snapshot',async()=>{
  await render();await reply(0,{title:'private a'});localStorage.setItem('token','session-b');await render();assert.equal(host.textContent.includes('private a'),false);assert.equal(current.loading,true);assert.equal(calls.length,2);
+});
+
+test('uncached page shows accessible skeleton then fills with actual content',async()=>{
+ await render();assert.ok(host.querySelector('.page-skeleton[aria-busy="true"]'));assert.equal(host.querySelector('[role="status"]').getAttribute('aria-label'),'正在加载页面内容');assert.equal(host.textContent.includes('正在加载，请稍候'),false);assert.equal(host.querySelector('input'),null);
+ await reply(0,{title:'loaded content'});assert.equal(host.querySelector('.page-skeleton'),null);assert.equal(host.querySelector('[data-value]').textContent,'loaded content');
+});
+
+test('layout skeletons reserve cards, detail columns and chat structure without interactive controls',async()=>{
+ for(const [kind,selector,count] of [['cards','.pet-card',6],['detail','.detail-layout',1],['chat','.skeleton-bubble',3],['table','.skeleton-list-item',7]]){
+  await act(async()=>root.render(React.createElement(PageSkeleton,{kind})));assert.equal(host.querySelectorAll(selector).length,count);assert.equal(host.querySelectorAll('button,input,a').length,0);assert.ok(host.querySelector('[aria-hidden="true"]'));
+ }
 });

@@ -208,7 +208,7 @@ export function Home() {
           查看全部 <ArrowRight size={14} />
         </Link>
       </div>
-      <DataState request={pets} empty={!rows(pets.data).length}>
+      <DataState request={pets} skeleton="cards" empty={!rows(pets.data).length}>
         <div className="card-grid">
           {rows(pets.data).map((p) => (
             <Card key={p.id} item={p} />
@@ -221,7 +221,7 @@ export function Home() {
           同城活动 <ArrowRight size={14} />
         </Link>
       </div>
-      <DataState request={activities} empty={!rows(activities.data).length}>
+      <DataState request={activities} skeleton="cards" empty={!rows(activities.data).length}>
         <div className="card-grid">
           {rows(activities.data).map((p) => (
             <Card key={p.id} item={p} activity />
@@ -375,7 +375,7 @@ export function Pets() {
           </Button>
         </SearchForm>
       </section>
-      <DataState request={request} empty={!items.length}>
+      <DataState request={request} skeleton="cards" empty={!items.length}>
         <div className="card-grid">
           {items.map((p: Row) => {
             const t = p.type || p.targetType;
@@ -633,6 +633,7 @@ export function Detail({
       <Back />
       <DataState
         request={request}
+        skeleton="detail"
         empty={!request.data || p.title === "宠物信息暂时不可用"}
       >
         <div className="detail-layout">

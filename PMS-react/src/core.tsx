@@ -162,13 +162,24 @@ export function Button({
     </button>
   );
 }
-export function Busy() {
-  return (
-    <div className="state loading" role="status">
-      <LoaderCircle className="spin" size={25} />
-      <span>正在加载，请稍候</span>
+type SkeletonKind = 'rows' | 'cards' | 'detail' | 'chat' | 'table';
+export function PageSkeleton({kind = 'rows'}: {kind?: SkeletonKind}) {
+  const lines = <><i className="skeleton-bar skeleton-title" /><i className="skeleton-bar" /><i className="skeleton-bar skeleton-short" /></>;
+  const row = <div className="skeleton-row"><i className="skeleton-avatar" /><div>{lines}</div></div>;
+  return <div className={`page-skeleton skeleton-${kind}`} role="status" aria-label="正在加载页面内容" aria-busy="true">
+    <span className="sr-only">正在加载页面内容</span>
+    <div aria-hidden="true">
+      {kind === 'cards' ? <div className="card-grid">{Array.from({length: 6}, (_, i) => <div className="pet-card" key={i}><div className="skeleton-cover" /><div className="skeleton-card-body">{lines}{row}</div></div>)}</div>
+      : kind === 'detail' ? <div className="detail-layout"><article className="panel">{row}<div className="skeleton-heading">{lines}</div><div className="skeleton-photo" /><div className="skeleton-facts">{lines}{lines}</div>{lines}</article><aside className="panel">{row}<div className="skeleton-heading">{lines}</div><i className="skeleton-button" /></aside></div>
+      : kind === 'chat' ? <div className="panel skeleton-chat">{row}<div className="skeleton-bubbles">{Array.from({length: 3}, (_, i) => <div className="skeleton-bubble" key={i}>{lines}</div>)}</div><i className="skeleton-button" /></div>
+      : <div className="panel">{Array.from({length: kind === 'table' ? 7 : 4}, (_, i) => <div className="skeleton-list-item" key={i}>{row}</div>)}</div>}
     </div>
-  );
+  </div>;
+}
+export function Busy() {
+  const path = window.location.pathname;
+  const kind: SkeletonKind = /private-message|ai-chat/.test(path) ? 'chat' : /^\/audit/.test(path) ? 'table' : /^\/pets\/(?:activity\/)?\d+/.test(path) ? 'detail' : path === '/' || path === '/pets' ? 'cards' : 'rows';
+  return <PageSkeleton kind={kind} />;
 }
 export function Empty({
   text = "这里还没有内容",
@@ -190,12 +201,14 @@ export function DataState({
   request,
   children,
   empty = false,
+  skeleton = 'rows',
 }: {
   request: ReturnType<typeof useData>;
   children: React.ReactNode;
   empty?: boolean;
+  skeleton?: SkeletonKind;
 }) {
-  if (request.loading) return <Busy />;
+  if (request.loading) return <PageSkeleton kind={skeleton} />;
   if (request.error && request.data == null)
     return (
       <div className="state" role="alert">
