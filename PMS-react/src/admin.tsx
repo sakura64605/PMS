@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { AtomicRoutes, useRouteLocation } from "./routeTransition";
 import {
   BarChart3,
   CheckCheck,
@@ -52,6 +53,7 @@ const tabs = [
 export default function Admin() {
   const { user } = useApp();
   const [tab, setTab] = useState("pending");
+  const [displayedTab, setDisplayedTab] = useState("pending");
   if (user?.role !== 1) return <Empty text="仅管理员可访问此页面" />;
   return (
     <>
@@ -70,7 +72,7 @@ export default function Admin() {
           {tabs.map(([key, name, Icon]) => (
             <button
               key={key}
-              className={tab === key ? "active" : ""}
+              className={displayedTab === key ? "active" : ""}
               onClick={() => setTab(key)}
             >
               <Icon size={17} />
@@ -78,7 +80,7 @@ export default function Admin() {
             </button>
           ))}
         </nav>
-        <div key={tab}>
+        <div><AtomicRoutes path={tab} onCommit={setDisplayedTab}>{tab => <>
           {tab === "pending" || tab === "history" ? (
             <AuditList history={tab === "history"} />
           ) : tab === "users" ? (
@@ -90,7 +92,7 @@ export default function Admin() {
           ) : (
             <Statistics />
           )}
-        </div>
+        </>}</AtomicRoutes></div>
       </div>
     </>
   );
@@ -313,7 +315,7 @@ function AuditList({ history = false }: { history?: boolean }) {
 }
 export function AuditDetail({ id }: { id: string }) {
   const type =
-    new URLSearchParams(location.search).get("targetType") || "adopt";
+    new URLSearchParams(useRouteLocation().split('?')[1]).get("targetType") || "adopt";
   const request = useData(url("/admin/audit/detail", { targetType: type, id }));
   const p = request.data;
   return (

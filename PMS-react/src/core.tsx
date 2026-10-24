@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { api, type Row, nick, rows, time } from "./api";
+import { useRouteRequest } from "./routeTransition";
 export const AppContext = createContext<{
   user: Row | null;
   refreshUser: () => Promise<void>;
@@ -37,7 +38,6 @@ export const useApp = () => useContext(AppContext);
 export function navigate(path: string) {
   window.history.pushState({}, "", path);
   window.dispatchEvent(new PopStateEvent("popstate"));
-  window.scrollTo({ top: 0 });
 }
 export function Link({
   to,
@@ -79,27 +79,29 @@ export function useData<T = any>(path: string | null, key = 0) {
   const { revision } = useApp();
   const session = localStorage.getItem('token') || 'guest';
   const cacheKey = path ? JSON.stringify([session, path]) : '';
-  const [state, setState] = useState<{key: string; data: T | null; error: string; pending: boolean}>(() => ({key: cacheKey, data: null, error: '', pending: !!path}));
+  const [state, setState] = useState<{key: string; session: string; data: T | null; error: string; pending: boolean}>(() => ({key: cacheKey, session, data: null, error: '', pending: !!path}));
   const [local, reload] = useState(0);
   // Unread-count/read actions must not invalidate unrelated forms and details.
   const revisionKey = path?.startsWith('/message/') || path?.startsWith('/feed/') ? revision : 0;
-  const data = state.key === cacheKey ? state.data : null;
+  const data = state.session === session ? state.data : null;
   useEffect(() => {
-    if (!path) { setState({key: cacheKey, data: null, error: '', pending: false}); return; }
+    if (!path) { setState({key: cacheKey, session, data: null, error: '', pending: false}); return; }
     const controller = new AbortController();
-    setState(prev => ({key: cacheKey, data: prev.key === cacheKey ? prev.data : null, error: '', pending: true}));
+    setState(prev => ({key: cacheKey, session, data: prev.session === session ? prev.data : null, error: '', pending: true}));
     api<T>(path, 'GET', undefined, controller.signal).then(value => {
       if (controller.signal.aborted) return;
-      setState({key: cacheKey, data: value, error: '', pending: false});
+      setState({key: cacheKey, session, data: value, error: '', pending: false});
     }).catch(error => {
       if (!controller.signal.aborted) setState(prev => prev.key === cacheKey ? {...prev, error: error.message, pending: false} : prev);
     });
     return () => controller.abort();
   }, [cacheKey, path, key, local, revisionKey]);
+  const loading = !!path && data == null && (state.key !== cacheKey || state.pending);
+  useRouteRequest(loading);
   return {
     data: data as T | null,
     error: state.key === cacheKey ? state.error : '',
-    loading: !!path && data == null && (state.key !== cacheKey || state.pending),
+    loading,
     refreshing: state.key === cacheKey && state.pending,
     reload: () => reload(v => v + 1),
     update: (updater: (old: T) => T) => {

@@ -1,6 +1,5 @@
 import {
   lazy,
-  Suspense,
   useCallback,
   useEffect,
   useRef,
@@ -18,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { api, nick, uid, type Row } from "./api";
+import { AtomicRoutes } from "./routeTransition";
 import {
   AppContext,
   Avatar,
@@ -229,8 +229,8 @@ function Router({ path }: { path: string }) {
   if (p === "/pets/create")
     return (
       <Editor
-        id={new URLSearchParams(location.search).get("id") || undefined}
-        activity={new URLSearchParams(location.search).get("type") === "2"}
+        id={new URLSearchParams(path.split('?')[1]).get("id") || undefined}
+        activity={new URLSearchParams(path.split('?')[1]).get("type") === "2"}
       />
     );
   if (p === "/pets/my-posts") return <MyContent />;
@@ -281,6 +281,7 @@ function Router({ path }: { path: string }) {
 }
 export default function App() {
   const path = usePath();
+  const [displayedPath, setDisplayedPath] = useState(path);
   const [user, setUser] = useState<Row | null>(null),
     [boot, setBoot] = useState(!!localStorage.getItem("token")),
     [toast, setToast] = useState<{ text: string; error: boolean } | null>(null),
@@ -355,8 +356,8 @@ export default function App() {
     };
   }, [uid(user)]);
   useEffect(() => {
-    document.title = `${path.startsWith("/audit") ? "管理工作台" : path.startsWith("/ai-chat") ? "AI养宠顾问" : path.startsWith("/private-message") ? "私信" : "宠友社区"} · PetCircle 宠友社`;
-  }, [path]);
+    document.title = `${displayedPath.startsWith("/audit") ? "管理工作台" : displayedPath.startsWith("/ai-chat") ? "AI养宠顾问" : displayedPath.startsWith("/private-message") ? "私信" : "宠友社区"} · PetCircle 宠友社`;
+  }, [displayedPath]);
   const auth =
     path.split("?")[0] === "/login" || path.split("?")[0] === "/register";
   return (
@@ -367,11 +368,9 @@ export default function App() {
         <Auth register={path.startsWith("/register")} />
       ) : (
         <div className="shell">
-          <Header path={path} />
+          <Header path={displayedPath} />
           <main className="page">
-            <Suspense fallback={<Busy />}>
-              {boot && !publicRoute(path.split('?')[0]) ? <Busy /> : <Router key={path} path={path} />}
-            </Suspense>
+            {boot && !publicRoute(path.split('?')[0]) ? <Busy /> : <AtomicRoutes path={path} onCommit={setDisplayedPath}>{readyPath => <Router key={readyPath} path={readyPath} />}</AtomicRoutes>}
           </main>
           <footer className="site-footer">
             <span>

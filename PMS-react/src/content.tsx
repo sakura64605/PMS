@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useRouteLocation } from "./routeTransition";
 import {
   ArrowRight,
   Bookmark,
@@ -233,7 +234,8 @@ export function Home() {
   );
 }
 export function Pets() {
-  const initial = new URLSearchParams(location.search).get("type") || "all";
+  const route = useRouteLocation();
+  const initial = new URLSearchParams(route.split('?')[1]).get("type") || "all";
   const [type, setType] = useState(initial),
     [page, setPage] = useState(1),
     [keyword, setKeyword] = useState(""),

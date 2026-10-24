@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useRouteLocation } from "./routeTransition";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import {
@@ -33,6 +34,7 @@ import {
 } from "./core";
 
 export function PrivateChat() {
+  const route = useRouteLocation();
   const { user, notify, refresh } = useApp();
   const [page, setPage] = useState(1),
     [selected, setSelected] = useState<Row | null>(null),
@@ -59,7 +61,7 @@ export function PrivateChat() {
     if (messagePage === 1) end.current?.scrollIntoView({ block: "nearest" });
   }, [history.data, messagePage]);
   useEffect(() => {
-    const id = new URLSearchParams(location.search).get("conversation");
+    const id = new URLSearchParams(route.split('?')[1]).get("conversation");
     if (id) {
       const found = rows(list.data).find(
         (c) => String(c.conversationId) === id,
@@ -69,7 +71,7 @@ export function PrivateChat() {
         setShowList(false);
       }
     }
-  }, [list.data]);
+  }, [list.data, route]);
   async function choose(c: Row) {
     setSelected(c);
     setMessagePage(1);
