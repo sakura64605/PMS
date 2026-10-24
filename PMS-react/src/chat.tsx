@@ -183,7 +183,7 @@ export function PrivateChat() {
                 </div>
               </header>
               <div className="chat-messages">
-                <DataState request={history} skeleton="chat" empty={!rows(history.data).length}>
+                <DataState request={history} empty={!rows(history.data).length}>
                   {[...rows(history.data)]
                     .sort((a, b) =>
                       String(a.createTime).localeCompare(String(b.createTime)),
@@ -534,7 +534,7 @@ export function AIChat() {
                 </div>
               </div>
             ) : (
-              <DataState request={history} skeleton="chat">
+              <DataState request={history}>
                 {displayed.map((m, i) => (
                   <div
                     className={`bubble-wrap ${m.role === "user" ? "me" : ""}`}

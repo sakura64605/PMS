@@ -28,6 +28,7 @@ import {
   Badge,
   Button,
   DataState,
+  Value,
   Empty,
   Field,
   Gallery,
@@ -1046,7 +1047,7 @@ function Statistics() {
               ["待审核", r.pendingAuditCount],
             ].map(([name, n]) => (
               <div className="stat-tile" key={name}>
-                <strong>{n ?? 0}</strong>
+                <strong><Value>{n ?? 0}</Value></strong>
                 <span>{name}</span>
               </div>
             ))}
@@ -1128,7 +1129,7 @@ function Statistics() {
           <div className="stat-grid">
             {counters.map(([name, n]) => (
               <div className="stat-tile" key={name}>
-                <strong>{n ?? 0}</strong>
+                <strong><Value>{n ?? 0}</Value></strong>
                 <span>{name}</span>
               </div>
             ))}

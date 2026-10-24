@@ -20,7 +20,6 @@ import {
   X,
 } from "lucide-react";
 import { api, type Row, nick, rows, time } from "./api";
-import { queryCache, queryKey } from "./queryCache.ts";
 export const AppContext = createContext<{
   user: Row | null;
   refreshUser: () => Promise<void>;
@@ -79,29 +78,18 @@ export function usePath() {
 export function useData<T = any>(path: string | null, key = 0) {
   const { revision } = useApp();
   const session = localStorage.getItem('token') || 'guest';
-  const cacheKey = path ? queryKey(session, path) : '';
-  const cached = path ? queryCache.get(cacheKey) : undefined;
-  const [state, setState] = useState<{key: string; data: T | null; error: string; pending: boolean}>(() => ({key: cacheKey, data: cached?.data ?? null, error: '', pending: !!path && !cached}));
+  const cacheKey = path ? JSON.stringify([session, path]) : '';
+  const [state, setState] = useState<{key: string; data: T | null; error: string; pending: boolean}>(() => ({key: cacheKey, data: null, error: '', pending: !!path}));
   const [local, reload] = useState(0);
   // Unread-count/read actions must not invalidate unrelated forms and details.
   const revisionKey = path?.startsWith('/message/') || path?.startsWith('/feed/') ? revision : 0;
-  const previous = useRef({cacheKey: '', local: -1, revisionKey: -1, key: -1});
-  const data = state.key === cacheKey ? state.data : cached?.data ?? null;
+  const data = state.key === cacheKey ? state.data : null;
   useEffect(() => {
     if (!path) { setState({key: cacheKey, data: null, error: '', pending: false}); return; }
-    const prior = previous.current;
-    const forced = prior.cacheKey === cacheKey && (prior.local !== local || prior.revisionKey !== revisionKey || prior.key !== key);
-    previous.current = {cacheKey, local, revisionKey, key};
-    const snapshot = queryCache.get(cacheKey);
-    if (!forced && snapshot && queryCache.fresh(snapshot)) {
-      setState({key: cacheKey, data: snapshot.data, error: '', pending: false});
-      return;
-    }
     const controller = new AbortController();
-    setState(prev => ({key: cacheKey, data: prev.key === cacheKey ? prev.data : snapshot?.data ?? null, error: '', pending: true}));
+    setState(prev => ({key: cacheKey, data: prev.key === cacheKey ? prev.data : null, error: '', pending: true}));
     api<T>(path, 'GET', undefined, controller.signal).then(value => {
       if (controller.signal.aborted) return;
-      queryCache.put(cacheKey, path, value);
       setState({key: cacheKey, data: value, error: '', pending: false});
     }).catch(error => {
       if (!controller.signal.aborted) setState(prev => prev.key === cacheKey ? {...prev, error: error.message, pending: false} : prev);
@@ -118,7 +106,6 @@ export function useData<T = any>(path: string | null, key = 0) {
       setState(prev => {
         if (prev.key !== cacheKey || prev.data == null || !path) return prev;
         const next = updater(prev.data);
-        queryCache.put(cacheKey, path, next);
         return {...prev, data: next, error: ''};
       });
     },
@@ -136,12 +123,13 @@ export function Button({
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const { notify } = useApp();
+  const pending = useContext(PendingContext);
   return (
     <button
       {...props}
       type={props.type || "button"}
       className={`btn ${tone} ${props.className || ""}`}
-      disabled={busy || props.disabled}
+      disabled={pending || busy || props.disabled}
       aria-busy={busy}
       onClick={async () => {
         if (!action || lock.current) return;
@@ -162,24 +150,13 @@ export function Button({
     </button>
   );
 }
-type SkeletonKind = 'rows' | 'cards' | 'detail' | 'chat' | 'table';
-export function PageSkeleton({kind = 'rows'}: {kind?: SkeletonKind}) {
-  const lines = <><i className="skeleton-bar skeleton-title" /><i className="skeleton-bar" /><i className="skeleton-bar skeleton-short" /></>;
-  const row = <div className="skeleton-row"><i className="skeleton-avatar" /><div>{lines}</div></div>;
-  return <div className={`page-skeleton skeleton-${kind}`} role="status" aria-label="正在加载页面内容" aria-busy="true">
-    <span className="sr-only">正在加载页面内容</span>
-    <div aria-hidden="true">
-      {kind === 'cards' ? <div className="card-grid">{Array.from({length: 6}, (_, i) => <div className="pet-card" key={i}><div className="skeleton-cover" /><div className="skeleton-card-body">{lines}{row}</div></div>)}</div>
-      : kind === 'detail' ? <div className="detail-layout"><article className="panel">{row}<div className="skeleton-heading">{lines}</div><div className="skeleton-photo" /><div className="skeleton-facts">{lines}{lines}</div>{lines}</article><aside className="panel">{row}<div className="skeleton-heading">{lines}</div><i className="skeleton-button" /></aside></div>
-      : kind === 'chat' ? <div className="panel skeleton-chat">{row}<div className="skeleton-bubbles">{Array.from({length: 3}, (_, i) => <div className="skeleton-bubble" key={i}>{lines}</div>)}</div><i className="skeleton-button" /></div>
-      : <div className="panel">{Array.from({length: kind === 'table' ? 7 : 4}, (_, i) => <div className="skeleton-list-item" key={i}>{row}</div>)}</div>}
-    </div>
-  </div>;
+const PendingContext = createContext(false);
+export function Value({children, block = false}: {children: React.ReactNode; block?: boolean}) {
+  const pending = useContext(PendingContext);
+  return <span className={`data-value${block ? ' data-value-block' : ''}`} data-pending={pending || undefined} aria-hidden={pending || undefined}>{pending ? '\u00a0' : children}</span>;
 }
 export function Busy() {
-  const path = window.location.pathname;
-  const kind: SkeletonKind = /private-message|ai-chat/.test(path) ? 'chat' : /^\/audit/.test(path) ? 'table' : /^\/pets\/(?:activity\/)?\d+/.test(path) ? 'detail' : path === '/' || path === '/pets' ? 'cards' : 'rows';
-  return <PageSkeleton kind={kind} />;
+  return <div className="route-pending" role="status">正在打开页面…</div>;
 }
 export function Empty({
   text = "这里还没有内容",
@@ -197,30 +174,21 @@ export function Empty({
     </div>
   );
 }
-export function DataState({
-  request,
-  children,
-  empty = false,
-  skeleton = 'rows',
-}: {
+export function DataState({request, children, empty = false}: {
   request: ReturnType<typeof useData>;
   children: React.ReactNode;
   empty?: boolean;
-  skeleton?: SkeletonKind;
 }) {
-  if (request.loading) return <PageSkeleton kind={skeleton} />;
-  if (request.error && request.data == null)
-    return (
-      <div className="state" role="alert">
-        <p>{request.error}</p>
-        <Button action={request.reload}>
-          <RotateCcw size={15} />
-          重新加载
-        </Button>
-      </div>
-    );
-  if (empty) return <Empty />;
-  return <>{request.error && <div className="background-error" role="status">更新失败，暂时保留当前内容。<Button tone="ghost small" action={request.reload}>重试</Button></div>}{children}</>;
+  const pending = request.loading;
+  const failed = !!request.error && request.data == null;
+  return <div className="data-region" aria-busy={pending}>
+    <div className="region-status" role="status">{pending ? '正在获取内容…' : ''}</div>
+    {request.error && <div className="background-error" role={failed ? 'alert' : 'status'}>{failed ? request.error : '更新失败，暂时保留当前内容。'}<Button tone="ghost small" action={request.reload}><RotateCcw size={15} />重试</Button></div>}
+    <PendingContext.Provider value={pending}>
+      <div className="data-content" data-pending={pending || undefined} hidden={failed || (!pending && empty)} inert={pending || undefined}>{children}</div>
+    </PendingContext.Provider>
+    {!pending && !failed && empty && <Empty />}
+  </div>;
 }
 export function Intro({
   title,
@@ -252,8 +220,9 @@ export function Avatar({
   size?: number;
 }) {
   const [failed, setFailed] = useState(false);
+  const pending = useContext(PendingContext);
   return (
-    <span className="avatar" style={{ width: size, height: size }}>
+    <span className="avatar" data-pending={pending || undefined} style={{ width: size, height: size }}>
       {user?.avatar && !failed ? (
         <img src={user.avatar} alt="" onError={() => setFailed(true)} />
       ) : (
@@ -273,9 +242,9 @@ export function Author({ user, date }: { user?: Row | null; date?: any }) {
           to={`/user/${user?.id || user?.userId || ""}`}
           className="author-name"
         >
-          {nick(user)}
+          <Value>{nick(user)}</Value>
         </Link>
-        <small>{time(date)}</small>
+        <small><Value>{time(date)}</Value></small>
       </div>
     </div>
   );
@@ -287,7 +256,7 @@ export function Badge({
   children: React.ReactNode;
   tone?: string;
 }) {
-  return <span className={`badge ${tone}`}>{children}</span>;
+  return <span className={`badge ${tone}`}><Value>{children}</Value></span>;
 }
 export function Field({
   label,
@@ -447,11 +416,12 @@ export function Back({ to = "/pets" }: { to?: string }) {
   );
 }
 export function Gallery({ value }: { value: any }) {
+  const pending = useContext(PendingContext);
   const list = Array.isArray(value) ? value : [];
   const [active, setActive] = useState<string | null>(null);
   return (
     <>
-      <div className="gallery">
+      <div className="gallery" data-pending={pending || undefined}>
         {list.map((src: string, i: number) => (
           <button
             key={i}

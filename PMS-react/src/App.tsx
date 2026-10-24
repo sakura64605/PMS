@@ -1,4 +1,3 @@
-import { queryCache } from "./queryCache.ts";
 import {
   lazy,
   Suspense,
@@ -310,7 +309,6 @@ export default function App() {
         .catch((e) => notify(e.message, true))
         .finally(() => setBoot(false));
     const clear = () => {
-      queryCache.clear();
       setUser(null);
       setBoot(false);
     };
@@ -372,7 +370,7 @@ export default function App() {
           <Header path={path} />
           <main className="page">
             <Suspense fallback={<Busy />}>
-              {boot ? <Busy /> : <Router key={path} path={path} />}
+              {boot && !publicRoute(path.split('?')[0]) ? <Busy /> : <Router key={path} path={path} />}
             </Suspense>
           </main>
           <footer className="site-footer">

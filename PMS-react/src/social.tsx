@@ -17,6 +17,7 @@ import {
   Badge,
   Button,
   DataState,
+  Value,
   Empty,
   Field,
   Gallery,
@@ -181,7 +182,7 @@ export function DiaryCard({
     <article className="panel diary-card">
       <Author user={post.user} date={post.createTime} />
       <Link to={`/daily/${post.id}`}>
-        <p className="prose">{post.content}</p>
+        <p className="prose"><Value block>{post.content}</Value></p>
       </Link>
       <Gallery value={images(post.images)} />
       {post.location && (
@@ -252,10 +253,10 @@ export function Diaries({ id }: { id?: string }) {
         {id && <Back to="/daily" />}
         <DataState request={request} empty={!id && !rows(request.data).length}>
           {id
-            ? request.data && <DiaryCard post={request.data} detail />
+            ? <DiaryCard post={request.data || {}} detail />
             : rows(request.data).map((p) => <DiaryCard post={p} key={p.id} />)}
         </DataState>
-        {id && request.data ? (
+        {id ? (
           <Comments id={id} type="daily" />
         ) : (
           <Pagination
@@ -737,10 +738,10 @@ export function UserPage({ id }: { id: string }) {
         <section className="profile-banner">
           <Avatar user={u} size={85} />
           <div>
-            <h1>{nick(u)}</h1>
+            <h1><Value>{nick(u)}</Value></h1>
             <p className="muted">
-              @{u.username || u.userName} ·{" "}
-              {p.signature || "很高兴在这里遇见你"}
+              <Value>@{u.username || u.userName} ·{" "}
+              {p.signature || "很高兴在这里遇见你"}</Value>
             </p>
             <div className="profile-stats">
               {[
@@ -749,7 +750,7 @@ export function UserPage({ id }: { id: string }) {
                 [p.likeCount, "获赞"],
               ].map(([v, n]) => (
                 <span key={n}>
-                  <strong>{v || 0}</strong>
+                  <strong><Value>{v || 0}</Value></strong>
                   <small>{n}</small>
                 </span>
               ))}

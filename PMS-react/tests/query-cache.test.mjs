@@ -1,7 +1,0 @@
-import {test} from 'node:test';
-import assert from 'node:assert/strict';
-import {QueryCache,queryKey} from '../src/queryCache.ts';
-test('snapshots are session isolated and never expire across user boundaries',()=>{const cache=new QueryCache();cache.put(queryKey('a','/message/list'),'/message/list',[{id:1}]);assert.equal(cache.get(queryKey('b','/message/list')),undefined);});
-test('recent snapshot is fresh, old snapshot revalidates, retained snapshot expires',()=>{const cache=new QueryCache(30,300);cache.put('key','/pet/1',{id:1},1000);assert.ok(cache.fresh(cache.get('key',1010),1010));assert.equal(cache.fresh(cache.get('key',1040),1040),false);assert.equal(cache.get('key',1301),undefined);});
-test('writes invalidate related lists without deleting visible content or unrelated queries',()=>{const cache=new QueryCache();cache.put('pet','/pet/list?pageNum=1',{records:[{id:1}]});cache.put('user','/user/info',{id:2});cache.invalidate(['/pet']);assert.ok(cache.get('pet'));assert.equal(cache.fresh(cache.get('pet')),false);assert.equal(cache.fresh(cache.get('user')),true);});
-test('memory usage is bounded with least-recently-used eviction and explicit logout clear',()=>{const cache=new QueryCache(30,300,2);cache.put('a','/a',1);cache.put('b','/b',2);cache.get('a');cache.put('c','/c',3);assert.equal(cache.get('b'),undefined);assert.equal(cache.get('a').data,1);cache.clear();assert.equal(cache.get('a'),undefined);assert.equal(cache.get('c'),undefined);});

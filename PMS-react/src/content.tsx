@@ -37,6 +37,7 @@ import {
   Badge,
   Button,
   DataState,
+  Value,
   Empty,
   Field,
   Gallery,
@@ -208,7 +209,7 @@ export function Home() {
           查看全部 <ArrowRight size={14} />
         </Link>
       </div>
-      <DataState request={pets} skeleton="cards" empty={!rows(pets.data).length}>
+      <DataState request={pets} empty={!rows(pets.data).length}>
         <div className="card-grid">
           {rows(pets.data).map((p) => (
             <Card key={p.id} item={p} />
@@ -221,7 +222,7 @@ export function Home() {
           同城活动 <ArrowRight size={14} />
         </Link>
       </div>
-      <DataState request={activities} skeleton="cards" empty={!rows(activities.data).length}>
+      <DataState request={activities} empty={!rows(activities.data).length}>
         <div className="card-grid">
           {rows(activities.data).map((p) => (
             <Card key={p.id} item={p} activity />
@@ -375,7 +376,7 @@ export function Pets() {
           </Button>
         </SearchForm>
       </section>
-      <DataState request={request} skeleton="cards" empty={!items.length}>
+      <DataState request={request} empty={!items.length}>
         <div className="card-grid">
           {items.map((p: Row) => {
             const t = p.type || p.targetType;
@@ -586,7 +587,7 @@ export function Comments({ id, type }: { id: string; type: string }) {
         {rows(request.data).length ? (
           rows(request.data).map((c) => comment(c))
         ) : (
-          <p className="muted">还没有评论，来和宠友聊聊吧。</p>
+          <p className="muted">{request.loading ? "" : "还没有评论，来和宠友聊聊吧。"}</p>
         )}
       </DataState>
       {request.data?.total > 20 && (
@@ -616,7 +617,7 @@ export function Detail({
     [signup, setSignup] = useState(false),
     [signups, setSignups] = useState(false);
   const p = request.data || {},
-    owner = uid(user) === uid(p.user),
+    owner = !!user && !!request.data && uid(user) === uid(p.user),
     ended = p.status === 2;
   const target = activity ? "pet_activity" : "pet_post";
   async function like() {
@@ -633,14 +634,13 @@ export function Detail({
       <Back />
       <DataState
         request={request}
-        skeleton="detail"
         empty={!request.data || p.title === "宠物信息暂时不可用"}
       >
         <div className="detail-layout">
           <div>
             <article className="panel">
               <Author user={p.user} date={p.createTime} />
-              <h1 className="detail-title">{p.title}</h1>
+              <h1 className="detail-title"><Value>{p.title}</Value></h1>
               <div className="row-actions">
                 <Badge tone={activity ? "blue" : ""}>
                   {activity ? activityName(p.status) : petName(p.status)}
@@ -649,8 +649,8 @@ export function Detail({
                   <Badge tone="neutral">{auditName(p.auditStatus)}</Badge>
                 )}
                 <small>
-                  发布于 {time(p.createTime)}{" "}
-                  {p.updateTime && `· 更新于 ${time(p.updateTime)}`}
+                  <Value>发布于 {time(p.createTime)}{" "}
+                  {p.updateTime && `· 更新于 ${time(p.updateTime)}`}</Value>
                 </small>
               </div>
               <Gallery value={images(p.images)} />
@@ -659,47 +659,47 @@ export function Detail({
                   <>
                     <div>
                       <small>活动地点</small>
-                      <strong>{p.location || p.address}</strong>
+                      <strong><Value>{p.location || p.address}</Value></strong>
                     </div>
                     <div>
                       <small>参与人数</small>
-                      <strong>
+                      <strong><Value>
                         {p.currentPeople || 0} / {p.maxPeople || 0}
-                      </strong>
+                      </Value></strong>
                     </div>
                     <div>
                       <small>活动时间</small>
-                      <strong>
+                      <strong><Value>
                         {time(p.startTime)}
                         <br />
                         {time(p.endTime)}
-                      </strong>
+                      </Value></strong>
                     </div>
                   </>
                 ) : (
                   <>
                     <div>
                       <small>宠物名字</small>
-                      <strong>{p.petName || "未填写"}</strong>
+                      <strong><Value>{p.petName || "未填写"}</Value></strong>
                     </div>
                     <div>
                       <small>品种 / 年龄</small>
-                      <strong>
+                      <strong><Value>
                         {p.petType || "未知"} · {p.petAge || "未知"}
-                      </strong>
+                      </Value></strong>
                     </div>
                     <div>
                       <small>性别</small>
-                      <strong>{["未知", "公", "母"][p.petGender || 0]}</strong>
+                      <strong><Value>{["未知", "公", "母"][p.petGender || 0]}</Value></strong>
                     </div>
                   </>
                 )}
               </div>
               <h2>关于{activity ? "这次相聚" : "这位小伙伴"}</h2>
-              <p className="prose">{p.content}</p>
+              <p className="prose"><Value block>{p.content}</Value></p>
               <small>
                 <Eye size={13} style={{ verticalAlign: "middle" }} />{" "}
-                {p.viewCount || 0} 次浏览
+                <Value>{p.viewCount || 0}</Value> 次浏览
               </small>
             </article>
             <Comments key={`${target}-${id}`} id={id} type={target} />
@@ -1145,8 +1145,6 @@ export function Editor({
       />
     </Field>
   );
-  if (id && (request.loading || request.error))
-    return <DataState request={request}>{null}</DataState>;
   if (id && request.data && !canEdit(request.data))
     return (
       <>
@@ -1161,7 +1159,7 @@ export function Editor({
         title={`${id ? "编辑" : "发布"}${activity ? "同城活动" : "领养 / 救助信息"}`}
         description="把信息填写完整，让每一次沟通都更安心。"
       />
-      <form className="panel" onSubmit={(e) => e.preventDefault()}>
+      <DataState request={request}><form className="panel" onSubmit={(e) => e.preventDefault()}>
         {!activity && (
           <Field label="发布类型">
             <select
@@ -1239,7 +1237,7 @@ export function Editor({
             {id ? "保存修改" : "提交发布"}
           </Button>
         </div>
-      </form>
+      </form></DataState>
     </div>
   );
 }
@@ -1457,8 +1455,8 @@ export function Notice({ id }: { id: string }) {
               </Badge>
             )}
           </div>
-          <h1 className="detail-title">{n?.title}</h1>
-          <p className="muted">发布于 {time(n?.publishTime)}</p>
+          <h1 className="detail-title"><Value>{n?.title}</Value></h1>
+          <p className="muted"><Value>发布于 {time(n?.publishTime)}</Value></p>
           <hr
             style={{
               border: 0,
@@ -1466,7 +1464,7 @@ export function Notice({ id }: { id: string }) {
               margin: "24px 0",
             }}
           />
-          <div className="prose">{n?.content}</div>
+          <div className="prose"><Value block>{n?.content}</Value></div>
         </article>
       </DataState>
     </div>
