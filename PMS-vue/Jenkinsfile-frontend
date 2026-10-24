@@ -10,16 +10,17 @@ pipeline {
     stages {
         stage('安装依赖') {
             steps {
-                dir('PMS-vue') {
-                    sh 'npm ci --registry=https://registry.npmmirror.com || npm install --registry=https://registry.npmmirror.com'
+                dir('PMS-react') {
+                    sh '''node -e 'if(parseInt(process.versions.node)<24)throw new Error("Node 24+ required")' '''
+                    sh 'npm ci --registry=https://registry.npmmirror.com'
                 }
             }
         }
 
         stage('打包') {
             steps {
-                dir('PMS-vue') {
-                    sh 'npm run build'
+                dir('PMS-react') {
+                    sh 'npm test && npm run build'
                 }
             }
         }
@@ -27,12 +28,12 @@ pipeline {
         stage('部署') {
             steps {
                 sh '''
-                    # 清空旧产物（vite 产物为内容哈希命名，不清会持续累积），确保目录存在且有正确权限
-                    ssh ${REMOTE_HOST} "sudo rm -rf ${DEPLOY_PATH}/* && sudo mkdir -p ${DEPLOY_PATH} && sudo chown -R ubuntu:ubuntu ${DEPLOY_PATH}"
-                    # 上传文件
-                    scp -r PMS-vue/dist/* ${REMOTE_HOST}:${DEPLOY_PATH}/
-                    # 重载 Nginx
-                    ssh ${REMOTE_HOST} "sudo systemctl reload nginx || true"
+                    # Keep the Jenkins job's existing script path; build the React application.
+                    # Back up first and retain hashed assets required by already-open tabs.
+                    ssh ${REMOTE_HOST} "mkdir -p /opt/pms && tar -czf /opt/pms/frontend.bak-ci-$(date +%Y%m%d-%H%M%S).tar.gz -C /var/www/html pms"
+                    scp -r PMS-react/dist/assets ${REMOTE_HOST}:${DEPLOY_PATH}/
+                    scp PMS-react/dist/index.html ${REMOTE_HOST}:${DEPLOY_PATH}/.index-next.html
+                    ssh ${REMOTE_HOST} "mv ${DEPLOY_PATH}/.index-next.html ${DEPLOY_PATH}/index.html"
                 '''
             }
         }

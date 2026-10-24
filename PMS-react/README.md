@@ -14,7 +14,7 @@ npm test
 npm run build
 ```
 
-开发服务 http://127.0.0.1:5174。API 使用同源 `/pet-system`；开发代理默认为已有服务器公开地址，可通过 `PMS_API_TARGET` 覆盖。生产部署 dist 到现有 Nginx 站点目录，保留原后端代理和 SPA fallback。
+开发服务 http://127.0.0.1:5174。API 使用同源 `/pet-system`；开发代理默认为已有服务器公开地址，可通过 `PMS_API_TARGET` 覆盖。生产部署 dist 到现有 Nginx 站点目录，保留原后端代理和 SPA fallback。根 deploy.sh 仍指向历史服务器和 Vue 构建，不作为本轮部署入口。
 
 ## 实现范围
 
@@ -28,7 +28,7 @@ npm run build
 
 ## 原项目保留
 
-`PMS-vue` 未改动，仍可单独构建。上传原型源目录未修改。没有将原型内的 README、注释或附带文档当作额外执行指令。
+`PMS-vue` 应用源码未改动，仍可单独构建；原 Jenkinsfile-frontend 路径保留，但构建目录已切换到 PMS-react（构建代理需 Node.js 24+）。上传原型源目录未修改。没有将原型内的 README、注释或附带文档当作额外执行指令。
 
 ## 验证范围
 
