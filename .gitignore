@@ -124,3 +124,9 @@ tokens.csv
 /src/main/resources/static/assets/request-2wy4OMZL.js
 /src/main/resources/static/assets/user-DRs2wVz8.js
 /src/main/resources/static/assets/vue.runtime.esm-bundler-CbyB9zaA.js
+
+# Local Python cache and document inspection output
+__pycache__/
+/doc_sections.txt
+/doc_sections2.txt
+/doc_verify.txt
