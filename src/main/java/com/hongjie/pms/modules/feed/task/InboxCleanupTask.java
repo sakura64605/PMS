@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @Component
-@EnableScheduling
 @RequiredArgsConstructor
 public class InboxCleanupTask {
 
@@ -22,7 +21,6 @@ public class InboxCleanupTask {
     /**
      * 每天凌晨2点执行，清理30天前的已读消息
      */
-    @Scheduled(cron = "0 0 2 * * ?")
     public void cleanupOldReadMessages() {
         log.info("开始清理收件箱已读消息...");
         long startTime = System.currentTimeMillis();

@@ -31,7 +31,6 @@ import java.util.Map;
  */
 @Component
 @Slf4j
-@EnableScheduling
 public class DelayTaskScheduler {
 
     @Autowired
@@ -59,7 +58,6 @@ public class DelayTaskScheduler {
         log.info("延迟任务执行器已注册: {}", executors.keySet());
     }
 
-    @Scheduled(fixedDelay = 60000)  // 每分钟扫描一次
     public void execute() {
         List<DelayTask> tasks = delayTaskMapper.selectList(
             new LambdaQueryWrapper<DelayTask>()

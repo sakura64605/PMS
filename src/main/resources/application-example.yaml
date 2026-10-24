@@ -82,3 +82,17 @@ ai:
     max-memory-rounds: 10
     enable-rag: true
     rag-recall-count: 3
+# Scheduling: local fallback and XXL-JOB are mutually exclusive.
+pms:
+  scheduling:
+    mode: local # production: xxl
+    batch-size: 100
+    max-batches: 10
+    xxl:
+      admin-addresses: http://127.0.0.1:9090/xxl-job-admin
+      access-token: ${PMS_SCHEDULING_XXL_ACCESS_TOKEN:}
+      appname: pms-executor
+      ip: 127.0.0.1
+      port: 9999
+      logpath: logs/xxl-job
+      logretentiondays: 14

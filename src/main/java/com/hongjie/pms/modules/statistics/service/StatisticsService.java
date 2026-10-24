@@ -265,7 +265,6 @@ public class StatisticsService {
      * 每天凌晨1点执行统计任务
      * 失败时自动重试最多3次
      */
-    @Scheduled(cron = "0 0 1 * * ?")
     @Transactional
     public void generateDailyStatistics() {
         LocalDate statDate = LocalDate.now().minusDays(1);
@@ -309,18 +308,18 @@ public class StatisticsService {
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
                         log.error("重试被中断", ie);
-                        return;
+                        throw new IllegalStateException("Statistics generation interrupted", ie);
                     }
                 }
             }
         }
+        throw new IllegalStateException("Daily statistics generation failed after retries");
     }
 
     /**
      * 补偿任务：检查是否有遗漏的统计数据并自动补录
      * 每天 3点、6点、9点、12点、15点、18点、21点执行
      */
-    @Scheduled(cron = "0 0 3,6,9,12,15,18,21 * * ?")
     @Transactional
     public void compensateMissingStatistics() {
         log.info("开始检查遗漏的统计数据...");
@@ -336,6 +335,7 @@ public class StatisticsService {
             }
 
             int compensated = 0;
+            int failed = 0;
             LocalDate checkDate = maxDate.plusDays(1);
             while (!checkDate.isAfter(yesterday)) {
                 DailyStatistics existing = statisticsMapper.selectByDate(checkDate);
@@ -357,12 +357,14 @@ public class StatisticsService {
                         compensated++;
                         log.info("补录遗漏统计数据成功: {}", checkDate);
                     } catch (Exception e) {
+                        failed++;
                         log.error("补录遗漏统计数据失败: {}", checkDate, e);
                     }
                 }
                 checkDate = checkDate.plusDays(1);
             }
 
+            if (failed > 0) throw new IllegalStateException("Statistics compensation failures: " + failed);
             if (compensated > 0) {
                 clearAllStatisticsCache();
                 log.info("补偿检查完成，补录 {} 天数据，耗时 {} ms", compensated, System.currentTimeMillis() - startTime);
@@ -371,7 +373,7 @@ public class StatisticsService {
             }
 
         } catch (Exception e) {
-            log.error("补偿检查异常", e);
+            throw new IllegalStateException("Statistics compensation failed", e);
         }
     }
 

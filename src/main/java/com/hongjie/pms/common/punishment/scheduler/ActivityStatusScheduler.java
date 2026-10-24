@@ -20,7 +20,6 @@ public class ActivityStatusScheduler {
     private final ActivityMapper activityMapper;
     private final ActivityCache activityCache;
 
-    @Scheduled(fixedDelay = 60000)
     public void syncActivityStatus() {
         LocalDateTime now = LocalDateTime.now();
 
