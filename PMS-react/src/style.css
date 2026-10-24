@@ -1963,3 +1963,15 @@ textarea {
 .private-workspace .chat-messages{padding:16px}
 .private-workspace .private-back{display:inline-flex}
 }
+
+/* Native dialog keeps the previous page visible beneath the prototype backdrop. */
+.private-workspace.private-dialog{width:min(896px,calc(100vw - 48px));max-width:none;max-height:calc(100dvh - 48px);margin:auto;padding:0;border:0;border-radius:24px;background:#fff;color:#2e2a27;overflow:visible;box-shadow:0 25px 70px #0004}
+.private-dialog::backdrop{background:#0008;backdrop-filter:blur(2px)}
+.private-dialog .private-window{height:min(620px,calc(100dvh - 48px));min-height:0;box-shadow:none}
+.private-workspace .private-mobile-close{display:none}
+@media(max-width:700px){
+.private-workspace.private-dialog{width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}
+.private-dialog .private-window{height:min(620px,calc(100dvh - 24px));min-height:0}
+.private-workspace .private-mobile-close{display:inline-flex;position:absolute;right:12px;top:17px;z-index:6;padding:4px;border:0;background:transparent;color:#8a827b}
+.private-dialog .private-sidebar-head{padding-right:48px}
+}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useRouteLocation } from "./routeTransition";
+import { useRouteLocation, useRouteVisible } from "./routeTransition";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import {
@@ -38,7 +38,18 @@ import {
   useData,
 } from "./core";
 
-export function PrivateChat() {
+export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const visible = useRouteVisible();
+  const close = onClose || (() => navigate("/pets"));
+  useEffect(() => {
+    if (!visible) return;
+    const current = dialog.current;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    current?.showModal();
+    return () => { current?.close(); document.body.style.overflow = overflow; };
+  }, [visible]);
   const route = useRouteLocation();
   const routeConversation = new URLSearchParams(route.split('?')[1]).get('conversation');
   const { user, notify, refresh } = useApp();
@@ -117,7 +128,14 @@ export function PrivateChat() {
   }
   return (
 
-    <div className="private-workspace">
+    <dialog ref={dialog} className="private-workspace private-dialog" aria-label="宠友私信会话"
+      onCancel={event => {if (event.target !== event.currentTarget) return; event.preventDefault(); close();}}
+      onClick={event => {
+        if (event.target !== dialog.current) return;
+        const rect = dialog.current.getBoundingClientRect();
+        if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) close();
+      }}>
+      {showList && <Button tone="ghost small private-mobile-close" aria-label="关闭私信" action={close}><X size={20} /></Button>}
       <div className="chat-layout private-window">
         <aside className={`chat-sidebar ${!showList ? "hidden-mobile" : ""}`}>
           <header className="private-sidebar-head">
@@ -169,7 +187,7 @@ export function PrivateChat() {
                   }}><Trash2 size={14} />删除会话</Button>
                 </div>
               </details>}
-              <Button tone="ghost small" aria-label="关闭私信" action={() => navigate("/pets")}><X size={20} /></Button>
+              <Button tone="ghost small" aria-label="关闭私信" action={close}><X size={20} /></Button>
             </div>
           </header>
           {selected ? <>
@@ -227,7 +245,7 @@ export function PrivateChat() {
           </DataState>
         </Modal>
       )}
-    </div>
+    </dialog>
   );
 }
 function Memory({ onClose }: { onClose: () => void }) {

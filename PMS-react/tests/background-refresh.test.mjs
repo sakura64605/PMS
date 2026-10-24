@@ -259,3 +259,43 @@ test('private reference layout renders avatars and bubbles without changing hist
  assert.ok(host.querySelector('.private-window'));assert.ok(host.textContent.includes('宠友私信会话'));assert.equal(host.querySelectorAll('.bubble-wrap').length,2);assert.equal(host.querySelectorAll('.bubble-wrap.me').length,1);assert.equal(host.querySelector('.bubble-wrap .avatar').style.width,'28px');
  assert.ok(host.querySelector('.chat-compose input'));assert.ok(host.querySelector('.private-options'));assert.equal(calls.length,2);
 });
+
+test('private chat is a native modal with Escape close and body scroll locking',async()=>{
+ window.history.replaceState({},'', '/private-message');
+ let closed=0;
+ await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},React.createElement(PrivateChat,{onClose:()=>closed++}))));
+ const dialog=host.querySelector('dialog.private-dialog');
+ assert.ok(dialog);assert.equal(dialog.hasAttribute('open'),true);assert.equal(document.body.style.overflow,'hidden');
+ await act(async()=>dialog.dispatchEvent(new dom.window.Event('cancel',{cancelable:true})));
+ assert.equal(closed,1);
+});
+
+test('private dialog preserves background DOM and draft and restores the original route on close',async()=>{
+ const {PrivateMessageRoutes}=await server.ssrLoadModule('/src/privateMessageRoutes.tsx');
+ globalThis.PopStateEvent=dom.window.PopStateEvent;
+ window.history.replaceState({},'', '/pets?keyword=cat');
+ async function layout(path){
+  await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},
+   React.createElement(PrivateMessageRoutes,{path,renderPrivate:close=>React.createElement(PrivateChat,{onClose:close})},p=>React.createElement(Harness,{key:p,path:p})))));
+ }
+ await layout('/pets?keyword=cat');await reply(0,{title:'background'});await flushFrames();
+ const input=host.querySelector('input');input.value='background draft';const initialScrolls=scrolls;
+ window.history.pushState({},'', '/private-message');await layout('/private-message');
+ assert.equal(host.querySelector('input'),input);assert.equal(input.value,'background draft');assert.equal(scrolls,initialScrolls);assert.ok(host.querySelector('dialog[open]'));
+ const back=new Promise(resolve=>window.addEventListener('popstate',resolve,{once:true}));
+ await act(async()=>{host.querySelector('dialog .chat-head button[aria-label="关闭私信"]').click();await back;});
+ assert.equal(window.location.pathname+window.location.search,'/pets?keyword=cat');
+ await layout('/pets?keyword=cat');
+ assert.equal(host.querySelector('input'),input);assert.equal(input.value,'background draft');assert.equal(host.querySelector('dialog'),null);assert.equal(document.body.style.overflow,'');
+});
+
+test('direct private-message URL closes safely to the default background',async()=>{
+ const {PrivateMessageRoutes}=await server.ssrLoadModule('/src/privateMessageRoutes.tsx');
+ globalThis.PopStateEvent=dom.window.PopStateEvent;window.history.replaceState({},'', '/private-message?conversation=42');
+ await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},
+  React.createElement(PrivateMessageRoutes,{path:'/private-message?conversation=42',renderPrivate:close=>React.createElement(PrivateChat,{onClose:close})},p=>React.createElement(Harness,{key:p,path:p})))));
+ assert.ok(calls.some(c=>c.path==='/pet-system/pets'));
+ assert.ok(calls.some(c=>c.path.includes('conversationId=42')));
+ await act(async()=>host.querySelector('dialog .chat-head button[aria-label="关闭私信"]').click());
+ assert.equal(window.location.pathname,'/pets');
+});

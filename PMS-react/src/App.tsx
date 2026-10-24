@@ -17,7 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { api, nick, uid, type Row } from "./api";
-import { AtomicRoutes } from "./routeTransition";
+import { PrivateMessageRoutes } from "./privateMessageRoutes";
 import { loadAdmin, loadChat, warmRouteModules } from "./routeModules";
 import {
   AppContext,
@@ -375,7 +375,7 @@ export default function App() {
         <div className="shell">
           <Header path={displayedPath} />
           <main className="page">
-            {boot && !publicRoute(path.split('?')[0]) ? <Busy /> : <AtomicRoutes path={path} onCommit={setDisplayedPath}>{readyPath => <Router key={readyPath} path={readyPath} />}</AtomicRoutes>}
+            {boot && !publicRoute(path.split('?')[0]) ? <Busy /> : <PrivateMessageRoutes path={path} enabled={!!user && !boot} onCommit={setDisplayedPath} renderPrivate={close => <PrivateChat onClose={close} />}>{readyPath => <Router key={readyPath} path={readyPath} />}</PrivateMessageRoutes>}
           </main>
           <footer className="site-footer">
             <span>
