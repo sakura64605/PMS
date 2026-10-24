@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { api, type Row, nick, rows, time } from "./api";
 import { useRouteRequest } from "./routeTransition";
+import { RouteImage } from "./RouteImage";
+export { RouteImage } from "./RouteImage";
 import { preloadRoute } from "./routeModules";
 export const AppContext = createContext<{
   user: Row | null;
@@ -227,7 +229,7 @@ export function Avatar({
   return (
     <span className="avatar" data-pending={pending || undefined} style={{ width: size, height: size }}>
       {user?.avatar && !failed ? (
-        <img src={user.avatar} alt="" onError={() => setFailed(true)} />
+        <RouteImage src={user.avatar} alt="" onError={() => setFailed(true)} />
       ) : (
         nick(user).slice(0, 1)
       )}
@@ -432,13 +434,13 @@ export function Gallery({ value }: { value: any }) {
             onClick={() => setActive(src)}
             aria-label={`查看第 ${i + 1} 张图片`}
           >
-            <img src={src} loading="lazy" alt={`内容图片 ${i + 1}`} />
+            <RouteImage src={src} loading="lazy" alt={`内容图片 ${i + 1}`} />
           </button>
         ))}
       </div>
       {active && (
         <Modal title="图片预览" onClose={() => setActive(null)}>
-          <img className="preview-image" src={active} alt="图片预览" />
+          <RouteImage className="preview-image" src={active} alt="图片预览" />
         </Modal>
       )}
     </>
@@ -462,7 +464,7 @@ export function Upload({
       <div className="uploads">
         {value.map((v, i) => (
           <div className="upload-preview" key={i}>
-            <img src={v} alt={`已上传图片 ${i + 1}`} />
+            <RouteImage src={v} alt={`已上传图片 ${i + 1}`} />
             <button
               type="button"
               onClick={() => onChange(value.filter((_, n) => n !== i))}

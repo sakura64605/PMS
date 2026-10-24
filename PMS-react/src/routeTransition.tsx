@@ -27,6 +27,7 @@ class RouteReadiness {
 const RouteLoadContext = createContext<RouteReadiness | null>(null);
 const RoutePathContext = createContext<string | null>(null);
 const RouteVisibleContext = createContext(true);
+export function useRouteVisible() { return useContext(RouteVisibleContext); }
 export function useRouteLocation() { return useContext(RoutePathContext) ?? window.location.pathname + window.location.search; }
 export function useRouteRequest(pending: boolean) {
   const scope = useContext(RouteLoadContext), id = useId();

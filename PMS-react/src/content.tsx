@@ -43,6 +43,7 @@ import {
   Empty,
   Field,
   Gallery,
+  RouteImage,
   Intro,
   Link,
   Modal,
@@ -80,7 +81,7 @@ export function Card({
     <article className="pet-card">
       <Link to={to} className="cover" aria-label={item.title || "查看内容"}>
         {cover ? (
-          <img src={cover} alt={item.title || "内容封面"} loading="lazy" />
+          <RouteImage src={cover} alt={item.title || "内容封面"} loading="lazy" />
         ) : (
           <PawPrint size={55} />
         )}

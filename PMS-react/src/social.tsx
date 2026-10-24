@@ -21,6 +21,7 @@ import {
   Empty,
   Field,
   Gallery,
+  RouteImage,
   Intro,
   Link,
   Modal,
@@ -698,7 +699,7 @@ function AvatarHistory({ onClose }: { onClose: () => void }) {
                 onClose();
               }}
             >
-              <img src={p.avatarUrl || p.avatar} alt="选择此头像" />
+              <RouteImage src={p.avatarUrl || p.avatar} alt="选择此头像" />
             </Button>
           ))}
         </div>
