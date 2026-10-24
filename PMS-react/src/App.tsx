@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { api, nick, uid, type Row } from "./api";
 import { AtomicRoutes } from "./routeTransition";
+import { loadAdmin, loadChat, warmRouteModules } from "./routeModules";
 import {
   AppContext,
   Avatar,
@@ -42,15 +43,15 @@ import {
   PublishDiary,
   UserPage,
 } from "./social";
-const Admin = lazy(() => import("./admin"));
+const Admin = lazy(loadAdmin);
 const AuditDetail = lazy(() =>
-  import("./admin").then((m) => ({ default: m.AuditDetail })),
+  loadAdmin().then((m) => ({ default: m.AuditDetail })),
 );
 const AIChat = lazy(() =>
-  import("./chat").then((m) => ({ default: m.AIChat })),
+  loadChat().then((m) => ({ default: m.AIChat })),
 );
 const PrivateChat = lazy(() =>
-  import("./chat").then((m) => ({ default: m.PrivateChat })),
+  loadChat().then((m) => ({ default: m.PrivateChat })),
 );
 
 function Header({ path }: { path: string }) {
@@ -295,6 +296,10 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(null), 6000);
   }, []);
   const refresh = useCallback(() => setRevision((v) => v + 1), []);
+  useEffect(() => {
+    if (!user) return;
+    return warmRouteModules(user.role === 1);
+  }, [user?.role, !!user]);
   const refreshUser = useCallback(async () => {
     if (!localStorage.getItem("token")) {
       setUser(null);

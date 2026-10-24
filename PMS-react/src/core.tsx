@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { api, type Row, nick, rows, time } from "./api";
 import { useRouteRequest } from "./routeTransition";
+import { preloadRoute } from "./routeModules";
 export const AppContext = createContext<{
   user: Row | null;
   refreshUser: () => Promise<void>;
@@ -48,6 +49,8 @@ export function Link({
     <a
       href={to}
       {...props}
+      onPointerEnter={e => { props.onPointerEnter?.(e); preloadRoute(to); }}
+      onFocus={e => { props.onFocus?.(e); preloadRoute(to); }}
       onClick={(e) => {
         props.onClick?.(e);
         if (

@@ -12,6 +12,8 @@ const {createRoot}=await import('react-dom/client');
 const server=await createServer({configFile:false,root:fileURLToPath(new URL('..',import.meta.url)),plugins:[react()],server:{middlewareMode:true,hmr:false}});
 const {useData,DataState,AppContext}=await server.ssrLoadModule('/src/core.tsx');
 const {AtomicRoutes,useRouteLocation}=await server.ssrLoadModule('/src/routeTransition.tsx');
+const {PrivateChat}=await server.ssrLoadModule('/src/chat.tsx');
+dom.window.HTMLElement.prototype.scrollIntoView=()=>{};
 const {Detail,Editor}=await server.ssrLoadModule('/src/content.tsx');
 let root,host,calls,current,mounts,unmounts;
 let frames=new Map(),frameSequence=0,scrolls=0;
@@ -116,4 +118,14 @@ test('failed target request reveals a terminal error with retry instead of waiti
 test('each prepared route reads its own query parameters while browser URL has moved on',async()=>{
  function Params(){const route=useRouteLocation();useData(route);return React.createElement('p',null,route);}
  await renderAtomic('/pet/1?type=old',()=>React.createElement(Params));await reply(0,{});await flushFrames();await renderAtomic('/pet/2?type=new',()=>React.createElement(Params));assert.equal(visibleStage().textContent,'/pet/1?type=old');await reply(1,{});await flushFrames();assert.equal(visibleStage().textContent,'/pet/2?type=new');
+});
+
+test('private conversation link fetches history in parallel with the conversation list',async()=>{
+ await renderAtomic('/pet/1');await reply(0,{title:'old'});await flushFrames();const old=visibleStage();
+ const page=p=>p.startsWith('/private-message')?React.createElement(PrivateChat):React.createElement(Harness,{key:p,path:p});
+ await renderAtomic('/private-message?conversation=42',page);
+ const list=calls.findIndex(c=>c.path.includes('/private/conversations?')),history=calls.findIndex(c=>c.path.includes('/private/messages?conversationId=42'));
+ assert.ok(list>=0);assert.ok(history>=0);assert.equal(calls.length,3);assert.equal(visibleStage(),old);
+ await reply(history,{records:[{id:1,content:'existing private history',fromUserId:2,createTime:'2026-10-24'}],total:1});await flushFrames();assert.equal(visibleStage(),old);
+ await reply(list,{records:[{conversationId:42,otherUser:{id:2,nickName:'friend'},lastMessage:'existing private history'}],total:1});await flushFrames();assert.equal(calls.length,3);assert.ok(visibleStage().textContent.includes('existing private history'));assert.equal(visibleStage().textContent.includes('正在获取内容'),false);
 });

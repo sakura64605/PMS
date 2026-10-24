@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AtomicRoutes, useRouteLocation } from "./routeTransition";
+import { loadCharts } from "./routeModules";
 import {
   BarChart3,
   CheckCheck,
@@ -74,6 +75,8 @@ export default function Admin() {
               key={key}
               className={displayedTab === key ? "active" : ""}
               onClick={() => setTab(key)}
+              onPointerEnter={() => { if (key === 'stats') void loadCharts().catch(() => {}); }}
+              onFocus={() => { if (key === 'stats') void loadCharts().catch(() => {}); }}
             >
               <Icon size={17} />
               {name}
@@ -936,7 +939,7 @@ function Trend({ data }: { data: Row }) {
     let disposed = false;
     let chart: any;
     let observer: ResizeObserver;
-    import("echarts")
+    loadCharts()
       .then((e) => {
         if (disposed || !ref.current) return;
         chart = e.init(ref.current);

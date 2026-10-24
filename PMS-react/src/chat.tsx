@@ -35,6 +35,7 @@ import {
 
 export function PrivateChat() {
   const route = useRouteLocation();
+  const routeConversation = new URLSearchParams(route.split('?')[1]).get('conversation');
   const { user, notify, refresh } = useApp();
   const [page, setPage] = useState(1),
     [selected, setSelected] = useState<Row | null>(null),
@@ -47,9 +48,9 @@ export function PrivateChat() {
     url("/message/private/conversations", { pageNum: page, pageSize: 20 }),
   );
   const history = useData(
-    selected
+    selected || routeConversation
       ? url("/message/private/messages", {
-          conversationId: selected.conversationId,
+          conversationId: selected?.conversationId || routeConversation,
           pageNum: messagePage,
           pageSize: 20,
         })
