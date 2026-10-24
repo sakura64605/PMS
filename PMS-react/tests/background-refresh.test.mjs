@@ -15,6 +15,9 @@ const {AtomicRoutes,useRouteLocation}=await server.ssrLoadModule('/src/routeTran
 const {PrivateChat,AIChat}=await server.ssrLoadModule('/src/chat.tsx');
 dom.window.HTMLElement.prototype.scrollIntoView=()=>{};
 const {DiaryCard}=await server.ssrLoadModule('/src/social.tsx');
+const {default:Admin}=await server.ssrLoadModule('/src/admin.tsx');
+dom.window.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
+dom.window.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');};
 const {Detail,Editor}=await server.ssrLoadModule('/src/content.tsx');
 let root,host,calls,current,mounts,unmounts;
 let frames=new Map(),frameSequence=0,scrolls=0;
@@ -144,3 +147,38 @@ test('reference AI layout keeps all three real tools in the existing chat header
  const tools=host.querySelector('.ai-workspace .chat-head .ai-tools');assert.ok(tools);assert.deepEqual([...tools.querySelectorAll('button')].map(b=>b.textContent.trim()),['长期记忆','清除记忆','转人工']);assert.ok(host.querySelector('.ai-new-chat'));assert.ok(host.querySelector('.ai-mobile-close'));assert.ok(host.querySelector('textarea[aria-label="给 AI 的问题"]'));assert.ok(host.textContent.includes('Shift+Enter'));assert.equal(calls.length,2);assert.equal(calls.some(c=>c.options.method!=='GET'),false);
 });
 
+
+async function replyWhere(predicate,data){const index=calls.findIndex(c=>!c.replied && predicate(c.path,c));assert.ok(index>=0,'expected request exists');calls[index].replied=true;await reply(index,data);}
+async function adminFixture(){
+ await act(async()=>root.render(React.createElement(AppContext.Provider,{value:{...context(0),user:{userId:1,role:1}}},React.createElement(Admin))));
+ await replyWhere(p=>p.includes('/admin/audit/pending?') && p.endsWith('pageSize=1'),{total:14,records:[]});
+ await replyWhere(p=>p.includes('/report/list?') && p.includes('pageSize=1&status=0'),{total:3,records:[]});
+ await replyWhere(p=>p.includes('/admin/audit/pending?') && p.includes('pageSize=12'),{total:14,records:[{id:7,title:'real pending',targetType:'adopt',user:{id:2,nickName:'pet friend'},createTime:'2026-10-24',images:[]}]});await flushFrames();
+}
+async function adminTab(name){await act(async()=>[...host.querySelectorAll('.admin-nav button')].find(b=>b.querySelector('span').textContent===name).click());}
+
+test('reference governance heading, six exact icons and real totals replace prototype counts',async()=>{
+ await adminFixture();assert.equal(host.querySelector('.governance-heading h1').textContent,'管理后台 · 内容审核与社区治理');assert.ok(host.textContent.includes('严格把关领养救助真实性，保障宠友权益与社区健康环境'));assert.ok(host.textContent.includes('管理员权限生效中'));
+ const tabs=[...host.querySelectorAll('.admin-nav button')];assert.deepEqual(tabs.map(b=>b.querySelector('span').textContent),['待审核内容','审核历史','用户管理','举报处理','数据统计','公告管理']);const icons=['lucide-clock','lucide-circle-check','lucide-users','lucide-triangle-alert','lucide-chart-column','lucide-megaphone'];tabs.forEach((b,i)=>{assert.ok(b.querySelector('svg').classList.contains(icons[i]));assert.equal(b.querySelector('svg').getAttribute('width'),'16');});assert.equal(host.querySelector('[aria-label="待审核总数"]').textContent,'14');assert.equal(host.querySelector('[aria-label="待处理举报总数"]').textContent,'3');assert.equal(host.querySelectorAll('.governance-pending .governance-row').length,1);
+});
+
+test('pending approval retains real audit contract and refreshes global badges',async()=>{
+ await adminFixture();await act(async()=>[...visibleStage().querySelectorAll('button')].find(b=>b.textContent==='通过').click());const post=calls.find(c=>c.options.method==='POST');assert.ok(post.path.includes('/admin/audit/batch-approve?targetType=adopt'));assert.deepEqual(JSON.parse(post.options.body),{ids:['7'],rejectReason:null});
+ await replyWhere((p,c)=>c.options.method==='POST',true);await replyWhere(p=>p.includes('/admin/audit/pending?') && p.endsWith('pageSize=1'),{total:13,records:[]});await replyWhere(p=>p.includes('/report/list?') && p.includes('status=0'),{total:3,records:[]});assert.equal(host.querySelector('[aria-label="待审核总数"]').textContent,'13');
+});
+
+test('user management uses reference avatar rows while preserving selection and reset confirmation',async()=>{
+ await adminFixture();await adminTab('用户管理');await replyWhere(p=>p.includes('/admin/users?'),{total:1,records:[{userId:4,nickName:'real user',userName:'real',phone:'123',status:1}]});await flushFrames();assert.equal(visibleStage().querySelector('table'),null);assert.ok(visibleStage().textContent.includes('real user'));const checkbox=visibleStage().querySelector('input[aria-label="选择 real user"]');await act(async()=>checkbox.click());const reset=[...visibleStage().querySelectorAll('button')].find(b=>b.textContent.includes('批量重置密码'));assert.equal(reset.disabled,false);globalThis.confirm=()=>false;await act(async()=>reset.click());assert.equal(calls.some(c=>c.options.method==='POST'),false);
+});
+
+test('report reject row action opens the existing form with reject selected and makes no premature write',async()=>{
+ await adminFixture();await adminTab('举报处理');await replyWhere(p=>p.includes('/report/list?') && p.includes('pageSize=20'),{total:1,records:[{id:9,targetId:7,targetType:'pet',targetTitle:'reported post',reason:'real reason',status:0}]});await flushFrames();await act(async()=>[...visibleStage().querySelectorAll('button')].find(b=>b.textContent==='驳回举报').click());await replyWhere(p=>p.endsWith('/report/detail/9'),{id:9,status:0,targetType:'pet',targetId:7,targetTitle:'reported post',reason:'real reason'});assert.equal(host.querySelector('dialog select').value,'2');assert.equal(calls.some(c=>c.options.method==='POST'),false);
+});
+
+test('announcement reference edit icon fetches full draft before opening the editable form',async()=>{
+ await adminFixture();await adminTab('公告管理');await replyWhere(p=>p.includes('/notice/admin/list?'),{total:1,records:[{id:3,title:'draft',status:0,type:1,priority:0}]});await flushFrames();assert.equal(visibleStage().querySelector('table'),null);await act(async()=>host.querySelector('button[aria-label="编辑公告：draft"]').click());await replyWhere(p=>p.endsWith('/notice/admin/3'),{id:3,title:'draft',status:0,type:1,priority:0,content:'complete draft body'});assert.equal(host.querySelector('dialog textarea').value,'complete draft body');assert.equal(calls.some(c=>c.options.method==='POST'),false);
+});
+
+test('statistics reference uses five true-value cards and real period queries',async()=>{
+ await adminFixture();await adminTab('数据统计');await replyWhere(p=>p.includes('/admin/statistics/query?type=weekly'),{totalNewPosts:8,totalNewUsers:2,totalNewComments:5});await replyWhere(p=>p.endsWith('/admin/statistics/realtime'),{newUserCount:2,newPetPostCount:1,newActivityCount:1,newDailyPostCount:1,newCommentCount:5,newLikeCount:7,pendingAuditCount:14});await flushFrames();assert.equal(visibleStage().querySelectorAll('.governance-stat-cards .stat-tile').length,5);assert.equal(visibleStage().querySelectorAll('.governance-periods button').length,5);assert.ok(visibleStage().textContent.includes('数据重算 / 单日补录'));const month=[...visibleStage().querySelectorAll('.governance-periods button')].find(b=>b.textContent==='月');await act(async()=>month.click());assert.ok(calls.some(c=>c.path.includes('/admin/statistics/query?type=monthly&month=')));
+});

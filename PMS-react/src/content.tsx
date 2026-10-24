@@ -868,10 +868,12 @@ export function AuditActions({
   id,
   type,
   reload,
+  compact = false,
 }: {
   id: string;
   type: string;
   reload: () => void;
+  compact?: boolean;
 }) {
   const [reason, setReason] = useState<string | null>(null);
   const { notify } = useApp();
@@ -892,14 +894,15 @@ export function AuditActions({
     <>
       <div className="row-actions">
         <Button tone="primary" action={() => decide()}>
-          通过审核
+          {compact ? "通过" : "通过审核"}
         </Button>
         <Button tone="danger" action={() => setReason("")}>
           拒绝
         </Button>
       </div>
       {reason !== null && (
-        <Modal title="拒绝审核" onClose={() => setReason(null)}>
+        <Modal title={compact ? "驳回/拒绝审核理由" : "拒绝审核"} onClose={() => setReason(null)}>
+          {compact && <><p className="governance-info-text">请选择或输入具体的拒绝理由，该理由将同步通知到原作者。</p><div className="tag-list">{['存在疑似变相买卖、收取非合理押金或运费','发布信息不全，缺少详细的疫苗及健康检疫证明','图片带有外部非合规联系方式或水印广告','内容与流浪动物救助/伴侣动物领养主题无关','重复多次发布相同求领养信息'].map(value=><Button key={value} tone="small" action={()=>setReason(value)}>{value}</Button>)}</div></>}
           <Field label="拒绝理由" required>
             <textarea
               value={reason}

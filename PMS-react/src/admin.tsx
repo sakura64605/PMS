@@ -1,15 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { AtomicRoutes, useRouteLocation } from "./routeTransition";
 import { loadCharts } from "./routeModules";
 import {
   BarChart3,
-  CheckCheck,
-  ClipboardCheck,
-  Flag,
-  History,
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
+  ShieldAlert,
+  KeyRound,
+  Edit,
+  Trash2,
+  RotateCw,
   Megaphone,
   Plus,
-  ShieldCheck,
   Users,
   PawPrint,
 } from "lucide-react";
@@ -27,6 +30,7 @@ import {
 } from "./api";
 import {
   Author,
+  Avatar,
   Back,
   Badge,
   Button,
@@ -35,7 +39,6 @@ import {
   Empty,
   Field,
   Gallery,
-  Intro,
   Link,
   Modal,
   Pagination,
@@ -45,63 +48,110 @@ import {
 } from "./core";
 import { AuditActions } from "./content";
 const tabs = [
-  ["pending", "待审核", ClipboardCheck],
-  ["history", "审核历史", History],
+  ["pending", "待审核内容", Clock],
+  ["history", "审核历史", CheckCircle2],
   ["users", "用户管理", Users],
-  ["reports", "举报管理", Flag],
+  ["reports", "举报处理", AlertTriangle],
   ["stats", "数据统计", BarChart3],
   ["notices", "公告管理", Megaphone],
 ] as const;
+const GovernanceContext = createContext<{
+  pending: number | null;
+  reports: number | null;
+  refresh: () => void;
+}>({ pending: null, reports: null, refresh: () => {} });
 export default function Admin() {
   const { user } = useApp();
   const [tab, setTab] = useState("pending");
   const [displayedTab, setDisplayedTab] = useState("pending");
+  const pending = useData(
+    user?.role === 1 ? "/admin/audit/pending?pageNum=1&pageSize=1" : null,
+  );
+  const reports = useData(
+    user?.role === 1 ? "/report/list?pageNum=1&pageSize=1&status=0" : null,
+  );
+  const governance = {
+    pending: pending.data?.total ?? null,
+    reports: reports.data?.total ?? null,
+    refresh: () => {
+      pending.reload();
+      reports.reload();
+    },
+  };
   if (user?.role !== 1) return <Empty text="仅管理员可访问此页面" />;
   return (
     <section className="admin-workspace">
-      <Intro
-        eyebrow="COMMUNITY WORKSPACE"
-        title="社区管理工作台"
-        description="认真对待每一份分享，守护温暖而可信的社区。"
-      >
-        <Badge tone="blue">
-          <ShieldCheck size={13} />
-          管理员
-        </Badge>
-      </Intro>
-      <div className="admin-shell">
-        <nav className="admin-nav" aria-label="管理模块">
-          {tabs.map(([key, name, Icon]) => (
-            <button
-              key={key}
-              className={displayedTab === key ? "active" : ""}
-              onClick={() => setTab(key)}
-              onPointerEnter={() => { if (key === 'stats') void loadCharts().catch(() => {}); }}
-              onFocus={() => { if (key === 'stats') void loadCharts().catch(() => {}); }}
-            >
-              <Icon size={17} />
-              {name}
-            </button>
-          ))}
-        </nav>
-        <div><AtomicRoutes path={tab} onCommit={setDisplayedTab}>{tab => <>
-          {tab === "pending" || tab === "history" ? (
-            <AuditList history={tab === "history"} />
-          ) : tab === "users" ? (
-            <UsersAdmin />
-          ) : tab === "reports" ? (
-            <Reports />
-          ) : tab === "notices" ? (
-            <NoticesAdmin />
-          ) : (
-            <Statistics />
-          )}
-        </>}</AtomicRoutes></div>
-      </div>
+      <header className="governance-heading">
+        <div className="governance-heading-main">
+          <span className="governance-emblem">
+            <ShieldAlert size={20} />
+          </span>
+          <div>
+            <h1>管理后台 · 内容审核与社区治理</h1>
+            <p>严格把关领养救助真实性，保障宠友权益与社区健康环境</p>
+          </div>
+        </div>
+        <span className="governance-permission">管理员权限生效中</span>
+      </header>
+      <GovernanceContext.Provider value={governance}>
+        <div className="admin-shell">
+          <nav className="admin-nav" aria-label="管理模块">
+            {tabs.map(([key, name, Icon]) => (
+              <button
+                key={key}
+                className={displayedTab === key ? "active" : ""}
+                aria-current={displayedTab === key ? "page" : undefined}
+                onClick={() => setTab(key)}
+                onPointerEnter={() => {
+                  if (key === "stats") void loadCharts().catch(() => {});
+                }}
+                onFocus={() => {
+                  if (key === "stats") void loadCharts().catch(() => {});
+                }}
+              >
+                <Icon size={16} />
+                <span>{name}</span>
+                {(key === "pending" || key === "reports") && (
+                  <span
+                    className="governance-count"
+                    aria-label={
+                      key === "pending" ? "待审核总数" : "待处理举报总数"
+                    }
+                  >
+                    {(key === "pending"
+                      ? governance.pending
+                      : governance.reports) ?? "—"}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+          <div>
+            <AtomicRoutes path={tab} onCommit={setDisplayedTab}>
+              {(tab) => (
+                <>
+                  {tab === "pending" || tab === "history" ? (
+                    <AuditList history={tab === "history"} />
+                  ) : tab === "users" ? (
+                    <UsersAdmin />
+                  ) : tab === "reports" ? (
+                    <Reports />
+                  ) : tab === "notices" ? (
+                    <NoticesAdmin />
+                  ) : (
+                    <Statistics />
+                  )}
+                </>
+              )}
+            </AtomicRoutes>
+          </div>
+        </div>
+      </GovernanceContext.Provider>
     </section>
   );
 }
 function AuditList({ history = false }: { history?: boolean }) {
+  const governance = useContext(GovernanceContext);
   const [page, setPage] = useState(1),
     [keyword, setKeyword] = useState(""),
     [type, setType] = useState(""),
@@ -133,14 +183,17 @@ function AuditList({ history = false }: { history?: boolean }) {
       { ids: selected.map((p) => p.id), rejectReason: reason },
     );
     request.reload();
+    governance.refresh();
     setSelected([]);
     setReason(null);
     notify("审核处理成功");
   }
   return (
     <>
-      <section className="panel">
-        <h2>{history ? "审核历史" : "待审核内容"}</h2>
+      <section className="module-toolbar audit-toolbar">
+        <h2 className="visually-hidden">
+          {history ? "已审核历史记录" : "待审核内容"}
+        </h2>
         <SearchForm
           onSearch={(s) => {
             setKeyword(s);
@@ -210,74 +263,112 @@ function AuditList({ history = false }: { history?: boolean }) {
           </div>
         )}
       </section>
-      <DataState request={request} empty={!rows(request.data).length}>
-        {rows(request.data).map((p: Row) => {
-          const content = p.content || p.targetContent || "";
-          const id = history ? p.targetId : p.id;
-          return (
-            <article className="panel audit-record" key={`${p.targetType}-${p.id}`}>
-              <div
-                className="row-actions audit-record-meta"
-                style={{ justifyContent: "space-between" }}
+      <section
+        className={`governance-list ${history ? "governance-history" : "governance-pending"}`}
+      >
+        {history && (
+          <div className="governance-list-heading">
+            <h2>已审核历史记录</h2>
+            <small>共 {request.data?.total ?? "—"} 条记录</small>
+          </div>
+        )}
+        <DataState request={request}>
+          {rows(request.data).map((p: Row) => {
+            const id = history ? p.targetId : p.id;
+            return (
+              <article
+                className="governance-row"
+                key={`${p.targetType}-${p.id}`}
               >
-                <div className="row-actions">
-                  {!history && (
-                    <input
-                      aria-label={`选择 ${p.title}`}
-                      type="checkbox"
-                      checked={selected.some(
-                        (v) => v.id === p.id && v.targetType === p.targetType,
-                      )}
-                      onChange={(e) =>
-                        setSelected((s) =>
-                          e.target.checked
-                            ? [...s, p]
-                            : s.filter(
-                                (v) =>
-                                  v.id !== p.id ||
-                                  v.targetType !== p.targetType,
-                              ),
-                        )
-                      }
-                    />
-                  )}
-                  <Badge tone="blue">{typeName(p.targetType)}</Badge>
-                  <Badge tone={p.auditStatus === 2 ? "orange" : ""}>
-                    {auditName(p.auditStatus)}
-                  </Badge>
-                </div>
-                <small>{time(history ? p.auditTime : p.createTime)}</small>
-              </div>
-              <div className="audit-record-main"><h3>{p.title || p.targetTitle}</h3>
-              {p.user && <Author user={p.user} date={p.createTime} />}
-              <p className="card-description">{content}</p>
-              {p.rejectReason && (
-                <p className="inline-error">拒绝理由：{p.rejectReason}</p>
-              )}
-              {history && (
-                <p className="muted">审核人：{p.auditorName || "—"}</p>
-              )}
-              </div>
-              <div className="audit-record-media">{images(p.images).length ? <Gallery value={images(p.images).slice(0, 1)} /> : <PawPrint size={24} />}</div>
-              <div className="row-actions audit-record-actions">
-                <Link
-                  className="btn small"
-                  to={`/audit/${id}?targetType=${p.targetType}`}
-                >
-                  查看详情
-                </Link>
                 {!history && (
-                  <AuditActions
-                    id={String(id)}
-                    type={p.targetType}
-                    reload={request.reload}
+                  <input
+                    type="checkbox"
+                    aria-label={`选择 ${p.title}`}
+                    checked={selected.some(
+                      (v) => v.id === p.id && v.targetType === p.targetType,
+                    )}
+                    onChange={(e) =>
+                      setSelected((previous) =>
+                        e.target.checked
+                          ? [...previous, p]
+                          : previous.filter(
+                              (v) =>
+                                v.id !== p.id || v.targetType !== p.targetType,
+                            ),
+                      )
+                    }
                   />
                 )}
-              </div>
-            </article>
-          );
-        })}
-      </DataState>
+                {!history && (
+                  <div className="governance-thumbnail">
+                    {images(p.images).length ? (
+                      <Gallery value={images(p.images).slice(0, 1)} />
+                    ) : (
+                      <PawPrint size={20} />
+                    )}
+                  </div>
+                )}
+                <div className="governance-row-body">
+                  <div className="governance-row-title">
+                    <Badge
+                      tone={
+                        history ? (p.auditStatus === 2 ? "orange" : "") : "blue"
+                      }
+                    >
+                      {history
+                        ? auditName(p.auditStatus)
+                        : typeName(p.targetType)}
+                    </Badge>
+                    <h3>{p.title || p.targetTitle}</h3>
+                  </div>
+                  {!history && (p.content || p.targetContent) && (
+                    <p className="governance-summary">
+                      {p.content || p.targetContent}
+                    </p>
+                  )}
+                  <p className="governance-row-meta">
+                    发布者：
+                    {p.user ? nick(p.user) : p.userName || p.authorName || "—"}{" "}
+                    · {history ? `审核人：${p.auditorName || "—"} · ` : ""}
+                    {time(history ? p.auditTime : p.createTime)}
+                    {p.rejectReason && (
+                      <span className="governance-reason">
+                        （理由：{p.rejectReason}）
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div className="governance-row-actions">
+                  <Link
+                    className="btn ghost small"
+                    to={`/audit/${id}?targetType=${p.targetType}`}
+                  >
+                    查看详情
+                  </Link>
+                  {!history && (
+                    <AuditActions
+                      compact
+                      id={String(id)}
+                      type={p.targetType}
+                      reload={() => {
+                        request.reload();
+                        governance.refresh();
+                      }}
+                    />
+                  )}
+                </div>
+              </article>
+            );
+          })}
+          {!request.loading && !rows(request.data).length && (
+            <div className="governance-empty">
+              {history
+                ? "当前筛选条件下暂无审核历史"
+                : "🎉 暂无待审核内容，社区内容秩序良好！"}
+            </div>
+          )}
+        </DataState>
+      </section>
       <Pagination
         page={page}
         total={request.data?.total || 0}
@@ -318,7 +409,8 @@ function AuditList({ history = false }: { history?: boolean }) {
 }
 export function AuditDetail({ id }: { id: string }) {
   const type =
-    new URLSearchParams(useRouteLocation().split('?')[1]).get("targetType") || "adopt";
+    new URLSearchParams(useRouteLocation().split("?")[1]).get("targetType") ||
+    "adopt";
   const request = useData(url("/admin/audit/detail", { targetType: type, id }));
   const p = request.data;
   return (
@@ -382,121 +474,122 @@ function UsersAdmin() {
     notify("处理成功");
   }
   return (
-    <section className="panel">
-      <h2>用户管理</h2>
-      <SearchForm
-        onSearch={(v) => {
-          setKeyword(v);
-          setPage(1);
-        }}
-        placeholder="用户名、昵称或手机号"
-      >
-        <select
-          aria-label="用户状态"
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
+    <section className="admin-module users-module">
+      <div className="module-toolbar">
+        <h2 className="visually-hidden">用户管理</h2>
+        <SearchForm
+          onSearch={(v) => {
+            setKeyword(v);
             setPage(1);
           }}
+          placeholder="用户名、昵称或手机号"
         >
-          <option value="">全部状态</option>
-          <option value="1">正常</option>
-          <option value="0">禁用</option>
-        </select>
-      </SearchForm>
-      <div className="row-actions" style={{ margin: "18px 0" }}>
-        <Button
-          disabled={!selected.length}
-          tone="small"
-          action={() => batch("enable")}
-        >
-          批量启用
-        </Button>
-        <Button
-          disabled={!selected.length}
-          tone="danger small"
-          action={() => batch("disable")}
-        >
-          批量禁用
-        </Button>
-        <Button
-          disabled={!selected.length}
-          tone="small"
-          action={() => batch("reset-password")}
-        >
-          批量重置密码
-        </Button>
+          <select
+            aria-label="用户状态"
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">全部状态</option>
+            <option value="1">正常</option>
+            <option value="0">禁用</option>
+          </select>
+        </SearchForm>
+        <div className="row-actions" style={{ margin: "18px 0" }}>
+          <Button
+            disabled={!selected.length}
+            tone="small"
+            action={() => batch("enable")}
+          >
+            批量启用
+          </Button>
+          <Button
+            disabled={!selected.length}
+            tone="danger small"
+            action={() => batch("disable")}
+          >
+            批量禁用
+          </Button>
+          <Button
+            disabled={!selected.length}
+            tone="small governance-gold"
+            action={() => batch("reset-password")}
+          >
+            <KeyRound size={14} />
+            批量重置密码 ({selected.length})
+          </Button>
+        </div>
       </div>
       <DataState request={request} empty={!rows(request.data).length}>
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>
-                  <input
-                    type="checkbox"
-                    aria-label="全选本页用户"
-                    checked={
-                      rows(request.data).length > 0 &&
-                      selected.length === rows(request.data).length
-                    }
-                    onChange={(e) =>
-                      setSelected(
-                        e.target.checked ? rows(request.data).map(uid) : [],
-                      )
-                    }
-                  />
-                </th>
-                <th>ID</th>
-                <th>用户</th>
-                <th>状态</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows(request.data).map((u) => (
-                <tr key={uid(u)}>
-                  <td>
-                    <input
-                      aria-label={`选择 ${nick(u)}`}
-                      type="checkbox"
-                      checked={selected.includes(uid(u))}
-                      onChange={(e) =>
-                        setSelected((s) =>
-                          e.target.checked
-                            ? [...s, uid(u)]
-                            : s.filter((v) => v !== uid(u)),
-                        )
-                      }
-                    />
-                  </td>
-                  <td>{uid(u)}</td>
-                  <td>
-                    <Link to={`/user/${uid(u)}`}>{nick(u)}</Link>
-                    <small> @{u.username || u.userName}</small>
-                  </td>
-                  <td>
-                    <Badge tone={u.isDisable || u.status === 0 ? "orange" : ""}>
-                      {u.isDisable || u.status === 0 ? "禁用" : "正常"}
-                    </Badge>
-                  </td>
-                  <td>
-                    <Button
-                      tone="small"
-                      action={() =>
-                        batch(
-                          u.isDisable || u.status === 0 ? "enable" : "disable",
-                          [uid(u)],
-                        )
-                      }
+        <div className="governance-list">
+          <label className="governance-select-all">
+            <input
+              type="checkbox"
+              aria-label="全选本页用户"
+              checked={
+                rows(request.data).length > 0 &&
+                selected.length === rows(request.data).length
+              }
+              onChange={(e) =>
+                setSelected(e.target.checked ? rows(request.data).map(uid) : [])
+              }
+            />
+            全选本页 · 已选 {selected.length} 位用户
+          </label>
+          {rows(request.data).map((u: Row) => {
+            const disabled = !!u.isDisable || u.status === 0;
+            return (
+              <article className="governance-row" key={uid(u)}>
+                <input
+                  type="checkbox"
+                  aria-label={`选择 ${nick(u)}`}
+                  checked={selected.includes(uid(u))}
+                  onChange={(e) =>
+                    setSelected((previous) =>
+                      e.target.checked
+                        ? [...previous, uid(u)]
+                        : previous.filter((v) => v !== uid(u)),
+                    )
+                  }
+                />
+                <Avatar user={u} size={40} />
+                <div className="governance-row-body">
+                  <div className="governance-row-title">
+                    <Link
+                      to={`/user/${uid(u)}`}
+                      className="governance-user-name"
                     >
-                      {u.isDisable || u.status === 0 ? "启用" : "禁用"}
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      {nick(u)}
+                    </Link>
+                    <span className="governance-user-handle">
+                      @{u.username || u.userName}
+                    </span>
+                    <Badge tone={disabled ? "orange" : ""}>
+                      {disabled ? "已封禁" : "正常"}
+                    </Badge>
+                  </div>
+                  <p className="governance-row-meta">
+                    ID: {uid(u)}
+                    {u.phone && ` · 手机: ${u.phone}`}
+                    {u.likeCount != null && ` · 获赞 ${u.likeCount}`}
+                    {u.createTime && ` · 注册于 ${time(u.createTime)}`}
+                  </p>
+                </div>
+                <div className="governance-row-actions">
+                  <Button
+                    tone={disabled ? "governance-approve" : "governance-reject"}
+                    action={() =>
+                      batch(disabled ? "enable" : "disable", [uid(u)])
+                    }
+                  >
+                    {disabled ? "解封恢复" : "封禁账号"}
+                  </Button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </DataState>
       <Pagination
@@ -509,6 +602,8 @@ function UsersAdmin() {
   );
 }
 function Reports() {
+  const governance = useContext(GovernanceContext);
+  const [decision, setDecision] = useState("1");
   const [page, setPage] = useState(1),
     [status, setStatus] = useState(""),
     [type, setType] = useState(""),
@@ -522,78 +617,99 @@ function Reports() {
     }),
   );
   return (
-    <section className="panel">
-      <h2>举报管理</h2>
-      <div className="toolbar">
-        <select
-          aria-label="处理状态"
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="">全部状态</option>
-          {["待处理", "已处理", "已驳回"].map((v, i) => (
-            <option value={i} key={i}>
-              {v}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="举报目标类型"
-          value={type}
-          onChange={(e) => {
-            setType(e.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="">全部类型</option>
-          {["pet", "activity", "comment", "user"].map((v) => (
-            <option value={v} key={v}>
-              {typeName(v)}
-            </option>
-          ))}
-        </select>
+    <section className="admin-module reports-module">
+      <div className="module-toolbar reports-toolbar">
+        <div className="governance-info-bar">
+          <span>核实举报事实，维护良好社区交流秩序</span>
+          <strong>待处理举报：{governance.reports ?? "—"} 件</strong>
+        </div>
+        <div className="toolbar">
+          <select
+            aria-label="处理状态"
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">全部状态</option>
+            {["待处理", "已处理", "已驳回"].map((v, i) => (
+              <option value={i} key={i}>
+                {v}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="举报目标类型"
+            value={type}
+            onChange={(e) => {
+              setType(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">全部类型</option>
+            {["pet", "activity", "comment", "user"].map((v) => (
+              <option value={v} key={v}>
+                {typeName(v)}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       <DataState request={request} empty={!rows(request.data).length}>
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                {["ID", "目标", "原因", "举报人", "时间", "状态", "操作"].map(
-                  (v) => (
-                    <th key={v}>{v}</th>
-                  ),
+        <div className="governance-list">
+          {rows(request.data).map((p: Row) => (
+            <article className="governance-row" key={p.id}>
+              <div className="governance-row-body">
+                <div className="governance-row-title">
+                  <Badge tone={p.status === 0 ? "orange" : ""}>
+                    {["待处理", "已处理完成", "已驳回"][p.status]}
+                  </Badge>
+                  <h3>
+                    {p.targetTitle ||
+                      `${typeName(p.targetType)} #${p.targetId}`}
+                  </h3>
+                </div>
+                <p className="governance-row-meta">
+                  举报原因：
+                  <strong className="governance-reason">{p.reason}</strong> ·
+                  举报人：{p.reporterName || "—"} · {time(p.createTime)}
+                </p>
+                {p.handleResult && (
+                  <p className="governance-summary">
+                    处理说明：{p.handleResult}
+                  </p>
                 )}
-              </tr>
-            </thead>
-            <tbody>
-              {rows(request.data).map((p) => (
-                <tr key={p.id}>
-                  <td>{p.id}</td>
-                  <td className="wrap">
-                    {typeName(p.targetType)} #{p.targetId}
-                    <br />
-                    {p.targetTitle}
-                  </td>
-                  <td className="wrap">{p.reason}</td>
-                  <td>{p.reporterName}</td>
-                  <td>{time(p.createTime)}</td>
-                  <td>
-                    <Badge tone={p.status === 0 ? "orange" : ""}>
-                      {["待处理", "已处理", "已驳回"][p.status]}
-                    </Badge>
-                  </td>
-                  <td>
-                    <Button tone="small" action={() => setActive(String(p.id))}>
-                      查看 / 处理
+              </div>
+              <div className="governance-row-actions">
+                {p.status === 0 ? (
+                  <>
+                    <Button
+                      tone="governance-terra"
+                      action={() => {
+                        setDecision("1");
+                        setActive(String(p.id));
+                      }}
+                    >
+                      下架违规内容
                     </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <Button
+                      action={() => {
+                        setDecision("2");
+                        setActive(String(p.id));
+                      }}
+                    >
+                      驳回举报
+                    </Button>
+                  </>
+                ) : (
+                  <Button tone="ghost" action={() => setActive(String(p.id))}>
+                    处理详情
+                  </Button>
+                )}
+              </div>
+            </article>
+          ))}
         </div>
       </DataState>
       <Pagination
@@ -606,7 +722,11 @@ function Reports() {
         <ReportDetail
           id={active}
           onClose={() => setActive(null)}
-          reload={request.reload}
+          initialStatus={decision}
+          reload={() => {
+            request.reload();
+            governance.refresh();
+          }}
         />
       )}
     </section>
@@ -616,13 +736,15 @@ function ReportDetail({
   id,
   onClose,
   reload,
+  initialStatus = "1",
 }: {
   id: string;
   onClose: () => void;
   reload: () => void;
+  initialStatus?: string;
 }) {
   const request = useData(`/report/detail/${id}`);
-  const [status, setStatus] = useState("1"),
+  const [status, setStatus] = useState(initialStatus),
     [text, setText] = useState("");
   const p = request.data;
   return (
@@ -707,110 +829,111 @@ function NoticesAdmin() {
     request.reload();
   }
   return (
-    <section className="panel">
-      <div className="panel-title">
-        <h2>公告管理</h2>
-        <Button
-          tone="primary"
-          action={() =>
-            setEditing({
-              title: "",
-              content: "",
-              type: 1,
-              priority: 0,
-              isTop: 0,
-            })
-          }
-        >
-          <Plus size={14} />
-          新增公告
-        </Button>
-      </div>
-      <SearchForm
-        onSearch={(v) => {
-          setKeyword(v);
-          setPage(1);
-        }}
-        placeholder="搜索公告标题或内容"
-      >
-        <select
-          aria-label="公告状态"
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
+    <section className="admin-module notices-module">
+      <div className="module-toolbar">
+        <div className="panel-title">
+          <span className="governance-info-text">
+            管理系统公告、活动通知与重要提醒
+          </span>
+          <Button
+            tone="primary"
+            action={() =>
+              setEditing({
+                title: "",
+                content: "",
+                type: 1,
+                priority: 0,
+                isTop: 0,
+              })
+            }
+          >
+            <Plus size={14} />
+            新建系统公告
+          </Button>
+        </div>
+        <SearchForm
+          onSearch={(v) => {
+            setKeyword(v);
             setPage(1);
           }}
+          placeholder="搜索公告标题或内容"
         >
-          <option value="">全部状态</option>
-          {["草稿", "已发布", "已下线"].map((s, i) => (
-            <option value={i} key={i}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </SearchForm>
+          <select
+            aria-label="公告状态"
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">全部状态</option>
+            {["草稿", "已发布", "已下线"].map((s, i) => (
+              <option value={i} key={i}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </SearchForm>
+      </div>
       <DataState request={request} empty={!rows(request.data).length}>
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                {["标题", "类型", "优先级", "状态", "发布时间", "操作"].map(
-                  (v) => (
-                    <th key={v}>{v}</th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {rows(request.data).map((p) => (
-                <tr key={p.id}>
-                  <td className="wrap">
-                    {p.isTop === 1 && <Badge tone="orange">置顶</Badge>}{" "}
-                    <Link to={`/notice/${p.id}`}>{p.title}</Link>
-                  </td>
-                  <td>{["", "系统公告", "活动通知", "重要提醒"][p.type]}</td>
-                  <td>{["普通", "重要", "紧急"][p.priority]}</td>
-                  <td>
-                    <Badge>{["草稿", "已发布", "已下线"][p.status]}</Badge>
-                  </td>
-                  <td>{time(p.publishTime)}</td>
-                  <td>
-                    <div className="row-actions">
-                      <Button
-                        tone="small"
-                        action={async () => {
-                          const d = await api(`/notice/admin/${p.id}`);
-                          setEditing({ ...p, ...d });
-                        }}
-                      >
-                        编辑
-                      </Button>
-                      <Button
-                        tone="small"
-                        action={() =>
-                          act(
-                            `/notice/admin/${p.id}/${p.status === 1 ? "unpublish" : "publish"}`,
-                            "PUT",
-                          )
-                        }
-                      >
-                        {p.status === 1 ? "下架" : "发布"}
-                      </Button>
-                      <Button
-                        tone="small danger"
-                        action={async () => {
-                          if (confirm("确认删除公告？"))
-                            await act(`/notice/admin/${p.id}`, "DELETE");
-                        }}
-                      >
-                        删除
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="governance-list">
+          {rows(request.data).map((p: Row) => (
+            <article className="governance-row" key={p.id}>
+              <div className="governance-row-body">
+                <div className="governance-row-title">
+                  {p.isTop === 1 && <Badge tone="orange">置顶</Badge>}
+                  <h3>
+                    {p.status === 1 ? (
+                      <Link to={`/notice/${p.id}`}>{p.title}</Link>
+                    ) : (
+                      p.title
+                    )}
+                  </h3>
+                  <Badge>{["草稿", "已发布", "已下线"][p.status]}</Badge>
+                </div>
+                {p.content && <p className="governance-summary">{p.content}</p>}
+                <p className="governance-row-meta">
+                  {["", "系统公告", "活动通知", "重要提醒"][p.type]} · 发布于{" "}
+                  {time(p.publishTime)} · 优先级：
+                  {["普通", "重要", "紧急"][p.priority]}
+                </p>
+              </div>
+              <div className="governance-row-actions">
+                <Button
+                  aria-label={`编辑公告：${p.title}`}
+                  title="编辑公告"
+                  action={async () => {
+                    const detail = await api(`/notice/admin/${p.id}`);
+                    setEditing({ ...p, ...detail });
+                  }}
+                >
+                  <Edit size={14} />
+                </Button>
+                <Button
+                  tone="small"
+                  action={() =>
+                    act(
+                      `/notice/admin/${p.id}/${p.status === 1 ? "unpublish" : "publish"}`,
+                      "PUT",
+                    )
+                  }
+                >
+                  {p.status === 1 ? "下架" : "发布"}
+                </Button>
+                <Button
+                  tone="governance-icon-danger"
+                  aria-label={`删除公告：${p.title}`}
+                  title="删除公告"
+                  action={async () => {
+                    if (confirm("确认删除公告？"))
+                      await act(`/notice/admin/${p.id}`, "DELETE");
+                  }}
+                >
+                  <Trash2 size={14} />
+                </Button>
+              </div>
+            </article>
+          ))}
         </div>
       </DataState>
       <Pagination
@@ -933,6 +1056,14 @@ function NoticeForm({
   );
 }
 function Trend({ data }: { data: Row }) {
+  const [metric, setMetric] = useState("newPostList");
+  const metrics = [
+    ["newPostList", "新增帖子"],
+    ["newUserList", "新增用户"],
+    ["newCommentList", "新增评论"],
+    ["newLikeList", "新增点赞"],
+    ["dauList", "活跃用户"],
+  ];
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -958,18 +1089,21 @@ function Trend({ data }: { data: Row }) {
             splitLine: { lineStyle: { color: "#f2ede5" } },
           },
           series: [
-            ["活跃用户", "dauList"],
-            ["新增用户", "newUserList"],
-            ["新增帖子", "newPostList"],
-            ["新增评论", "newCommentList"],
-            ["新增点赞", "newLikeList"],
-          ].map(([name, key]) => ({
-            name,
-            type: "line",
-            smooth: true,
-            symbolSize: 5,
-            data: data[key] || [],
-          })),
+            {
+              name: metrics.find(([key]) => key === metric)?.[1],
+              type: "bar",
+              label: {
+                show: true,
+                position: "top",
+                color: "#8a827b",
+                fontSize: 10,
+              },
+              barMaxWidth: 36,
+              itemStyle: { color: "#859887", borderRadius: [7, 7, 0, 0] },
+              emphasis: { itemStyle: { color: "#5f7161" } },
+              data: data[metric] || [],
+            },
+          ],
         });
         observer = new ResizeObserver(() => chart?.resize());
         observer.observe(ref.current);
@@ -980,25 +1114,41 @@ function Trend({ data }: { data: Row }) {
       observer?.disconnect();
       chart?.dispose();
     };
-  }, [data]);
+  }, [data, metric]);
   return error ? (
     <p role="alert">图表加载失败：{error}</p>
   ) : (
-    <div
-      ref={ref}
-      role="img"
-      aria-label="社区数据趋势折线图"
-      style={{ height: 340, width: "100%" }}
-    />
+    <div className="governance-chart">
+      <div className="governance-chart-heading">
+        <span>新增趋势</span>
+        <select
+          aria-label="趋势指标"
+          value={metric}
+          onChange={(e) => setMetric(e.target.value)}
+        >
+          {metrics.map(([key, name]) => (
+            <option key={key} value={key}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div
+        ref={ref}
+        role="img"
+        aria-label="社区数据趋势柱状图"
+        style={{ height: 220, width: "100%" }}
+      />
+    </div>
   );
 }
 function Statistics() {
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  const [type, setType] = useState("daily"),
+  const [type, setType] = useState("weekly"),
     [date, setDate] = useState(today),
     [end, setEnd] = useState(today),
-    [query, setQuery] = useState<Row>({ type: "daily", date: today }),
+    [query, setQuery] = useState<Row>({ type: "weekly", date: today }),
     [backfill, setBackfill] = useState(false),
     [start, setStart] = useState(today),
     [finish, setFinish] = useState(today),
@@ -1030,64 +1180,85 @@ function Statistics() {
   ];
   return (
     <>
-      <section className="panel">
-        <div className="panel-title">
-          <h2>今日实时</h2>
+      <section className="governance-realtime">
+        <div className="governance-stat-overline">
+          <span>今日实时</span>
           <Button tone="small" action={realtime.reload}>
             刷新
           </Button>
         </div>
         <DataState request={realtime}>
-          <div className="stat-grid">
+          <div className="governance-stat-cards">
             {[
-              ["用户", r.newUserCount],
+              ["今日新增用户", r.newUserCount],
               [
-                "帖子",
+                "今日发布帖子",
                 (r.newPetPostCount || 0) +
                   (r.newActivityCount || 0) +
                   (r.newDailyPostCount || 0),
               ],
-              ["评论", r.newCommentCount],
-              ["点赞", r.newLikeCount],
-              ["待审核", r.pendingAuditCount],
+              ["今日互动评论", r.newCommentCount],
+              ["今日收获点赞", r.newLikeCount],
+              ["待审核内容", r.pendingAuditCount],
             ].map(([name, n]) => (
               <div className="stat-tile" key={name}>
-                <strong><Value>{n ?? 0}</Value></strong>
                 <span>{name}</span>
+                <strong>
+                  <Value>{n ?? 0}</Value>
+                </strong>
+                <small>
+                  {name === "待审核内容"
+                    ? "严格把关内容真实性"
+                    : name === "今日收获点赞"
+                      ? "社区爱心传递"
+                      : "今日实时更新"}
+                </small>
               </div>
             ))}
           </div>
         </DataState>
       </section>
       <section className="panel">
-        <h2>统计概览</h2>
+        <h2 className="visually-hidden">统计概览</h2>
         <div className="toolbar">
-          <select
-            aria-label="统计周期"
-            value={type}
-            onChange={(e) => {
-              setType(e.target.value);
-              setDate(
-                e.target.value === "monthly"
-                  ? today.slice(0, 7)
-                  : e.target.value === "yearly"
-                    ? today.slice(0, 4)
-                    : today,
-              );
-            }}
-          >
+          <div className="governance-periods" aria-label="统计周期">
+            <strong>统计周期：</strong>
             {[
-              ["daily", "日统计"],
-              ["weekly", "周统计"],
-              ["monthly", "月统计"],
-              ["yearly", "年统计"],
-              ["range", "自定义区间"],
-            ].map(([v, n]) => (
-              <option key={v} value={v}>
-                {n}
-              </option>
+              ["daily", "日"],
+              ["weekly", "周"],
+              ["monthly", "月"],
+              ["yearly", "年"],
+              ["range", "区间"],
+            ].map(([value, name]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={type === value}
+                className={type === value ? "active" : ""}
+                onClick={() => {
+                  setType(value);
+                  const selected =
+                    value === "monthly"
+                      ? today.slice(0, 7)
+                      : value === "yearly"
+                        ? today.slice(0, 4)
+                        : today;
+                  setDate(selected);
+                  setQuery(
+                    value === "monthly"
+                      ? { type: value, month: selected }
+                      : value === "yearly"
+                        ? { type: value, year: selected }
+                        : value === "range"
+                          ? { type: value, startDate: today, endDate: today }
+                          : { type: value, date: selected },
+                  );
+                }}
+              >
+                {name}
+              </button>
             ))}
-          </select>
+          </div>
           <input
             aria-label="统计日期"
             type={
@@ -1128,13 +1299,18 @@ function Statistics() {
           >
             查询
           </Button>
-          <Button action={() => setBackfill(true)}>补录数据</Button>
+          <Button action={() => setBackfill(true)}>
+            <RotateCw size={14} />
+            数据重算 / 单日补录
+          </Button>
         </div>
         <DataState request={request}>
-          <div className="stat-grid">
+          <div className="governance-period-summary">
             {counters.map(([name, n]) => (
               <div className="stat-tile" key={name}>
-                <strong><Value>{n ?? 0}</Value></strong>
+                <strong>
+                  <Value>{n ?? 0}</Value>
+                </strong>
                 <span>{name}</span>
               </div>
             ))}

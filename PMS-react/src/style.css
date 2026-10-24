@@ -1791,3 +1791,80 @@ textarea {
 @media(prefers-reduced-motion:reduce){.ai-thinking>span{animation:none}}
 .ai-mobile-close{display:none}.ai-sidebar-heading{position:relative}@media(max-width:700px){.ai-mobile-close{display:flex;position:absolute;right:0;top:-6px}.ai-sidebar-heading .ai-eyebrow{padding-right:24px}}
 .ai-workspace .chat-sidebar{overflow:hidden}.ai-workspace .chat-sidebar>.data-region{flex:1;min-height:0;overflow:auto;margin-bottom:14px}.ai-sidebar-heading,.ai-sidebar-note{flex-shrink:0}.ai-workspace .chat-compose>.btn{flex-shrink:0;white-space:nowrap;min-width:86px;padding:12px 18px}.reference-card-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;padding-top:13px;border-top:1px solid #f4efea;margin-top:13px}.reference-card-actions .btn{font-size:11px;padding:6px 9px;min-height:31px}
+/* AdminAuditView reference: the whole workspace uses the prototype geometry. */
+.visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.admin-workspace{padding-bottom:48px}
+.governance-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px;border:1px solid #ece5db;border-radius:24px;background:#fff;box-shadow:0 1px 3px #59442d05;margin-bottom:24px}
+.governance-heading-main{display:flex;align-items:center;gap:12px;min-width:0}
+.governance-emblem{display:grid;place-items:center;width:40px;height:40px;border-radius:16px;flex-shrink:0;background:#637888;color:#fff}
+.governance-heading h1{font-size:20px;font-weight:700;color:#2e2a27;line-height:1.5;margin:0}
+.governance-heading p{font-size:12px;color:#8a827b;line-height:1.7;margin:3px 0 0}
+.governance-permission{font-size:12px;font-weight:500;white-space:nowrap;padding:4px 10px;background:#eef3f6;color:#4f6372;border-radius:8px}
+.admin-workspace .admin-nav{width:100%;max-width:100%;padding:4px;gap:6px;border-radius:16px;background:#efece4;margin-bottom:24px;scrollbar-width:none}
+.admin-workspace .admin-nav::-webkit-scrollbar{display:none}
+.admin-workspace .admin-nav button{gap:6px;padding:10px 16px;border-radius:12px;font-size:12px;font-weight:600;line-height:18px;min-height:38px}
+.admin-workspace .admin-nav button svg{width:16px;height:16px;stroke-width:2;flex-shrink:0}
+.admin-workspace .admin-nav button:nth-child(1) svg,.admin-workspace .admin-nav button:nth-child(4) svg{color:#c37e63}
+.admin-workspace .admin-nav button:nth-child(2) svg,.admin-workspace .admin-nav button:nth-child(6) svg{color:#5f7161}
+.admin-workspace .admin-nav button:nth-child(3) svg{color:#637888}.admin-workspace .admin-nav button:nth-child(5) svg{color:#b8864e}
+.governance-count{display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;line-height:15px;min-width:18px;padding:0 6px;border-radius:999px;background:#f9ede8;color:#c37e63;font-variant-numeric:tabular-nums}
+.admin-workspace .region-status:empty{display:none}
+.admin-workspace .data-content{min-height:0}
+.module-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:16px;border:1px solid #ece5db;border-radius:16px;background:#fff;box-shadow:0 1px 3px #59442d05;margin-bottom:16px}
+.admin-workspace .module-toolbar .toolbar{flex:1;display:flex;flex-wrap:wrap;gap:8px;margin:0;min-width:0}
+.admin-workspace .module-toolbar .search-input{flex:0 1 224px;min-width:180px;border-radius:12px;min-height:34px;background:#faf7f2}
+.admin-workspace .module-toolbar .search-input input{font-size:12px;padding-top:7px;padding-bottom:7px;min-height:32px}
+.admin-workspace .module-toolbar .search-input svg{width:14px;height:14px}
+.admin-workspace .module-toolbar select{font-size:12px;min-height:33px;padding:6px 11px;background:#faf7f2;border-radius:12px}
+.admin-workspace .module-toolbar>.row-actions{margin:0!important;gap:8px;flex-shrink:0}
+.admin-workspace .btn{font-size:12px;line-height:18px;padding:6px 12px;border-radius:12px;min-height:32px}
+.admin-workspace .module-toolbar .inline-check{font-size:12px}
+.governance-list{background:#fff;border:1px solid #ece5db;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px #59442d05}
+.governance-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px;border-bottom:1px solid #f4efea;min-width:0}
+.governance-row:last-child{border-bottom:0}
+.governance-row:hover{background:#faf7f2}
+.governance-row>input{width:16px;height:16px;accent-color:#5f7161;flex-shrink:0}
+.governance-row-body{min-width:0;flex:1}
+.governance-row-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.governance-row-title h3,.governance-user-name{font-size:14px;font-weight:700;line-height:1.6;color:#2e2a27;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.governance-row .badge{font-size:10px;line-height:15px;padding:2px 8px;border-radius:6px;font-weight:500;flex-shrink:0}
+.governance-row-meta,.governance-summary{font-size:12px;color:#8a827b;line-height:1.75;margin:4px 0 0;overflow-wrap:anywhere}
+.governance-summary{color:#6b635b;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden}
+.governance-reason{color:#c37e63;font-weight:500}
+.governance-row-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.governance-row-actions>.row-actions{gap:8px}
+.admin-workspace .governance-row-actions .primary,.admin-workspace .governance-approve{background:#ebf0eb;color:#5f7161;border-color:transparent;font-weight:600}
+.admin-workspace .governance-row-actions .danger,.admin-workspace .governance-reject{background:#f9ede8;color:#c37e63;border-color:transparent;font-weight:600}
+.admin-workspace .governance-terra{background:#c37e63;border-color:#c37e63;color:#fff;font-weight:600}
+.admin-workspace .governance-gold{background:#b8864e;border-color:#b8864e;color:#fff;font-weight:600}
+.admin-workspace .governance-icon-danger{color:#c37e63}
+.governance-thumbnail{width:48px;height:48px;flex-shrink:0;border:1px solid #ece5db;border-radius:12px;overflow:hidden;background:#f2ece1;display:grid;place-items:center;color:#b6ab9b}
+.governance-thumbnail .gallery{margin:0;display:block;width:48px;height:48px}
+.governance-thumbnail .image-button,.governance-thumbnail .image-button img{width:48px;height:48px;object-fit:cover;border:0;border-radius:0}
+.governance-history{padding:20px}
+.governance-list-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid #f4efea}
+.admin-workspace .governance-list-heading h2{font-size:14px;font-weight:700;margin:0}.governance-list-heading small{font-size:12px;color:#8a827b}
+.governance-history .governance-row{padding:12px 0}
+.governance-history .governance-row-title h3{font-size:12px}
+.governance-history .governance-row-actions .btn{font-size:11px;color:#8a827b}
+.governance-select-all{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#faf7f2;font-size:11px;color:#8a827b;border-bottom:1px solid #f4efea}
+.governance-user-handle{font-size:12px;color:#8a827b}
+.governance-info-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;font-size:12px;color:#8a827b;line-height:1.75}
+.governance-info-bar strong{font-size:12px;white-space:nowrap;color:#c37e63;font-weight:700}
+.governance-info-text{font-size:12px;color:#8a827b}
+.reports-toolbar>.toolbar{flex-basis:100%}
+.notices-module .module-toolbar>.panel-title{width:100%;margin:0}
+.governance-empty{padding:48px 20px;text-align:center;font-size:12px;color:#8a827b}
+.governance-stat-overline{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#8a827b;margin-bottom:10px}
+.governance-stat-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:24px}
+.admin-workspace .governance-stat-cards .stat-tile{display:flex;flex-direction:column;align-items:flex-start;padding:16px;background:#fff;border:1px solid #ece5db;border-radius:16px;box-shadow:0 1px 3px #59442d05}
+.governance-stat-cards .stat-tile>span{font-size:12px;color:#8a827b}.governance-stat-cards .stat-tile strong{font-size:20px;color:#2e2a27;margin:4px 0;font-variant-numeric:tabular-nums}.governance-stat-cards .stat-tile:last-child strong{color:#c37e63}.governance-stat-cards .stat-tile small{font-size:10px;color:#5f7161}.governance-stat-cards .stat-tile:nth-child(4) small{color:#c37e63}
+.governance-periods{display:flex;align-items:center;gap:4px;flex-shrink:0}.governance-periods strong{font-size:12px;margin-right:4px;color:#2e2a27}.governance-periods button{background:#faf7f2;border:1px solid #ddd5c9;border-radius:9px;font-size:12px;color:#615b54;padding:6px 13px;cursor:pointer}.governance-periods button.active{background:#5f7161;border-color:#5f7161;color:#fff}
+.governance-period-summary{display:flex;gap:20px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid #f4efea;margin-bottom:18px}.governance-period-summary .stat-tile{background:none;border:0;padding:0;display:flex;align-items:center;gap:8px;border-radius:0}.governance-period-summary .stat-tile strong{font-size:14px}.governance-period-summary .stat-tile>span{font-size:11px;color:#8a827b}
+.governance-chart-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;font-weight:600;color:#8a827b}.governance-chart-heading select{font-size:11px;background:#faf7f2;border-radius:10px;padding:6px 10px}
+.admin-workspace .modal{border-radius:24px;padding:24px;border-color:#ece5db}.admin-workspace .modal h2{font-size:16px}.admin-workspace .modal textarea{background:#faf7f2;border-radius:12px;font-size:12px}.admin-workspace .modal .tag-list .btn{font-size:11px;background:#faf7f2;border-radius:8px;text-align:left}
+@media(max-width:800px){.governance-stat-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.governance-row-actions{max-width:240px}.module-toolbar{align-items:stretch}.admin-workspace .module-toolbar>.row-actions{flex-wrap:wrap}.admin-workspace .module-toolbar .toolbar{flex-basis:100%}.governance-heading{align-items:flex-start;flex-direction:column}.governance-heading h1{font-size:18px}.governance-permission{margin-left:52px}}
+@media(max-width:560px){.governance-heading{padding:16px;border-radius:24px}.governance-heading h1{font-size:17px}.governance-heading p{font-size:11px}.admin-workspace .admin-nav button{font-size:12px;padding:10px 16px;gap:6px}.governance-row{flex-wrap:wrap;gap:10px;padding:14px}.governance-row-body{flex-basis:calc(100% - 90px)}.governance-row-actions{max-width:none;width:100%;margin-top:2px}.governance-row-title h3{white-space:normal}.governance-info-bar{flex-wrap:wrap;gap:6px}.module-toolbar{padding:14px}.admin-workspace .module-toolbar .search-input{flex-basis:100%}.governance-history{padding:16px}.governance-periods{flex-wrap:wrap}.governance-period-summary{gap:12px}}
+.admin-workspace .governance-chart-heading select{width:auto;max-width:180px;min-width:120px;flex:0 0 auto}.governance-chart-heading>span{white-space:nowrap;flex-shrink:0}.governance-stat-cards .stat-tile strong .data-value{font-size:20px;line-height:28px;font-weight:700;color:inherit}.governance-period-summary .stat-tile strong .data-value{font-size:14px;color:inherit;font-weight:700}
+/* Keep the reference header typography and spacing at every breakpoint. */
+.governance-heading h1{font-size:20px}.governance-heading p{font-size:12px}.governance-heading{padding:20px}.governance-permission{margin-left:0}@media(min-width:640px) and (max-width:800px){.governance-heading{flex-direction:row;align-items:center}}@media(min-width:768px) and (max-width:800px){.governance-stat-cards{grid-template-columns:repeat(5,minmax(0,1fr))}}
