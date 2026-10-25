@@ -1,7 +1,7 @@
 package com.hongjie.pms.AI.websocket;
 
 import com.alibaba.fastjson2.JSON;
-import com.hongjie.pms.AI.agent.AIAgentEngine;
+import com.hongjie.pms.refactor.ai.AiConversationGateway;
 import com.hongjie.pms.AI.modules.dto.request.AIAgentRequest;
 import com.hongjie.pms.AI.modules.dto.response.AIAgentResponse;
 import com.hongjie.pms.common.utils.JWTUtils;
@@ -22,9 +22,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class AIAgentWebSocketHandler extends TextWebSocketHandler {
     
-    private final AIAgentEngine aiAgentEngine;
+    private final AiConversationGateway conversations;
     private final com.hongjie.pms.refactor.user.UserSessions userSessions;
     
+    private final Map<String,String> businessSessions = new ConcurrentHashMap<>();
     private static final Map<String, WebSocketSession> SESSIONS = new ConcurrentHashMap<>();
     
     @Override
@@ -60,11 +61,18 @@ public class AIAgentWebSocketHandler extends TextWebSocketHandler {
             
             AIAgentRequest request = new AIAgentRequest();
             request.setUserId(identity.getUserId());
-            request.setSessionId(sessionId);
+            String requested = (String) data.get("sessionId");
+            request.setSessionId(requested);
             request.setMessage(userMessage);
             request.setStream(false);
             
-            AIAgentResponse response = aiAgentEngine.process(request);
+            if (requested == null || requested.isBlank()) {
+                request.setSessionId(businessSessions.computeIfAbsent(sessionId, key ->
+                        conversations.prepare(identity.getUserId(), request, "websocket").getSessionId()));
+            }
+            AIAgentResponse response = conversations.process(identity.getUserId(), request, "websocket");
+            businessSessions.compute(sessionId, (key, previous) ->
+                    session.isOpen() && SESSIONS.containsKey(sessionId) ? response.getSessionId() : null);
             sendMessage(sessionId, response);
             
         } catch (Exception e) {
@@ -81,6 +89,7 @@ public class AIAgentWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         SESSIONS.remove(session.getId());
+        businessSessions.remove(session.getId());
         log.info("AI客服WebSocket连接关闭: sessionId={}", session.getId());
     }
     

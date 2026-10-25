@@ -1,6 +1,6 @@
 package com.hongjie.pms.AI.modules.controller;
 
-import com.hongjie.pms.AI.agent.AIAgentEngine;
+import com.hongjie.pms.refactor.ai.AiConversationGateway;
 import com.hongjie.pms.AI.modules.dto.request.AIAgentRequest;
 import com.hongjie.pms.AI.modules.dto.response.AIAgentResponse;
 import com.hongjie.pms.AI.modules.entity.AiChatMessage;
@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class AIAgentController {
 
-    private final AIAgentEngine aiAgentEngine;
+    private final AiConversationGateway conversations;
     private final ChatSessionService chatSessionService;
     private final HumanTransferService humanTransferService;
 
@@ -67,26 +67,7 @@ public class AIAgentController {
     @RedisRateLimit(key = "aiChat", capacity = 10, refillRate = 10, duration = 1, timeUnit = TimeUnit.MINUTES)
     @PostMapping("/chat")
     public CommonResult<AIAgentResponse> chat(@Valid @RequestBody AIAgentRequest request) {
-        Long userId = UserContext.getUserId();
-//        if (userId != request.getUserId()) {
-//            throw new BusinessException("用户ID不匹配");
-//        }
-        request.setUserId(userId);
-
-        // 关键逻辑：如果没有 sessionId，自动创建
-        String sessionId = request.getSessionId();
-        if (sessionId == null || sessionId.isEmpty()) {
-            sessionId = chatSessionService.createSession(userId);
-            request.setSessionId(sessionId);
-            log.info("用户 {} 首次发送消息，自动创建会话: {}", userId, sessionId);
-        }
-
-        AIAgentResponse response = aiAgentEngine.process(request);
-
-        // 将 sessionId 返回给前端，前端需要保存用于后续对话
-        response.setSessionId(sessionId);
-
-        return CommonResult.success(response);
+        return CommonResult.success(conversations.process(UserContext.getUserId(), request));
     }
 
     /**
