@@ -3,15 +3,13 @@ package com.hongjie.pms.modules.search.controller;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.pojo.CommonResult;
 import com.hongjie.pms.modules.search.dto.UnifiedSearchResponse;
-import com.hongjie.pms.modules.search.service.FullDataSyncService;
-import com.hongjie.pms.modules.search.service.SearchDataSyncService;
 import com.hongjie.pms.modules.search.service.UnifiedSearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import com.hongjie.pms.refactor.search.index.SearchMaintenance;
 
 import static com.hongjie.pms.common.utils.SecurityUtils.checkAdmin;
 
@@ -22,31 +20,22 @@ import static com.hongjie.pms.common.utils.SecurityUtils.checkAdmin;
 public class SearchController {
 
     private final UnifiedSearchService unifiedSearchService;
-    private final SearchDataSyncService syncService;
-    private final FullDataSyncService fullDataSyncService;
+    private final SearchMaintenance maintenance;
 
     @PostMapping("/rebuild")
     public CommonResult<String> rebuildIndex() {
         checkAdmin();
         log.info("手动触发重建索引");
 
-        CompletableFuture.runAsync(() -> {
-            try {
-                // 1. 重建索引
-                syncService.rebuildIndex();
-
-                // 2. 等待一下
-                Thread.sleep(2000);
-
-                // 3. 全量同步数据
-                fullDataSyncService.syncAll();
-
-            } catch (Exception e) {
-                log.error("重建索引并同步数据失败", e);
-            }
-        });
+        maintenance.request();
 
         return CommonResult.success("重建索引任务已启动，请查看日志");
+    }
+
+    @GetMapping("/rebuild/status")
+    public CommonResult<SearchMaintenance.Status> rebuildStatus() {
+        checkAdmin();
+        return CommonResult.success(maintenance.status());
     }
 
     /**

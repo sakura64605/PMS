@@ -1,5 +1,7 @@
 # 全局搜索查询重构
 
+> 后续索引同步与重建已接续改造，见 [索引重构说明](search-index-refactor.md)。本文保留查询阶段交付记录。
+
 ## 范围与兼容
 
 本批接管 GET /pet-system/search/global 查询链路。

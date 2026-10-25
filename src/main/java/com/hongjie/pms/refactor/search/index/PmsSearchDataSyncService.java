@@ -1,0 +1,49 @@
+package com.hongjie.pms.refactor.search.index;
+
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import com.hongjie.pms.modules.search.service.SearchDataSyncService;
+import com.hongjie.pms.modules.search.document.UnifiedDoc;
+import com.hongjie.pms.modules.user.mapper.UserMapper;
+import com.hongjie.pms.modules.daily.mapper.*;
+import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
+import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
+import com.hongjie.pms.modules.petpost.entity.PetPost;
+import com.hongjie.pms.modules.activity.entity.Activity;
+import com.hongjie.pms.modules.daily.entity.DailyPost;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Service;
+import java.util.*;
+
+@Service @Primary
+public class PmsSearchDataSyncService extends SearchDataSyncService {
+    private final SearchSyncDispatch dispatch;
+    private final SearchIndexCoordinator coordinator;
+    private final SearchMaintenance maintenance;
+    public PmsSearchDataSyncService(ElasticsearchClient client,UserMapper users,TopicMapper topics,DailyTopicRelMapper links,
+            PetPostMapper pets,ActivityMapper activities,DailyPostMapper daily,
+            SearchSyncDispatch dispatch,SearchIndexCoordinator coordinator,SearchMaintenance maintenance){
+        super(client,users,topics,links,pets,activities,daily);
+        this.dispatch=dispatch;this.coordinator=coordinator;this.maintenance=maintenance;
+    }
+    @Override public void syncDailyPost(DailyPost post,List<Long> topics){if(post!=null)syncDailyPostById(post.getId());}
+    @Override public void syncPetPost(PetPost post){if(post!=null)syncPetPostById(post.getId());}
+    @Override public void syncActivity(Activity post){if(post!=null)syncActivityById(post.getId());}
+    @Override public void syncPetPostById(Long id){dispatch.submit("pet",id);}
+    @Override public void syncActivityById(Long id){dispatch.submit("activity",id);}
+    @Override public void syncDailyPostById(Long id){dispatch.submit("daily",id);}
+    @Override public void deleteById(String id){
+        if(id==null)return;
+        for(String type:List.of("pet","activity","daily"))if(id.startsWith(type+"_")){
+            try{dispatch.submit(type,Long.valueOf(id.substring(type.length()+1)));return;}
+            catch(NumberFormatException invalid){throw new IllegalArgumentException("Invalid search document id");}
+        }
+        throw new IllegalArgumentException("Invalid search document type");
+    }
+    @Override public void batchSync(List<UnifiedDoc> docs){
+        if(docs==null)return;
+        for(var doc:docs)if(doc!=null)dispatch.submit(doc.getType(),doc.getBusinessId());
+    }
+    @Override public void createIndex(){coordinator.initialize();}
+    @Override public void deleteIndex(){throw new UnsupportedOperationException("Use safe search index rebuild");}
+    @Override public void rebuildIndex(){maintenance.request();}
+}

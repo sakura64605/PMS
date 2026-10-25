@@ -25,7 +25,7 @@ public class ElasticsearchIndexInitializer {
     private final ElasticsearchClient esClient;
     private static final String INDEX_NAME = "unified_search";
 
-    @EventListener(ApplicationReadyEvent.class)
+    @EventListener(value=ApplicationReadyEvent.class, condition="false")
     @Async
     public void initIndex() {
         try {

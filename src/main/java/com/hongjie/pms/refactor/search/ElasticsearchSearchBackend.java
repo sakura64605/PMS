@@ -15,7 +15,7 @@ import java.util.*;
 @Component @RequiredArgsConstructor @Slf4j
 public class ElasticsearchSearchBackend implements SearchBackend {
     SearchRequest request(SearchInput input) {
-        var builder=new SearchRequest.Builder().index("unified_search")
+        var builder=new SearchRequest.Builder().index(com.hongjie.pms.refactor.search.index.SearchIndexStore.ALIAS)
                 .from((input.pageNum()-1)*input.pageSize()).size(input.pageSize())
                 .trackTotalHits(t->t.enabled(true))
                 .source(s->s.filter(f->f.includes("type","businessId")));

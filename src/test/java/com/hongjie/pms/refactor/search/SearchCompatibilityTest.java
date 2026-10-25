@@ -31,7 +31,7 @@ class SearchCompatibilityTest {
         when(service.search("cat",1,12,List.of("pet"),"time",7L))
                 .thenReturn(UnifiedSearchResponse.builder().total(1L).pageNum(1).pageSize(12).totalPages(1)
                         .items(List.of(SearchResultItem.builder().id(9L).type("pet").title("cat").isLiked(true).isFavorite(false).build())).build());
-        var controller=new SearchController(service,mock(SearchDataSyncService.class),mock(FullDataSyncService.class));
+        var controller=new SearchController(service,mock(com.hongjie.pms.refactor.search.index.SearchMaintenance.class));
         var mvc=MockMvcBuilders.standaloneSetup(controller).build();
         var actor=new UserInfo();actor.setUserId(7L);UserContext.setUser(actor);
         try{

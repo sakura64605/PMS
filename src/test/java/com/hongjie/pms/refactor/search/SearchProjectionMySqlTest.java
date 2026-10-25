@@ -61,6 +61,19 @@ class SearchProjectionMySqlTest {
         var second=service.search("cat",1,20,null,null,actor.getId()).getItems().get(0);
         assertThat(second.getTitle()).isEqualTo("cat NEW");assertThat(second.getLikeCount()).isEqualTo(9);
     }
+    @Test void indexSourceUsesBoundedKeysetAndReloadsCurrentRows(){
+        var source=new com.hongjie.pms.refactor.search.index.SearchIndexSources().petIndexSource(pets,users);
+        assertThat(source.maxId()).isGreaterThanOrEqualTo(post.getId());
+        assertThat(source.ids(post.getId()-1,post.getId())).containsExactly(post.getId());
+        var doc=source.load(List.of(post.getId())).get(post.getId());
+        assertThat(doc.getId()).isEqualTo("pet_"+post.getId());
+        assertThat(doc.getImages()).containsExactly("first.png","second.png");
+        assertThat(doc.getUserName()).isEqualTo(owner.getUserName());
+        pets.update(null,new LambdaUpdateWrapper<PetPost>().eq(PetPost::getId,post.getId()).set(PetPost::getAuditStatus,0));
+        assertThat(source.load(List.of(post.getId())).get(post.getId()).getAuditStatus()).isZero();
+        pets.update(null,new LambdaUpdateWrapper<PetPost>().eq(PetPost::getId,post.getId()).set(PetPost::getStatus,-1));
+        assertThat(source.load(List.of(post.getId()))).isEmpty();
+    }
     @Test void currentDatabaseAuditAndDeletionOverrideStaleApprovedCandidate(){
         var service=service();
         pets.update(null,new LambdaUpdateWrapper<PetPost>().eq(PetPost::getId,post.getId()).set(PetPost::getAuditStatus,0));
