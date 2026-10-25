@@ -18,10 +18,11 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class AdminAuditBridgeTest {
-    AdminService legacy;PetPostMapper posts;AuditCommandService audit;PmsAdminServiceImpl bridge;
+    com.hongjie.pms.refactor.user.UserAdministration accounts;AdminService legacy;PetPostMapper posts;AuditCommandService audit;PmsAdminServiceImpl bridge;
     @BeforeEach void setup(){
         legacy=mock(AdminService.class);posts=mock(PetPostMapper.class);audit=mock(AuditCommandService.class);
-        bridge=new PmsAdminServiceImpl(legacy,posts,audit);
+        accounts=mock(com.hongjie.pms.refactor.user.UserAdministration.class);
+        bridge=new PmsAdminServiceImpl(accounts,posts,audit);
         UserContext.setUser(new UserInfo(1L,"admin",1,null,null));
     }
     @AfterEach void clear(){UserContext.clear();}
@@ -39,12 +40,15 @@ class AdminAuditBridgeTest {
     @Test void unsupportedTypeDoesNotCreateAnAuditRecord(){
         post(9);assertThatThrownBy(()->bridge.accept(10L)).isInstanceOf(BusinessException.class);verifyNoInteractions(audit,legacy);
     }
-    @Test void accountOperationsKeepTheirOriginalDelegate(){
+    @Test void accountOperationsUseNewAdministration(){
         var page=new Page<com.hongjie.pms.modules.admin.dto.response.AdminUserSimpleDto>();
-        when(legacy.userList(1,10,"name",1)).thenReturn(page);
+        when(accounts.list(1,10,"name",1)).thenReturn(page);
         assertThat(bridge.userList(1,10,"name",1)).isSameAs(page);
         bridge.batchDisableUsers(List.of(2L));bridge.batchEnableUsers(List.of(2L));bridge.batchResetPassword(List.of(2L));
-        verify(legacy).batchDisableUsers(List.of(2L));verify(legacy).batchEnableUsers(List.of(2L));verify(legacy).batchResetPassword(List.of(2L));
+        verify(accounts).batch(List.of(2L),com.hongjie.pms.refactor.user.UserAdminItem.Operation.DISABLE);
+        verify(accounts).batch(List.of(2L),com.hongjie.pms.refactor.user.UserAdminItem.Operation.ENABLE);
+        verify(accounts).batch(List.of(2L),com.hongjie.pms.refactor.user.UserAdminItem.Operation.RESET_PASSWORD);
+        verifyNoInteractions(legacy);
         verifyNoInteractions(audit,posts);
     }
     @Configuration(proxyBeanMethods=false)
@@ -52,6 +56,7 @@ class AdminAuditBridgeTest {
     @Test void existingControllerReceivesBridgeAndRollbackSelectsLegacy(){
         new ApplicationContextRunner().withUserConfiguration(Config.class)
                 .withBean("adminServiceImpl",AdminService.class,()->legacy)
+                .withBean(com.hongjie.pms.refactor.user.UserAdministration.class,()->accounts)
                 .withBean(PetPostMapper.class,()->posts).withBean(AuditCommandService.class,()->audit).run(context->{
                     assertThat(context).hasNotFailed();
                     assertThat(context.getBean(AdminService.class)).isInstanceOf(PmsAdminServiceImpl.class);

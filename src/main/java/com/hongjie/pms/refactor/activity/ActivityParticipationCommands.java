@@ -39,7 +39,7 @@ public class ActivityParticipationCommands {
         User user=users.selectById(actor);
         if(user==null) throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         if(!Objects.equals(user.getStatus(),1)) throw new BusinessException(ErrorCode.USER_DISABLED);
-        if(Objects.equals(user.getIsBannedSignup(),1) && (user.getBanSignupEndTime()==null || user.getBanSignupEndTime().isAfter(now)))
+        if(com.hongjie.pms.refactor.user.UserRestrictions.signupBlocked(user,now))
             throw new BusinessException(ErrorCode.FORBIDDEN,"当前账号被限制报名");
         if(Objects.equals(activity.getUserId(),actor)) throw new BusinessException(ErrorCode.PARAM_ERROR,"不能报名自己的活动");
         requireOpen(activity,now);

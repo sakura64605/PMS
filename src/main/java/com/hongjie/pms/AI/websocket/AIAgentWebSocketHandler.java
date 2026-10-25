@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AIAgentWebSocketHandler extends TextWebSocketHandler {
     
     private final AIAgentEngine aiAgentEngine;
-    private final JWTUtils jwtUtils;
+    private final com.hongjie.pms.refactor.user.UserSessions userSessions;
     
     private static final Map<String, WebSocketSession> SESSIONS = new ConcurrentHashMap<>();
     
@@ -31,7 +31,8 @@ public class AIAgentWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) {
         // 从 URL 参数中获取 token 并验证
         String token = getTokenFromSession(session);
-        if (token == null || !jwtUtils.validateToken(token)) {
+        var identity = userSessions.authenticate(token);
+        if (identity == null) {
             log.warn("AI WebSocket 连接未认证或 token 无效");
             try {
                 session.close(CloseStatus.NOT_ACCEPTABLE);
@@ -41,7 +42,7 @@ public class AIAgentWebSocketHandler extends TextWebSocketHandler {
             return;
         }
         
-        Long userId = jwtUtils.getUserId(token);
+        Long userId = identity.getUserId();
         String sessionId = session.getId();
         SESSIONS.put(sessionId, session);
         log.info("AI客服WebSocket连接建立: sessionId={}, userId={}", sessionId, userId);
@@ -52,10 +53,13 @@ public class AIAgentWebSocketHandler extends TextWebSocketHandler {
         String sessionId = session.getId();
         
         try {
+            var identity = userSessions.authenticate(getTokenFromSession(session));
+            if (identity == null) { session.close(CloseStatus.NOT_ACCEPTABLE); return; }
             Map<String, Object> data = JSON.parseObject(message.getPayload());
             String userMessage = (String) data.get("message");
             
             AIAgentRequest request = new AIAgentRequest();
+            request.setUserId(identity.getUserId());
             request.setSessionId(sessionId);
             request.setMessage(userMessage);
             request.setStream(false);
@@ -100,7 +104,7 @@ public class AIAgentWebSocketHandler extends TextWebSocketHandler {
             String[] params = query.split("&");
             for (String param : params) {
                 if (param.startsWith("token=")) {
-                    return param.substring(6);
+                    return java.net.URLDecoder.decode(param.substring(6), java.nio.charset.StandardCharsets.UTF_8);
                 }
             }
         }

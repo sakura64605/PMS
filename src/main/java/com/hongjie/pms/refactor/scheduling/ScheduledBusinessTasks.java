@@ -24,6 +24,7 @@ public class ScheduledBusinessTasks {
     private final ActivityMapper activities;
     private final ActivitySignupMapper signups;
     private final UserMapper users;
+    private final com.hongjie.pms.refactor.user.UserCache userCache;
     private final ScheduledTaskMapper locks;
     private final ActivityCache cache;
     private final MessageService messages;
@@ -89,20 +90,23 @@ public class ScheduledBusinessTasks {
             messages.sendPunishmentStartNotification(userId, "近期活动爽约率过高，禁止报名" + days + "天");
         }
         if (users.update(null, update) != 1) throw new IllegalStateException("Absence summary update failed");
+        userCache.afterCommit(userId);
     }
     public void signupExpiry(Long id) {
         User user = users.selectById(id);
         if (user == null) return;
-        LocalDateTime until = user.getBanSignupEndTime() != null ? user.getBanSignupEndTime() : user.getPunishmentEndTime();
+        LocalDateTime until = com.hongjie.pms.refactor.user.UserRestrictions.signupUntil(user);
         if (until != null && until.isAfter(LocalDateTime.now())) return;
         users.update(null, new LambdaUpdateWrapper<User>().eq(User::getId, id)
                 .set(User::getIsBannedSignup, 0).set(User::getBanSignupEndTime, null).set(User::getPunishmentEndTime, null));
+        userCache.afterCommit(id);
     }
     public void muteExpiry(Long id) {
         User user = users.selectById(id);
         if (user == null || user.getMuteEndTime() == null || user.getMuteEndTime().isAfter(LocalDateTime.now())) return;
         users.update(null, new LambdaUpdateWrapper<User>().eq(User::getId, id)
                 .set(User::getIsMuted, 0).set(User::getMuteEndTime, null));
+        userCache.afterCommit(id);
     }
     public void banExpiry(Long id) {
         User user = users.selectById(id);
@@ -111,6 +115,7 @@ public class ScheduledBusinessTasks {
         LocalDateTime latest = locks.latestBanExpiry(id);
         if (latest != null && latest.isAfter(LocalDateTime.now())) return;
         users.update(null, new LambdaUpdateWrapper<User>().eq(User::getId, id).set(User::getStatus, 1));
+        userCache.afterCommit(id);
     }
     private boolean visible(Activity row) {
         return row != null && Objects.equals(row.getDeleted(), 0) && Objects.equals(row.getAuditStatus(), 1)

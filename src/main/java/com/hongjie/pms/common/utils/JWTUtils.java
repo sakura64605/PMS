@@ -63,6 +63,15 @@ public class JWTUtils {
      * @param claims 令牌 claims
      * @return JWT令牌
      */
+    public String generateToken(String userName, Integer role, Long userId, String credential) {
+        Map<String,Object> claims = new HashMap<>();
+        claims.put("userName", userName); claims.put("role", role); claims.put("userId", userId);
+        claims.put("credentialVersion", credential);
+        return createToken(claims);
+    }
+    public String getCredentialVersion(String token) { return parseToken(token).get("credentialVersion", String.class); }
+    public Date getExpiration(String token) { return parseToken(token).getExpiration(); }
+
     private String createToken(Map<String, Object> claims) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expire * 1000);
@@ -70,8 +79,8 @@ public class JWTUtils {
         return Jwts.builder()
                 .setHeaderParams(Map.of("typ", "JWT"))
                 .setHeaderParams(Map.of("alg", "HS256"))
-                .setId(UUID.randomUUID().toString())
                 .setClaims(claims)
+                .setId(UUID.randomUUID().toString())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)

@@ -29,6 +29,7 @@ import java.util.List;
 public class AuthInterceptor implements HandlerInterceptor {
 
     private final JWTUtils jwtUtils;
+    private final com.hongjie.pms.refactor.user.UserSessions sessions;
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
@@ -78,15 +79,9 @@ public class AuthInterceptor implements HandlerInterceptor {
         String token = request.getHeader(jwtUtils.getHeader());
         UserInfo userInfo = null;
 
-        if (token != null && jwtUtils.validateToken(token)) {
-            Long userId = jwtUtils.getUserId(token);
-            String userName = jwtUtils.getUserName(token);
-            Integer role = jwtUtils.getRole(token);
-
-            userInfo = new UserInfo(userId, userName, role, null, null);
-            UserContext.setUser(userInfo);
-            log.debug("用户信息已存入ThreadLocal: userId={}, username={}", userId, userName);
-        }
+        UserContext.clear();
+        userInfo = sessions.authenticate(token);
+        if (userInfo != null) UserContext.setUser(userInfo);
 
         // 3. 白名单路径直接放行（可选认证：无 token 也可访问）
         if (isPublic) {

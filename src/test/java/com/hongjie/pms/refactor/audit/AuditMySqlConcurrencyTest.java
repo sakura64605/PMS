@@ -48,6 +48,7 @@ class AuditMySqlConcurrencyTest {
     @EnableTransactionManagement(proxyTargetClass=true)
     @Import({AuditWriteTargets.class,AuditCommandService.class,PmsAdminServiceImpl.class})
     static class Config {
+        @Bean com.hongjie.pms.refactor.user.UserAdministration accounts(){return mock(com.hongjie.pms.refactor.user.UserAdministration.class);}
         @Bean Probe probe(){return new Probe();}
         @Bean AdminService adminServiceImpl(){return mock(AdminService.class);}
     }

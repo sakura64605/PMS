@@ -9,22 +9,21 @@ import com.hongjie.pms.modules.admin.dto.response.BatchOperationResponse;
 import com.hongjie.pms.modules.admin.service.AdminService;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
 import com.hongjie.pms.refactor.audit.AuditCommandService;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Objects;
 
-/** 旧后台审核路径的适配层；账号管理仍明确委托旧服务，避免混入另一批行为变更。 */
+/** Compatibility facade for legacy admin paths; all operations use new services. */
 @Service
 @Primary
 public class PmsAdminServiceImpl implements AdminService {
-    private final AdminService legacyAccounts;
+    private final com.hongjie.pms.refactor.user.UserAdministration accounts;
     private final PetPostMapper posts;
     private final AuditCommandService audit;
-    public PmsAdminServiceImpl(@Qualifier("adminServiceImpl") AdminService legacyAccounts,
+    public PmsAdminServiceImpl(com.hongjie.pms.refactor.user.UserAdministration accounts,
                               PetPostMapper posts, AuditCommandService audit) {
-        this.legacyAccounts=legacyAccounts;this.posts=posts;this.audit=audit;
+        this.accounts=accounts;this.posts=posts;this.audit=audit;
     }
     @Override public void accept(Long id) { audit.approve(id,auditType(id)); }
     @Override public void reject(Long id,String reason) { audit.reject(id,auditType(id),reason); }
@@ -39,9 +38,9 @@ public class PmsAdminServiceImpl implements AdminService {
         throw new BusinessException(ErrorCode.PARAM_ERROR,"未知宠物帖子类型");
     }
     @Override public IPage<AdminUserSimpleDto> userList(int page,int size,String keyword,Integer status) {
-        return legacyAccounts.userList(page,size,keyword,status);
+        return accounts.list(page,size,keyword,status);
     }
-    @Override public BatchOperationResponse batchDisableUsers(List<Long> ids) { return legacyAccounts.batchDisableUsers(ids); }
-    @Override public BatchOperationResponse batchEnableUsers(List<Long> ids) { return legacyAccounts.batchEnableUsers(ids); }
-    @Override public BatchOperationResponse batchResetPassword(List<Long> ids) { return legacyAccounts.batchResetPassword(ids); }
+    @Override public BatchOperationResponse batchDisableUsers(List<Long> ids) { return accounts.batch(ids,com.hongjie.pms.refactor.user.UserAdminItem.Operation.DISABLE); }
+    @Override public BatchOperationResponse batchEnableUsers(List<Long> ids) { return accounts.batch(ids,com.hongjie.pms.refactor.user.UserAdminItem.Operation.ENABLE); }
+    @Override public BatchOperationResponse batchResetPassword(List<Long> ids) { return accounts.batch(ids,com.hongjie.pms.refactor.user.UserAdminItem.Operation.RESET_PASSWORD); }
 }

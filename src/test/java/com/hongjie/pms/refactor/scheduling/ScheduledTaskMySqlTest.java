@@ -38,6 +38,7 @@ class ScheduledTaskMySqlTest {
     @Configuration(proxyBeanMethods=false) @EnableTransactionManagement(proxyTargetClass=true)
     @Import({ScheduledTaskWorker.class,DueTaskBatch.class,ScheduledBusinessTasks.class,BusinessTaskConfiguration.class,DelayTaskService.class})
     static class Config {
+        @Bean com.hongjie.pms.refactor.user.UserCache userCache(){return mock(com.hongjie.pms.refactor.user.UserCache.class);}
         @Bean SchedulingProperties settings(){return new SchedulingProperties();}
         @Bean ActivityCache cache(){return mock(ActivityCache.class);}
         @Bean MessageService messages(){return mock(MessageService.class);}

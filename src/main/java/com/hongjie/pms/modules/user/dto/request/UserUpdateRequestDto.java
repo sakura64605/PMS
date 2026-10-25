@@ -8,6 +8,7 @@ import java.util.List;
 
 @Data
 @Builder
+@lombok.extern.jackson.Jacksonized
 public class UserUpdateRequestDto {
 
     /**

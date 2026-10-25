@@ -35,6 +35,7 @@ public class UserAuthController extends BaseController {
 
     private final UserService userService;
     private final JWTUtils jwtUtils;
+    private final com.hongjie.pms.refactor.user.UserSessions sessions;
 
     /**
      * 登录
@@ -53,6 +54,7 @@ public class UserAuthController extends BaseController {
     @PostMapping("/logout")
     public CommonResult<String> logout(HttpServletRequest request) {
         String header = request.getHeader(jwtUtils.getHeader());
+        sessions.logout(header);
         log.info("用户退出登录, userId={}", UserContext.getUserId());
         return CommonResult.success("退出登录成功");
     }
@@ -83,7 +85,6 @@ public class UserAuthController extends BaseController {
     @PostMapping("/changePassword")
     public CommonResult<String> updatePassword(@Valid @RequestBody ChangePasswordRequestDto changePasswordRequestDto) {
         Long userId = UserContext.getUserId();
-        log.info("用户{}修改密码: {}", userId, changePasswordRequestDto);
 
         userService.changePassword(userId, changePasswordRequestDto);
         return CommonResult.success("修改密码成功");
@@ -105,7 +106,7 @@ public class UserAuthController extends BaseController {
     @PutMapping("/update")
     public CommonResult<UserInfoDto> updateUserInfo(@Valid @RequestBody UserUpdateRequestDto updateDto) {
         Long userId = UserContext.getUserId();
-        log.info("用户{}更新信息: {}", userId, updateDto);
+        log.info("User profile update: userId={}", userId);
 
         UserInfoDto updatedInfo = userService.updateUserInfo(userId, updateDto);
         if(updatedInfo == null){

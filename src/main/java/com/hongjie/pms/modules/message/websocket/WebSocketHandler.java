@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class WebSocketHandler extends TextWebSocketHandler {
 
-    private final JWTUtils jwtUtils;
+    private final com.hongjie.pms.refactor.user.UserSessions userSessions;
 
     // 在线用户: userId -> session
     private static final Map<Long, WebSocketSession> SESSIONS = new ConcurrentHashMap<>();
@@ -26,7 +26,8 @@ public class WebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         String token = getTokenFromSession(session);
-        if (token == null || !jwtUtils.validateToken(token)) {
+        var identity = userSessions.authenticate(token);
+        if (identity == null) {
             try {
                 session.close(CloseStatus.NOT_ACCEPTABLE);
             } catch (Exception e) {
@@ -35,7 +36,9 @@ public class WebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        Long userId = jwtUtils.getUserId(token);
+        Long userId = identity.getUserId();
+        session.getAttributes().put("pms.auth", userSessions);
+        session.getAttributes().put("pms.token", token);
         SESSIONS.put(userId, session);
         log.info("用户 {} 已连接，在线人数: {}", userId, SESSIONS.size());
     }
@@ -53,6 +56,11 @@ public class WebSocketHandler extends TextWebSocketHandler {
         WebSocketSession session = SESSIONS.get(userId);
         if (session != null && session.isOpen()) {
             try {
+                var attributes = session.getAttributes();
+                if (attributes != null && attributes.get("pms.auth") instanceof com.hongjie.pms.refactor.user.UserSessions guard
+                        && guard.authenticate((String)attributes.get("pms.token")) == null) {
+                    SESSIONS.remove(userId, session); session.close(CloseStatus.NOT_ACCEPTABLE); return false;
+                }
                 String json = JSON.toJSONString(message);
                 // 并发推送同一 session 会抛 "Concurrent access"，加锁串行化
                 synchronized (session) {
@@ -82,7 +90,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
         if (query != null) {
             for (String param : query.split("&")) {
                 if (param.startsWith("token=")) {
-                    return param.substring(6);
+                    return java.net.URLDecoder.decode(param.substring(6), java.nio.charset.StandardCharsets.UTF_8);
                 }
             }
         }
