@@ -8,6 +8,7 @@ import com.hongjie.pms.modules.statistics.dto.StatisticsQueryDto;
 import com.hongjie.pms.modules.statistics.dto.StatisticsResponseDto;
 import com.hongjie.pms.modules.statistics.service.StatisticsService;
 import lombok.RequiredArgsConstructor;
+import com.hongjie.pms.refactor.statistics.StatisticsCalendar;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,7 @@ import java.time.format.DateTimeFormatter;
 public class StatisticsController {
 
     private final StatisticsService statisticsService;
+    private final StatisticsCalendar calendar;
 
     /**
      * 统一统计查询入口
@@ -49,25 +51,25 @@ public class StatisticsController {
 
         switch (type) {
             case "daily":
-                LocalDate date = queryDto.getDate() != null ? queryDto.getDate() : LocalDate.now();
+                LocalDate date = queryDto.getDate() != null ? queryDto.getDate() : calendar.today();
                 return CommonResult.success(statisticsService.getDailyStatistics(date));
 
             case "weekly":
-                LocalDate weekDate = queryDto.getDate() != null ? queryDto.getDate() : LocalDate.now();
+                LocalDate weekDate = queryDto.getDate() != null ? queryDto.getDate() : calendar.today();
                 return CommonResult.success(statisticsService.getWeeklyStatistics(weekDate));
 
             case "monthly":
                 String month = queryDto.getMonth() != null ? queryDto.getMonth()
-                        : LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+                        : calendar.today().format(DateTimeFormatter.ofPattern("yyyy-MM"));
                 return CommonResult.success(statisticsService.getMonthlyStatistics(month));
 
             case "yearly":
-                int year = queryDto.getYear() != null ? queryDto.getYear() : LocalDate.now().getYear();
+                int year = queryDto.getYear() != null ? queryDto.getYear() : calendar.today().getYear();
                 return CommonResult.success(statisticsService.getYearlyStatistics(year));
 
             case "range":
-                LocalDate startDate = queryDto.getStartDate() != null ? queryDto.getStartDate() : LocalDate.now().minusDays(7);
-                LocalDate endDate = queryDto.getEndDate() != null ? queryDto.getEndDate() : LocalDate.now();
+                LocalDate startDate = queryDto.getStartDate() != null ? queryDto.getStartDate() : calendar.today().minusDays(7);
+                LocalDate endDate = queryDto.getEndDate() != null ? queryDto.getEndDate() : calendar.today();
                 return CommonResult.success(statisticsService.getRangeStatistics(startDate, endDate));
 
             default:
