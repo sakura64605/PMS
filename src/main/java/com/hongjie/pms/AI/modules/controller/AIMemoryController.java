@@ -57,7 +57,7 @@ public class AIMemoryController {
     }
 
     /** 删除我的一条长期记忆（软删，避免被对话自动抽取复活） */
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:[0-9]{1,19}}")
     public CommonResult<String> delete(@PathVariable Long id) {
         boolean ok = userMemoryService.deleteByUser(UserContext.getUserId(), id);
         if (!ok) {

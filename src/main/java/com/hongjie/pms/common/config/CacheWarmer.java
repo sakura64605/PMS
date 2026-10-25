@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name="pms.cache.warm-on-startup",havingValue="true",matchIfMissing=true)
 public class CacheWarmer {
 
     @Autowired

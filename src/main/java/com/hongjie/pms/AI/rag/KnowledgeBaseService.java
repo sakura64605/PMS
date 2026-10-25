@@ -29,9 +29,12 @@ public class KnowledgeBaseService {
     private final AiKnowledgeBaseMapper knowledgeBaseMapper;
     private final QdrantVectorStore qdrantVectorStore;
 
+    @org.springframework.beans.factory.annotation.Value("${pms.ai.knowledge.sync-on-startup:true}")
+    private boolean syncOnStartup=true;
+
     @PostConstruct
     public void init() {
-        loadKnowledgeToVectorStore();
+        if(syncOnStartup)loadKnowledgeToVectorStore();
     }
 
     /** 全量把启用中的知识同步进 Qdrant（按 docId 幂等 upsert），来源仍是 MySQL */

@@ -24,10 +24,26 @@ class AiTransportTest {
             var mvc=MockMvcBuilders.standaloneSetup(controller).build();
             mvc.perform(post("/pet-system/ai/chat").contentType("application/json").content("{\"userId\":99,\"message\":\"hello\"}"))
                     .andExpect(status().isOk()).andExpect(jsonPath("$.data.sessionId").value("owned")).andExpect(jsonPath("$.data.messageId").value("saved"));
-            mvc.perform(delete("/pet-system/ai/memory/owned")).andExpect(status().isOk());
+            mvc.perform(delete("/pet-system/ai/memory/0123456789abcdef0123456789abcdef")).andExpect(status().isOk());
             mvc.perform(post("/pet-system/ai/feedback").param("messageId","saved").param("score","0")).andExpect(status().isOk());
             mvc.perform(post("/pet-system/ai/transfer").param("sessionId","owned")).andExpect(status().isOk());
-            verify(sessions).clearMemory("owned");verify(sessions).submitFeedback("saved",0);verify(transfers).requestTransfer("owned",7L,null);
+            verify(sessions).clearMemory("0123456789abcdef0123456789abcdef");verify(sessions).submitFeedback("saved",0);verify(transfers).requestTransfer("owned",7L,null);
+        }finally{UserContext.clear();}
+    }
+    @Test void bothMemoryControllersHaveDisjointDeleteRoutes()throws Exception{
+        var sessions=mock(ChatSessionService.class);var memories=mock(UserMemoryService.class);
+        when(memories.deleteByUser(7L,12L)).thenReturn(true);
+        var chat=new AIAgentController(mock(AiConversationGateway.class),sessions,mock(HumanTransferService.class));
+        var memory=new com.hongjie.pms.AI.modules.controller.AIMemoryController(memories);
+        var actor=new UserInfo();actor.setUserId(7L);UserContext.setUser(actor);
+        try{
+            var mvc=MockMvcBuilders.standaloneSetup(chat,memory).build();
+            mvc.perform(delete("/pet-system/ai/memory/12")).andExpect(status().isOk());
+            mvc.perform(delete("/pet-system/ai/memory/0123456789abcdef0123456789abcdef")).andExpect(status().isOk());
+            mvc.perform(delete("/pet-system/ai/memory/12345678901234567890123456789012")).andExpect(status().isOk());
+            verify(memories).deleteByUser(7L,12L);
+            verify(sessions).clearMemory("0123456789abcdef0123456789abcdef");
+            verify(sessions).clearMemory("12345678901234567890123456789012");
         }finally{UserContext.clear();}
     }
     @Test void websocketUsesDatabaseSessionAndAuthenticatedActorAcrossMessages()throws Exception{

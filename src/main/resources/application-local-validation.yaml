@@ -1,0 +1,28 @@
+# Local process using the configured shared services; do not run shared background work.
+server:
+  address: 127.0.0.1
+  port: 8080
+pms:
+  scheduling:
+    mode: disabled
+  search:
+    rebuild-on-startup: false
+  ai:
+    knowledge:
+      sync-on-startup: false
+  cache:
+    warm-on-startup: false
+rocketmq:
+  producer:
+    group: pms-local-validation-producer
+  consumer:
+    listeners:
+      cache-update-consumer-group:
+        cache-update-topic: false
+      message-consumer-group:
+        message-topic: false
+      delay-task-consumer-group:
+        delay-task-topic: false
+qdrant:
+  host: 127.0.0.1
+  port: 16333

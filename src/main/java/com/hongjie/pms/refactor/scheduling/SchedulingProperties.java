@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 @ConfigurationProperties("pms.scheduling")
 public class SchedulingProperties {
-    public enum Mode { LOCAL, XXL }
+    public enum Mode { LOCAL, XXL, DISABLED }
     private Mode mode = Mode.LOCAL;
     private int batchSize = 100;
     private int maxBatches = 10;

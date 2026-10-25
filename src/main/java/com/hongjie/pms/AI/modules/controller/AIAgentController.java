@@ -82,7 +82,7 @@ public class AIAgentController {
     /**
      * 清空会话记忆（清除 Redis 缓存，保留数据库记录）
      */
-    @DeleteMapping("/memory/{sessionId}")
+    @DeleteMapping("/memory/{sessionId:[a-zA-Z0-9_-]{20,64}}")
     public CommonResult<String> clearMemory(@PathVariable String sessionId) {
         chatSessionService.clearMemory(sessionId);
         return CommonResult.success("会话记忆已清除");
