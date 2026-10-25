@@ -6,7 +6,7 @@ Existing dependencies are explicit migration debt, not proof of independent serv
 from pathlib import Path
 import argparse,json,re,sys
 ROOT=Path(__file__).resolve().parents[2]
-SOURCE=ROOT/'src/main/java'
+SOURCE=ROOT/'apps/pms-app/src/main/java'
 BASELINE=ROOT/'docs/architecture/module-internal-dependencies.json'
 PREFIX='com.hongjie.pms.modules.'
 

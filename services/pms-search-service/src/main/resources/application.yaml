@@ -1,0 +1,17 @@
+server:
+  address: 127.0.0.1
+  port: 8081
+spring:
+  application:
+    name: pms-search-service
+  elasticsearch:
+    uris: ${PMS_SEARCH_ELASTICSEARCH_URL:http://127.0.0.1:9200}
+pms:
+  search-service:
+    token: ${PMS_SEARCH_SERVICE_TOKEN:}
+    elasticsearch-url: ${PMS_SEARCH_ELASTICSEARCH_URL:http://127.0.0.1:9200}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

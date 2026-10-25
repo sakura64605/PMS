@@ -1,9 +1,10 @@
-param([switch]$SkipBuild)
+param([switch]$SkipBuild,[switch]$SplitSearch)
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $runRoot = Join-Path $projectRoot 'target/local-validation'
 New-Item -ItemType Directory -Force $runRoot | Out-Null
 $ports = 8080,5174,13306,16379,19200,16333,19876,10911,10909
+if ($SplitSearch) { $ports += 8081 }
 $occupied = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object LocalPort -in $ports
 if ($occupied) { throw 'Local ports are already in use. Check the existing local instance before starting another one.' }
 Push-Location $projectRoot
@@ -16,7 +17,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Backend package failed' }
     }
     $jar = Join-Path $runRoot 'pms-local.jar'
-    Copy-Item -LiteralPath (Join-Path $projectRoot 'target/PMS-0.0.1-SNAPSHOT.jar') -Destination $jar -Force
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'apps/pms-app/target/PMS-0.0.1-SNAPSHOT.jar') -Destination $jar -Force
     $tunnelArguments = @('-N','-o','BatchMode=yes','-o','ExitOnForwardFailure=yes','-o','ServerAliveInterval=30')
     foreach ($forward in @('13306:3306','16379:6379','19200:9200','16333:6333','19876:9876','10911:10911','10909:10909')) {
         $pair = $forward.Split(':')
@@ -34,7 +35,25 @@ try {
         '--spring.data.redis.host=127.0.0.1','--spring.data.redis.port=16379',
         '--elasticsearch.host=127.0.0.1','--elasticsearch.port=19200',
         '--spring.elasticsearch.uris=http://127.0.0.1:19200','--rocketmq.name-server=127.0.0.1:19876')
-    $backend = Start-Process java.exe -ArgumentList $backendArguments -WorkingDirectory $projectRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runRoot 'backend.out.log') -RedirectStandardError (Join-Path $runRoot 'backend.err.log')
+    $previousSearchToken=$env:PMS_SEARCH_SERVICE_TOKEN
+    $previousMainToken=$env:PMS_SEARCH_TOKEN
+    try {
+        if ($SplitSearch) {
+            $env:PMS_SEARCH_SERVICE_TOKEN=[Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+            $env:PMS_SEARCH_TOKEN=$env:PMS_SEARCH_SERVICE_TOKEN
+            $searchJar=Join-Path $runRoot 'pms-search-service.jar'
+            Copy-Item -LiteralPath (Join-Path $projectRoot 'services/pms-search-service/target/pms-search-service-0.0.1-SNAPSHOT.jar') -Destination $searchJar -Force
+            $searchArgs=@('-Dfile.encoding=UTF-8','-jar',('"'+$searchJar+'"'),'--pms.search-service.elasticsearch-url=http://127.0.0.1:19200','--spring.elasticsearch.uris=http://127.0.0.1:19200')
+            $search=Start-Process java.exe -ArgumentList $searchArgs -WorkingDirectory $projectRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runRoot 'search.out.log') -RedirectStandardError (Join-Path $runRoot 'search.err.log')
+            $started += $search
+            $search.Id | Set-Content (Join-Path $runRoot 'search.pid')
+            $backendArguments += @('--pms.search.mode=remote','--pms.search.url=http://127.0.0.1:8081')
+        }
+        $backend = Start-Process java.exe -ArgumentList $backendArguments -WorkingDirectory $projectRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runRoot 'backend.out.log') -RedirectStandardError (Join-Path $runRoot 'backend.err.log')
+    } finally {
+        $env:PMS_SEARCH_SERVICE_TOKEN=$previousSearchToken
+        $env:PMS_SEARCH_TOKEN=$previousMainToken
+    }
     $started += $backend
     $backend.Id | Set-Content (Join-Path $runRoot 'backend.pid')
     $previousTarget = $env:PMS_API_TARGET
@@ -44,7 +63,7 @@ try {
     } finally { $env:PMS_API_TARGET = $previousTarget }
     $started += $frontend
     $frontend.Id | Set-Content (Join-Path $runRoot 'frontend.pid')
-    [pscustomobject]@{Frontend='http://127.0.0.1:5174';Backend='http://127.0.0.1:8080';BackendPid=$backend.Id;FrontendPid=$frontend.Id;TunnelPid=$tunnel.Id;Logs=$runRoot}
+    [pscustomobject]@{Frontend='http://127.0.0.1:5174';Backend='http://127.0.0.1:8080';SearchService=$(if($SplitSearch){'http://127.0.0.1:8081'}else{$null});BackendPid=$backend.Id;FrontendPid=$frontend.Id;TunnelPid=$tunnel.Id;Logs=$runRoot}
 } catch {
     foreach ($process in $started) { if (-not $process.HasExited) { Stop-Process -Id $process.Id -ErrorAction SilentlyContinue } }
     throw

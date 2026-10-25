@@ -1,11 +1,12 @@
 # 后端模块结构与微服务拆分边界
 
-本次先整理为模块化单体：保留一个 Maven 工程、PetSystemApplication 启动类和现有 HTTP 路径。目录归属已经明确，但跨模块事务和数据访问仍需继续解耦，不能直接将目录打成多个服务启动。
+> 已进入首批服务拆分：源码位于 apps/pms-app/src，Maven 已成为多模块；独立搜索服务及 Vue 清理见 [首批服务拆分](search-service-extraction.md)。下述业务边界继续适用。\n
+业务按下述模块化边界组织。当前 Maven 已成为多模块，主应用保留 PetSystemApplication 和现有 HTTP 路径，搜索候选检索已增加独立服务；其余跨模块事务和数据访问仍需继续解耦，不能直接把剩余目录分别启动。
 
 ## 目录
 
 ```text
-src/main/java/com/hongjie/pms/
+apps/pms-app/src/main/java/com/hongjie/pms/
 ├── PetSystemApplication.java
 ├── bootstrap/                    # 当前单体的装配、Web/WS 配置与预热
 ├── platform/                     # Redis、MQ、鉴权上下文、幂等、限流、异常等技术设施
@@ -22,12 +23,12 @@ src/main/java/com/hongjie/pms/
     ├── analytics/                # 数据统计和快照
     └── scheduling/               # XXL-JOB 接入、任务记录和调度
 
-src/main/resources/mapper/         # 按模块组织 MyBatis XML
-src/main/resources/compatibility/  # 持久化 Java 类型别名，迁移兼容资料
-src/test/java/.../modules/         # 对应业务模块测试
-src/test/java/.../architecture/    # 包布局、依赖基线、集成装配约束
-src/test/java/.../platform/        # 技术设施测试
-src/test/java/.../shared/          # 通用层测试
+apps/pms-app/src/main/resources/mapper/         # 按模块组织 MyBatis XML
+apps/pms-app/src/main/resources/compatibility/  # 持久化 Java 类型别名，迁移兼容资料
+apps/pms-app/src/test/java/.../modules/         # 对应业务模块测试
+apps/pms-app/src/test/java/.../architecture/    # 包布局、依赖基线、集成装配约束
+apps/pms-app/src/test/java/.../platform/        # 技术设施测试
+apps/pms-app/src/test/java/.../shared/          # 通用层测试
 database/                         # schema、legacy、manual、seeds；不会自动执行
 docs/architecture/archive/        # 历史架构图
 ```
@@ -64,4 +65,4 @@ docs/architecture/archive/        # 历史架构图
 2. 将本地事务限制在所属模块；需要跨模块提交的操作补齐可靠事件、幂等及补偿，再决定数据复制、读模型和独立数据库。
 3. 最后按确定的边界拆 Maven 子模块和独立启动服务，调整网关、认证传播、WebSocket、XXL-JOB 和部署配置。当前 bootstrap 负责单体装配，届时由各服务的启动装配接替。
 
-本次不变更数据库表、不新增微服务网络调用，也不部署线上服务。已完成受影响业务回归；结构约束、Redis 类型别名、MyBatis XML 和启动配置重点补跑 11 项通过，构建成功。本地原启动类启动成功，10 组真实 HTTP/WebSocket 冒烟通过，测试账号已清理。
+本轮没有变更数据库表，也没有部署线上服务；新增远程检索调用和验证详见首批服务拆分说明。已完成受影响业务回归；结构约束、Redis 类型别名、MyBatis XML 和启动配置重点补跑 11 项通过，构建成功。本地原启动类启动成功，10 组真实 HTTP/WebSocket 冒烟通过，测试账号已清理。

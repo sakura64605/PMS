@@ -1,0 +1,18 @@
+[Unit]
+Description=PMS independent search retrieval service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/pms/search
+EnvironmentFile=/opt/pms/search/search.env
+ExecStart=/usr/bin/java -jar /opt/pms/search/pms-search-service.jar
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
