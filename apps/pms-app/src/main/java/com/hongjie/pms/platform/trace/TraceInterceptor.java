@@ -15,7 +15,8 @@ public class TraceInterceptor implements HandlerInterceptor {
                              HttpServletResponse response, 
                              Object handler) {
         // 1. 从请求头获取 TraceId
-        String traceId = request.getHeader(TRACE_HEADER);
+        String traceId = org.slf4j.MDC.get("traceId");
+        if (traceId == null || traceId.isBlank()) traceId = request.getHeader(TRACE_HEADER);
         
         // 2. 没有则生成新的
         if (traceId == null || traceId.isEmpty()) {

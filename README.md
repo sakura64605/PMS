@@ -1,12 +1,16 @@
 # PetCircle · 宠友社（PMS）
 
-宠物领养/救助、活动、社区互动、私信通知和 AI 养宠顾问。前端只保留 React + TypeScript + Vite；后端使用 Java 17、Spring Boot 3.1.5，正按业务边界逐步拆分服务。
+宠物领养/救助、活动、社区互动、私信通知和 AI 养宠顾问。前端只保留 React + TypeScript + Vite；后端使用 Java 17、Spring Boot 3.5.16 / Spring Cloud 2025.0.3，正按业务边界逐步拆分服务。
 
 ## 当前工程
 
 ```text
 pom.xml                         Maven 父工程与 reactor
 apps/pms-app/                   现有业务应用，公开接口仍由它提供
+services/pms-gateway/           Spring Cloud Gateway
+services/pms-registry/          Eureka
+services/pms-config-server/     Config Server
+config/cloud/                  non-secret Cloud configuration
 services/pms-search-service/    首个独立服务：Elasticsearch 搜索检索
 contracts/search-contracts/     无 Spring/数据库依赖的 v1 搜索协议
 components/search-engine/      两种运行模式共用的搜索 DSL/执行代码
@@ -18,6 +22,17 @@ docs/architecture/             模块边界、依赖基线及拆分说明
 ```
 
 业务源码现在位于 `apps/pms-app/src/`。原 `PetSystemApplication` 启动类和 `/pet-system/...` 公开接口保持不变；并不是所有业务都已经成为独立微服务。
+
+## Spring Cloud
+
+```powershell
+python scripts/local/cloud_stack.py --skip-build
+python scripts/local/verify_cloud.py
+```
+
+React: http://127.0.0.1:5175; Gateway: http://127.0.0.1:8088.
+
+[Spring Cloud architecture and service boundaries](docs/architecture/spring-cloud.md).
 
 ## 构建
 

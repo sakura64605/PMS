@@ -1,0 +1,18 @@
+server:
+  address: 127.0.0.1
+  port: 8888
+spring:
+  application:
+    name: pms-config-server
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: ${PMS_CONFIG_LOCATION:file:./config/cloud/}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

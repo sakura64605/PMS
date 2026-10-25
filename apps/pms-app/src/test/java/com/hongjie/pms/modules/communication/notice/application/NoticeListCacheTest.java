@@ -46,6 +46,7 @@ class NoticeListCacheTest {
         });
         when(reads.selectList(any())).thenReturn(List.of());
     }
+    @org.junit.jupiter.api.BeforeAll static void metadata() { com.baomidou.mybatisplus.core.metadata.TableInfoHelper.initTableInfo(new org.apache.ibatis.builder.MapperBuilderAssistant(new com.baomidou.mybatisplus.core.MybatisConfiguration(), "notice-cache-test"), NoticeReadRecord.class); }
     @AfterEach void cleanup() { UserContext.clear(); }
     void viewer(long id) { UserContext.setUser(new UserInfo(id, "viewer", 0, null, null)); }
     NoticeReadRecord record(long id) {

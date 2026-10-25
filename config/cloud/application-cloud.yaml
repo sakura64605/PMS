@@ -1,0 +1,9 @@
+spring:
+  cloud:
+    loadbalancer:
+      cache:
+        ttl: 2s
+management:
+  tracing:
+    sampling:
+      probability: 1.0

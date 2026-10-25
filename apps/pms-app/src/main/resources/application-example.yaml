@@ -85,7 +85,7 @@ ai:
 # Scheduling: local fallback and XXL-JOB are mutually exclusive.
 pms:
   search:
-    mode: local # remote: use independently started pms-search-service
+    mode: local # remote: fixed URL; cloud: Eureka + OpenFeign (enable cloud profile)
     url: http://127.0.0.1:8081
     token: ${PMS_SEARCH_TOKEN:}
   scheduling:

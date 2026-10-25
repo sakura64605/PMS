@@ -23,8 +23,8 @@ public class ElasticsearchConfig {
     @Value("${elasticsearch.port:9200}")
     private Integer port;
 
-    @Bean
-    public ElasticsearchClient elasticsearchClient() {
+    @Bean(destroyMethod = "close")
+    public ElasticsearchTransport pmsElasticsearchTransport() {
         RestClient restClient = RestClient.builder(
                 new HttpHost(host, port, "http")
         ).build();
@@ -34,8 +34,10 @@ public class ElasticsearchConfig {
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);  // 使用 ISO 格式
 
         JacksonJsonpMapper jsonpMapper = new JacksonJsonpMapper(mapper);
-        ElasticsearchTransport transport = new RestClientTransport(restClient, jsonpMapper);
-
+        return new RestClientTransport(restClient, jsonpMapper);
+    }
+    @Bean
+    public ElasticsearchClient elasticsearchClient(ElasticsearchTransport transport) {
         return new ElasticsearchClient(transport);
     }
 }

@@ -2,7 +2,7 @@ package com.hongjie.pms.shared.core.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.hongjie.pms.shared.core.exception.Guard;
 import com.hongjie.pms.platform.enums.ErrorCode;
 import com.hongjie.pms.shared.core.page.PageBridge;

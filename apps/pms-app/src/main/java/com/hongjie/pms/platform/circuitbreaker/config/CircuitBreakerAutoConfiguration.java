@@ -12,7 +12,7 @@ public class CircuitBreakerAutoConfiguration {
      * 注册熔断切面
      */
     @Bean
-    public CircuitBreakerAspect circuitBreakerAspect(CircuitBreakerManager circuitBreakerManager) {
+    public CircuitBreakerAspect pmsLocalCircuitBreakerAspect(CircuitBreakerManager circuitBreakerManager) {
         CircuitBreakerAspect aspect = new CircuitBreakerAspect();
         // 使用反射设置 breakerManager，因为 CircuitBreakerAspect 使用了 @Autowired
         try {

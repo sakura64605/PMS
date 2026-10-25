@@ -1,4 +1,5 @@
 package com.hongjie.pms.modules.communication.privatemessage.application;
+import com.hongjie.pms.modules.communication.privatemessage.infrastructure.persistence.entity.PrivateMessage;
 
 import com.hongjie.pms.platform.base.core.UserContext;
 import com.hongjie.pms.platform.pojo.UserInfo;
@@ -31,5 +32,5 @@ class PrivateMessageServiceTest {
     @Test void unsupportedMessageTypeRejected(){var r=request();r.setMessageType(9);assertThatThrownBy(()->service.sendMessage(1L,r)).isInstanceOf(BusinessException.class);verifyNoInteractions(writes,messages);}
     @Test void contentOverDatabaseLimitRejected(){var r=request();r.setContent("x".repeat(1001));assertThatThrownBy(()->service.sendMessage(1L,r)).isInstanceOf(BusinessException.class);verifyNoInteractions(writes,messages);}
     @Test void deletingOnlyHidesCurrentSideAndPreservesSharedConversation(){service.deleteConversation(1L,10L);verify(writes).hide(1L,10L);verify(writes).clearUnread(1L,10L);verifyNoInteractions(conversations,messages,events);}
-    @Test void failedMessageInsertNeverPublishes(){doThrow(new IllegalStateException("insert failure")).when(messages).insert(any());assertThatThrownBy(()->service.sendMessage(1L,request())).isInstanceOf(IllegalStateException.class);verifyNoInteractions(events);verify(writes,never()).sent(anyLong(),anyLong(),anyString(),any());}
+    @Test void failedMessageInsertNeverPublishes(){doThrow(new IllegalStateException("insert failure")).when(messages).insert(any(PrivateMessage.class));assertThatThrownBy(()->service.sendMessage(1L,request())).isInstanceOf(IllegalStateException.class);verifyNoInteractions(events);verify(writes,never()).sent(anyLong(),anyLong(),anyString(),any());}
 }

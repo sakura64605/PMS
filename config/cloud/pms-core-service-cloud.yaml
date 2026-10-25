@@ -1,0 +1,48 @@
+pms:
+  search:
+    mode: cloud
+spring:
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+      client:
+        config:
+          default:
+            connectTimeout: 1000
+            readTimeout: 2500
+    loadbalancer:
+      retry:
+        enabled: true
+        max-retries-on-same-service-instance: 0
+        max-retries-on-next-service-instance: 0
+        retry-on-all-operations: false
+      clients:
+        pms-search-service:
+          retry:
+            max-retries-on-same-service-instance: 0
+            max-retries-on-next-service-instance: 1
+            retry-on-all-operations: true
+      cache:
+        ttl: 2s
+resilience4j:
+  circuitbreaker:
+    instances:
+      searchCandidates:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 5s
+        permittedNumberOfCallsInHalfOpenState: 2
+  timelimiter:
+    instances:
+      searchCandidates:
+        timeoutDuration: 4s
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  tracing:
+    sampling:
+      probability: 1.0

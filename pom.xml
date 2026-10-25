@@ -4,19 +4,31 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.1.5</version>
+        <version>3.5.16</version>
         <relativePath/>
     </parent>
-    <groupId>com.hongjie</groupId><artifactId>pms-parent</artifactId><version>0.0.1-SNAPSHOT</version><packaging>pom</packaging>
+    <groupId>com.hongjie</groupId>
+    <artifactId>pms-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
     <name>PMS services reactor</name>
     <properties>
         <java.version>17</java.version>
-        <mybatis-plus.version>3.5.3.1</mybatis-plus.version>
+        <spring-cloud.version>2025.0.3</spring-cloud.version>
+        <elasticsearch-client.version>8.7.1</elasticsearch-client.version>
+        <mybatis-plus.version>3.5.17</mybatis-plus.version>
         <mysql.version>8.0.33</mysql.version>
         <lombok.version>1.18.24</lombok.version>
     </properties>
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <!-- langchain4j BOM：统一管理稳定轨 + agentic beta 轨各模块版本 -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
@@ -30,6 +42,9 @@
     <modules>
         <module>contracts/search-contracts</module>
         <module>components/search-engine</module>
+        <module>services/pms-registry</module>
+        <module>services/pms-config-server</module>
+        <module>services/pms-gateway</module>
         <module>services/pms-search-service</module>
         <module>apps/pms-app</module>
     </modules>
