@@ -459,14 +459,23 @@ small {
   color: #9d948a;
 }
 .search-input input {
+  flex: 1;
+  min-width: 0;
   background: none;
   border: 0;
   box-shadow: none;
   outline: none;
   padding-left: 0;
 }
+.search-input input:focus,
+.search-input input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
 .search-input:focus-within {
   border-color: var(--green);
+  outline: 2px solid #c4d0be;
+  outline-offset: 1px;
 }
 input,
 textarea,
