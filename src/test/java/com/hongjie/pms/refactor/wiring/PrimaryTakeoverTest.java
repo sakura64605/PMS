@@ -14,8 +14,8 @@ import com.hongjie.pms.modules.feed.service.FeedService;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
 import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
 import com.hongjie.pms.common.punishment.scheduler.DelayTaskMapper;
-import com.hongjie.pms.common.punishment.scheduler.DelayTaskService;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.scheduling.DelayTaskService;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import com.hongjie.pms.modules.notice.controller.NoticeController;
 import com.hongjie.pms.modules.notice.mapper.NoticeMapper;
 import com.hongjie.pms.modules.notice.mapper.NoticeReadRecordMapper;
@@ -57,29 +57,8 @@ import java.util.function.Consumer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-/**
- * 验证「删除 refactor 目录即可回滚」这条承诺背后的容器行为。
- *
- * <p><b>为什么单开一个测试</b>：等价性测试是绕开 Spring、直接 {@code new} 出两个实现来跑的，
- * 它们能证明<b>实现逻辑等价</b>，却证明不了<b>容器真的选了新实现</b>。
- * 而整个收敛方案的两条承诺恰恰都建立在容器行为上：
- * <ul>
- *   <li>新实现标了 {@code @Primary}，所以 {@code PetPostController} / {@code CommentController}
- *       一行都不用改就能拿到新实现；</li>
- *   <li>反过来，一旦删掉 {@code refactor/} 目录，容器里只剩老实现，
- *       注入结果自动回到老实现 —— 这就是"删目录即回滚"。</li>
- * </ul>
- *
- * <p><b>为什么不用 {@code @SpringBootTest}</b>：完整启动需要 MySQL、Redis(Redisson)、
- * RocketMQ、Elasticsearch、Qdrant 五样东西，其中 Redisson 建 Bean 时就会主动连服务器，
- * 缺一样都起不来。这里用最小切片，只装配被测的两个 Service + 一个 Controller + Mock 的
- * Mapper，既不碰任何外部中间件，又能精确验证上面两条承诺。
- *
- * <p><b>服务实现必须用 {@code @Import} 而不是 {@code @Bean} 注册</b>：
- * 只有走注解处理这条路径，Spring 才会读取类上的 {@code @Primary}。
- * 若在测试里手工 {@code new} 一个 Bean，就等于把被测行为自己写死了，测试也就失去意义。
- */
-@DisplayName("容器装配：@Primary 接管与删目录回滚")
+/** Verifies migrated implementations are wired and missing implementations cannot silently fall back. */
+@DisplayName("Runtime wiring uses migrated implementations")
 class PrimaryTakeoverTest {
 
     @Test
@@ -121,26 +100,16 @@ class PrimaryTakeoverTest {
             Object injected = ReflectionTestUtils.getField(
                     context.getBean(NoticeController.class), "noticeService");
             assertThat(injected).isInstanceOf(PmsNoticeServiceImpl.class);
-            assertThat(context.getBean(NoticeServiceImpl.class).isRunning()).isFalse();
+            assertThat(context.getBeansOfType(NoticeServiceImpl.class)).isEmpty();
             org.mockito.Mockito.verifyNoInteractions(context.getBean(RedissonClient.class));
         });
     }
 
     @Test
-    @DisplayName("移除新实现后容器自动回退到老实现 —— 这就是「删目录即回滚」")
-    void contextFallsBackToLegacyWhenNewImplementationIsAbsent() {
-        // 模拟「删掉 refactor/ 目录」后的状态：容器里只注册老实现
-        runWith(LegacyOnlySlice.class, context -> {
-            assertThat(context.getBean(PetPostService.class))
-                    .as("新实现缺席时，接口的唯一候选就是老实现，不需要任何配置改动")
-                    .isInstanceOf(PetPostServiceImpl.class);
-            assertThat(context.getBean(CommentService.class))
-                    .isInstanceOf(CommentServiceImpl.class);
-
-            Object injected = ReflectionTestUtils.getField(
-                    context.getBean(PetPostController.class), "petPostService");
-            assertThat(injected).isInstanceOf(PetPostServiceImpl.class);
-        });
+    @DisplayName("Missing migrated implementations must fail rather than silently enable reference code")
+    void missingNewImplementationDoesNotFallBackToLegacy() {
+        new ApplicationContextRunner().withUserConfiguration(LegacyOnlySlice.class)
+                .run(context -> assertThat(context).hasFailed());
     }
 
     private void runWith(Class<?> userConfiguration, Consumer<ApplicationContext> assertions) {
@@ -306,31 +275,25 @@ class PrimaryTakeoverTest {
 
     /** petpost 模块的完整装配：老实现 + 新实现 + 控制器 */
     @Configuration(proxyBeanMethods = false)
-    @Import({Mocks.class, PetPostServiceImpl.class, PmsPetPostServiceImpl.class,
-            PetPostController.class})
+    @Import({Mocks.class,PetPostServiceImpl.class,PmsPetPostServiceImpl.class,PetPostController.class})
     static class PetPostSlice {
     }
 
     /** comment 模块的完整装配：老实现 + 新实现 + 控制器 + 策略族 */
     @Configuration(proxyBeanMethods = false)
-    @Import({Mocks.class, CommentServiceImpl.class, PmsCommentServiceImpl.class,
-            CommentController.class, DomainEventPublisher.class,
-            PetPostTargetHandler.class, ActivityTargetHandler.class, DailyPostTargetHandler.class,
-            TargetHandlerRegistry.class})
+    @Import({Mocks.class,CommentServiceImpl.class,PmsCommentServiceImpl.class,CommentController.class,DomainEventPublisher.class,PetPostTargetHandler.class,ActivityTargetHandler.class,DailyPostTargetHandler.class,TargetHandlerRegistry.class})
     static class CommentSlice {
     }
 
     /** notice 模块的完整装配：老实现 + 新实现 + 控制器 */
     @Configuration(proxyBeanMethods = false)
-    @Import({Mocks.class, NoticeServiceImpl.class, PmsNoticeServiceImpl.class,
-            NoticeController.class, DomainEventPublisher.class})
+    @Import({Mocks.class,NoticeServiceImpl.class,PmsNoticeServiceImpl.class,NoticeController.class,DomainEventPublisher.class})
     static class NoticeSlice {
     }
 
-    /** 只有老实现的情形：模拟删掉 refactor/ 之后 */
+    /** 仅注册已停用的参考类时，运行接线必须失败。 */
     @Configuration(proxyBeanMethods = false)
-    @Import({Mocks.class, PetPostServiceImpl.class, CommentServiceImpl.class,
-            PetPostController.class, CommentController.class})
+    @Import({Mocks.class,PetPostServiceImpl.class,CommentServiceImpl.class,PetPostController.class,CommentController.class})
     static class LegacyOnlySlice {
     }
 }

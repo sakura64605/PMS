@@ -16,7 +16,7 @@ import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
 import com.hongjie.pms.modules.like.entity.LikeRecord;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
 import com.hongjie.pms.modules.following.entity.Follow;
-import com.hongjie.pms.modules.audit.handler.ActivityAuditHandler;
+import com.hongjie.pms.refactor.audit.handler.ActivityAuditHandler;
 import org.redisson.api.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,7 +38,7 @@ class ActivityServiceCacheTest {
     @Mock DistributedCache cache;
     @Mock ActivityCache activities;
     @Mock RedissonClient redisson;
-    @Mock com.hongjie.pms.modules.message.service.MessageService messages;
+    @Mock com.hongjie.pms.refactor.message.api.MessageService messages;
     @Mock com.hongjie.pms.common.punishment.scheduler.DelayTaskService delay;
     @Mock com.hongjie.pms.modules.feed.service.FeedService feed;
     @Mock com.hongjie.pms.modules.audit.service.AuditService audit;

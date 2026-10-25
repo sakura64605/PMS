@@ -1,7 +1,7 @@
 package com.hongjie.pms.refactor.like;
 
 import com.hongjie.pms.common.utils.RedisScanUtil;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.*;

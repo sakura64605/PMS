@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class AiMemoryExtractor {
 
     private static final Pattern JSON_ARRAY = Pattern.compile("\\[.*?]", Pattern.DOTALL);

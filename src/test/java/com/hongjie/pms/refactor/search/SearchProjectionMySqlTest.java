@@ -1,7 +1,6 @@
 package com.hongjie.pms.refactor.search;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.hongjie.pms.refactor.support.MyBatisTestSupport;
 import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
@@ -10,7 +9,6 @@ import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
 import com.hongjie.pms.modules.petpost.entity.*;
 import com.hongjie.pms.modules.petpost.mapper.*;
 import com.hongjie.pms.modules.activity.mapper.ActivitySignupMapper;
-import com.hongjie.pms.modules.search.service.SearchDataSyncService;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.apache.ibatis.session.*;
@@ -48,7 +46,7 @@ class SearchProjectionMySqlTest {
         when(backend.search(any())).thenReturn(new SearchBackend.Page(1,List.of(new SearchBackend.Candidate("pet",post.getId()))));
         var source=new SearchSources().petSearchSource(pets);
         var projection=new SearchProjection(new SearchEnrichment(users,likes,favorites,signups),List.of(source));
-        return new PmsUnifiedSearchService(mock(ElasticsearchClient.class),mock(SearchDataSyncService.class),backend,projection);
+        return new PmsUnifiedSearchService(backend,projection);
     }
     @Test void unchangedCandidateGetsFreshContentCountsAndScopedInteractions(){
         likes.insert(LikeRecord.builder().userId(actor.getId()).targetType("pet_post").targetId(post.getId()).build());

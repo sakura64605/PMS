@@ -1,5 +1,5 @@
 package com.hongjie.pms.refactor.ai;
-import com.hongjie.pms.AI.modules.service.HumanTransferService;
+import com.hongjie.pms.refactor.ai.api.HumanTransferService;
 import com.hongjie.pms.AI.modules.mapper.*;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.ErrorCode;
@@ -7,10 +7,10 @@ import com.hongjie.pms.common.exception.BusinessException;
 import org.springframework.stereotype.Service;
 import org.springframework.context.annotation.Primary;
 @Service @Primary
-public class PmsHumanTransferService extends HumanTransferService {
+public class PmsHumanTransferService implements HumanTransferService {
     private final AiTransfers transfers;
-    public PmsHumanTransferService(AiHumanTransferMapper rows,AiChatSessionMapper sessions,AiTransfers transfers){
-        super(rows,sessions);this.transfers=transfers;
+    public PmsHumanTransferService(AiTransfers transfers){
+        this.transfers=transfers;
     }
     @Override public void requestTransfer(String id,Long actor,String reason){
         if(actor==null||!actor.equals(UserContext.getUserId()))throw new BusinessException(ErrorCode.UNAUTHORIZED);

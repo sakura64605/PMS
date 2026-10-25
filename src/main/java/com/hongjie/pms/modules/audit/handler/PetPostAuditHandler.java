@@ -6,7 +6,7 @@ import com.hongjie.pms.common.enums.AuditStatus;
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.enums.TargetType;
 import com.hongjie.pms.common.exception.BusinessException;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import com.hongjie.pms.modules.petpost.entity.PetPost;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
 import com.hongjie.pms.modules.search.event.PetPostUpdatedEvent;
@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@org.springframework.context.annotation.Profile("legacy-reference")
 @Component
 @RequiredArgsConstructor
 public class PetPostAuditHandler implements AuditTargetHandler {

@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@org.springframework.context.annotation.Profile("legacy-reference")
 @Component
 public class AuditTargetHandlerFactory {
 

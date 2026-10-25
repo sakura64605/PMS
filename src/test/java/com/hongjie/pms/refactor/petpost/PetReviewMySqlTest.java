@@ -39,16 +39,17 @@ class PetReviewMySqlTest {
     AnnotationConfigApplicationContext context;JdbcTemplate jdbc;PmsPetPostServiceImpl pets;AuditCommandService audits;long owner,admin,post;
     final String marker="__pet_review_"+UUID.randomUUID().toString().substring(0,17);
     @Configuration(proxyBeanMethods=false) @EnableTransactionManagement(proxyTargetClass=true)
-    @Import({PmsPetPostServiceImpl.class,PetPostDtoConverter.class,AuditWriteTargets.class,AuditQuerySources.class,AuditCommandService.class,TargetTypeCodec.class,com.hongjie.pms.modules.activity.service.Impl.ActivityServiceImpl.class})
+    @Import({PmsPetPostServiceImpl.class,PetPostDtoConverter.class,AuditWriteTargets.class,AuditQuerySources.class,AuditCommandService.class,TargetTypeCodec.class,com.hongjie.pms.refactor.activity.ActivityContentCommands.class})
     static class Config{
+        @Bean com.hongjie.pms.refactor.activity.ActivityScheduleWriter activitySchedules(){return mock(com.hongjie.pms.refactor.activity.ActivityScheduleWriter.class);}
         @Bean DistributedCache distributedCache(){return mock(DistributedCache.class);}
         @Bean com.hongjie.pms.modules.activity.cache.ActivityCache activityCache(){return mock(com.hongjie.pms.modules.activity.cache.ActivityCache.class);}
         @Bean OssUtils ossUtils(){return mock(OssUtils.class);}
         @Bean FeedService feedService(){return mock(FeedService.class);}
         @Bean AuditService auditService(){return mock(AuditService.class);}
         @Bean com.hongjie.pms.modules.activity.mapper.ActivitySignupMapper activitySignupMapper(){return mock(com.hongjie.pms.modules.activity.mapper.ActivitySignupMapper.class);}
-        @Bean com.hongjie.pms.modules.message.service.MessageService messageService(){return mock(com.hongjie.pms.modules.message.service.MessageService.class);}
-        @Bean com.hongjie.pms.common.punishment.scheduler.DelayTaskService delayTaskService(){return mock(com.hongjie.pms.common.punishment.scheduler.DelayTaskService.class);}
+        @Bean com.hongjie.pms.refactor.message.api.MessageService messageService(){return mock(com.hongjie.pms.refactor.message.api.MessageService.class);}
+        @Bean com.hongjie.pms.refactor.scheduling.DelayTaskService delayTaskService(){return mock(com.hongjie.pms.refactor.scheduling.DelayTaskService.class);}
         @Bean com.hongjie.pms.common.punishment.scheduler.DelayTaskMapper delayTaskMapper(){return mock(com.hongjie.pms.common.punishment.scheduler.DelayTaskMapper.class);}
         @Bean org.redisson.api.RedissonClient redissonClient(){return mock(org.redisson.api.RedissonClient.class);}
     }
@@ -104,7 +105,7 @@ class PetReviewMySqlTest {
         long id=insert("INSERT INTO activity(user_id,title,content,location,max_people,start_time,end_time,status,audit_status,deleted) VALUES(?,?,?,'fixture',10,?,?,2,0,0)",owner,marker,"finished original",start,end);
         insert("INSERT INTO audit_record(target_type,target_id,audit_status) VALUES('activity',?,0)",id);
         var request=new com.hongjie.pms.modules.activity.dto.request.ActivityRequestDto();request.setId(id);request.setStartTime(start);request.setEndTime(end);request.setTitle("forbidden change");asOwner();
-        assertThatThrownBy(()->context.getBean(com.hongjie.pms.modules.activity.service.ActivityService.class).updateActivity(request)).isInstanceOf(com.hongjie.pms.common.exception.BusinessException.class);
+        assertThatThrownBy(()->context.getBean(com.hongjie.pms.refactor.activity.ActivityContentCommands.class).edit(request)).isInstanceOf(com.hongjie.pms.common.exception.BusinessException.class);
         assertThat(jdbc.queryForObject("SELECT title FROM activity WHERE id=?",String.class,id)).isEqualTo(marker);
         asAdmin();assertThatThrownBy(()->audits.approve(id,"activity")).isInstanceOf(com.hongjie.pms.common.exception.BusinessException.class);
         assertThat(jdbc.queryForObject("SELECT status FROM activity WHERE id=?",Integer.class,id)).isEqualTo(2);

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 @Data
 @Component
 @ConfigurationProperties(prefix = "ai.agent")
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class AIAgentConfig {
     /** API Key — 必须在 application.yaml 中配置 ai.agent.api-key */
     private String apiKey;

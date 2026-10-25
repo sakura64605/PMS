@@ -38,7 +38,7 @@ import com.hongjie.pms.modules.petpost.dto.response.PetListResponseDto;
 import com.hongjie.pms.modules.petpost.entity.FavoriteRecord;
 import com.hongjie.pms.modules.petpost.mapper.FavoriteRecordMapper;
 import com.hongjie.pms.modules.petpost.service.PetPostService;
-import com.hongjie.pms.modules.petpost.util.PetCategoryClassifier;
+import com.hongjie.pms.refactor.petpost.classification.PetCategoryClassifier;
 import com.hongjie.pms.modules.search.event.PetPostPublishedEvent;
 import com.hongjie.pms.modules.user.dto.UserSimpleDto;
 import com.hongjie.pms.modules.user.dto.response.AvatarUploadResponse;

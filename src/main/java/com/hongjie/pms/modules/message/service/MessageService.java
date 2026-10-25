@@ -21,6 +21,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class MessageService {
 
     private final UserMessageMapper messageMapper;

@@ -8,7 +8,7 @@ import com.hongjie.pms.modules.activity.controller.ActivityController;
 import com.hongjie.pms.modules.activity.dto.request.SignUpInfoRequest;
 import com.hongjie.pms.modules.activity.mapper.ActivitySignupMapper;
 import com.hongjie.pms.modules.activity.service.ActivityService;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
 import com.hongjie.pms.refactor.support.MyBatisTestSupport;
 import org.junit.jupiter.api.*;

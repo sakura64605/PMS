@@ -1,7 +1,7 @@
 package com.hongjie.pms.refactor.audit;
 
-import com.hongjie.pms.modules.audit.handler.*;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.audit.handler.*;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import com.hongjie.pms.modules.search.event.*;
 import org.junit.jupiter.api.*;
 import org.springframework.context.ApplicationEventPublisher;

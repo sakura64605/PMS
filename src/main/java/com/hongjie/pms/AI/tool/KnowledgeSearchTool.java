@@ -12,6 +12,7 @@ import java.util.*;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class KnowledgeSearchTool implements BaseTool {
 
     private final KnowledgeBaseService knowledgeBaseService;

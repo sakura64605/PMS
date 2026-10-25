@@ -8,7 +8,7 @@ import com.hongjie.pms.modules.activity.entity.Activity;
 import com.hongjie.pms.modules.activity.entity.ActivitySignup;
 import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
 import com.hongjie.pms.modules.activity.mapper.ActivitySignupMapper;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import com.hongjie.pms.modules.user.entity.User;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +21,7 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class DelayTaskHandler {
 
     private final ActivityMapper activityMapper;

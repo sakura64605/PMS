@@ -1,9 +1,7 @@
 package com.hongjie.pms.refactor.search;
 
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.modules.search.dto.SearchResultItem;
-import com.hongjie.pms.modules.search.service.SearchDataSyncService;
 import org.junit.jupiter.api.Test;
 import java.util.*;
 import static org.assertj.core.api.Assertions.*;
@@ -15,7 +13,7 @@ class SearchQueryTest {
     SearchSource pet=mock(SearchSource.class),daily=mock(SearchSource.class);
     PmsUnifiedSearchService service(){
         when(pet.type()).thenReturn("pet");when(daily.type()).thenReturn("daily");
-        return new PmsUnifiedSearchService(mock(ElasticsearchClient.class),mock(SearchDataSyncService.class),backend,new SearchProjection(enrichment,List.of(pet,daily)));
+        return new PmsUnifiedSearchService(backend,new SearchProjection(enrichment,List.of(pet,daily)));
     }
     @Test void blankSearchNormalizesDefaultsWithoutCallingBackend(){
         var result=service().search("  ",null,null,null,null,null);
@@ -59,7 +57,7 @@ class SearchQueryTest {
     }
     @Test void duplicateSourceKeysFailFast(){
         when(pet.type()).thenReturn("pet");when(daily.type()).thenReturn("pet");
-        assertThatThrownBy(()->new PmsUnifiedSearchService(null,null,backend,new SearchProjection(enrichment,List.of(pet,daily)))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(()->new PmsUnifiedSearchService(backend,new SearchProjection(enrichment,List.of(pet,daily)))).isInstanceOf(IllegalStateException.class);
     }
     @Test void highlightsEscapeHtmlAndTreatKeywordAsLiteral(){
         String value=SearchHighlights.render("<img onerror='bad'>c.t & CAT","c.t",150);

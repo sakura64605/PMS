@@ -19,13 +19,14 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class ChatMemoryService {
-    
+
     private final AiChatMessageMapper messageMapper;
     private final RedisTemplate<String, Object> redisTemplate;
-    
+
     private static final String MEMORY_CACHE_PREFIX = "ai:memory:session:";
-    
+
     public void saveMessage(String sessionId, String role, String content, Long userId) {
         saveMessage(sessionId, role, content, userId, null, null);
     }
@@ -55,11 +56,11 @@ public class ChatMemoryService {
 
         log.debug("保存消息: sessionId={}, role={}, tokensUsed={}, toolCalls={}", sessionId, role, tokensUsed, toolCallsJson);
     }
-    
+
     public List<MemoryMessage> getRecentMessages(String sessionId, int maxRounds) {
         String cacheKey = MEMORY_CACHE_PREFIX + sessionId;
         List<Object> rawList = redisTemplate.opsForList().range(cacheKey, -maxRounds * 2, -1);
-        
+
         List<MemoryMessage> messages = new ArrayList<>();
         if (rawList != null && !rawList.isEmpty()) {
             for (Object obj : rawList) {
@@ -68,29 +69,29 @@ public class ChatMemoryService {
                 }
             }
         }
-        
+
         if (messages.isEmpty()) {
             LambdaQueryWrapper<AiChatMessage> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(AiChatMessage::getSessionId, sessionId)
                     .orderByDesc(AiChatMessage::getCreatedAt)
                     .last("LIMIT " + (maxRounds * 2));
-            
+
             List<AiChatMessage> dbMessages = messageMapper.selectList(wrapper);
             for (int i = dbMessages.size() - 1; i >= 0; i--) {
                 AiChatMessage msg = dbMessages.get(i);
-                messages.add(new MemoryMessage(msg.getRole(), msg.getContent(), 
+                messages.add(new MemoryMessage(msg.getRole(), msg.getContent(),
                         msg.getCreatedAt().toInstant(ZoneOffset.UTC).toEpochMilli()));
             }
         }
-        
+
         return messages;
     }
-    
+
     public void clearMemory(String sessionId) {
         String cacheKey = MEMORY_CACHE_PREFIX + sessionId;
         redisTemplate.delete(cacheKey);
     }
-    
+
     @lombok.Data
     @NoArgsConstructor
     @lombok.AllArgsConstructor

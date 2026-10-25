@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class AuditServiceImpl implements AuditService {
 
     private final AuditRecordMapper auditRecordMapper;

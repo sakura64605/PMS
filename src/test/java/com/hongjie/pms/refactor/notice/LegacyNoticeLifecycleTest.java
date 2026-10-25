@@ -37,9 +37,7 @@ class LegacyNoticeLifecycleTest {
         new ApplicationContextRunner().withUserConfiguration(Legacy.class, Replacement.class)
                 .withBean(RedissonClient.class, () -> redisson).run(context -> {
                     assertThat(context).hasNotFailed();
-                    var legacy = context.getBean(NoticeServiceImpl.class);
-                    assertThat(legacy.isRunning()).isFalse();
-                    assertThat(ReflectionTestUtils.getField(legacy, "consumerThread")).isNull();
+                    assertThat(context).doesNotHaveBean(NoticeServiceImpl.class);
                     verifyNoInteractions(redisson);
                 });
     }
@@ -55,7 +53,7 @@ class LegacyNoticeLifecycleTest {
             return null;
         });
         Thread[] worker = new Thread[1];
-        new ApplicationContextRunner().withUserConfiguration(Legacy.class)
+        new ApplicationContextRunner().withUserConfiguration(Legacy.class).withPropertyValues("spring.profiles.active=legacy-reference")
                 .withBean(RedissonClient.class, () -> redisson).run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(entered.await(3, TimeUnit.SECONDS)).isTrue();

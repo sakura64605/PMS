@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class NoticeServiceImpl implements NoticeService, ApplicationContextAware, SmartLifecycle {
 
     private final NoticeMapper noticeMapper;
@@ -211,12 +212,12 @@ public class NoticeServiceImpl implements NoticeService, ApplicationContextAware
         if (!UserContext.isAdmin()) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
-        
+
         Notice notice = noticeMapper.selectById(request.getId());
         if (notice == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "公告不存在");
         }
-        
+
         notice.setTitle(request.getTitle());
         notice.setContent(request.getContent());
         notice.setType(request.getType());
@@ -235,7 +236,7 @@ public class NoticeServiceImpl implements NoticeService, ApplicationContextAware
         cacheUpdateProducer.sendEvictAll("noticeList");
 
         log.info("管理员更新公告: {}", notice.getTitle());
-        
+
         return convertToDetailDto(notice, false);
     }
 
@@ -245,12 +246,12 @@ public class NoticeServiceImpl implements NoticeService, ApplicationContextAware
         if (!UserContext.isAdmin()) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
-        
+
         Notice notice = noticeMapper.selectById(id);
         if (notice == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "公告不存在");
         }
-        
+
         noticeMapper.deleteById(id);
 
         cacheUpdateProducer.sendEvict("notice", String.valueOf(notice.getId()));
@@ -292,12 +293,12 @@ public class NoticeServiceImpl implements NoticeService, ApplicationContextAware
         if (!UserContext.isAdmin()) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
-        
+
         Notice notice = noticeMapper.selectById(id);
         if (notice == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "公告不存在");
         }
-        
+
         notice.setStatus(2);
         noticeMapper.updateById(notice);
 
@@ -307,15 +308,15 @@ public class NoticeServiceImpl implements NoticeService, ApplicationContextAware
     }
 
     @Override
-    public IPage<NoticeListDto> listForAdmin(Integer pageNum, Integer pageSize, 
+    public IPage<NoticeListDto> listForAdmin(Integer pageNum, Integer pageSize,
                                                Integer status, String keyword) {
         if (!UserContext.isAdmin()) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
-        
+
         Page<Notice> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<Notice> wrapper = new LambdaQueryWrapper<>();
-        
+
         if (status != null) {
             wrapper.eq(Notice::getStatus, status);
         }
@@ -329,13 +330,13 @@ public class NoticeServiceImpl implements NoticeService, ApplicationContextAware
         wrapper.orderByDesc(Notice::getIsTop)
                .orderByDesc(Notice::getPriority)
                .orderByDesc(Notice::getCreateTime);
-        
+
         IPage<Notice> noticePage = noticeMapper.selectPage(page, wrapper);
-        
+
         List<NoticeListDto> records = noticePage.getRecords().stream()
                 .map(notice -> convertToListDto(notice, null))
                 .collect(Collectors.toList());
-        
+
         Page<NoticeListDto> resultPage = new Page<>(pageNum, pageSize, noticePage.getTotal());
         resultPage.setRecords(records);
         return resultPage;
@@ -450,14 +451,14 @@ public class NoticeServiceImpl implements NoticeService, ApplicationContextAware
     @Override
     public int getUnreadCount() {
         Long userId = UserContext.getUserId();
-        
+
         // 获取所有已发布的公告
         List<Notice> publishedNotices = noticeMapper.getPublishedNotices();
-        
+
         if (publishedNotices.isEmpty()) {
             return 0;
         }
-        
+
         // 统计未读数量
         int unreadCount = 0;
         for (Notice notice : publishedNotices) {
@@ -465,10 +466,10 @@ public class NoticeServiceImpl implements NoticeService, ApplicationContextAware
                 unreadCount++;
             }
         }
-        
+
         return unreadCount;
     }
-    
+
     /**
      * 标记公告为已读
      */
@@ -480,7 +481,7 @@ public class NoticeServiceImpl implements NoticeService, ApplicationContextAware
             noticeReadRecordMapper.insert(record);
         }
     }
-    
+
     /**
      * 批量获取已读状态
      */
@@ -488,13 +489,13 @@ public class NoticeServiceImpl implements NoticeService, ApplicationContextAware
         if (userId == null || noticeIds.isEmpty()) {
             return Map.of();
         }
-        
+
         List<NoticeReadRecord> records = noticeReadRecordMapper.selectList(
                 new LambdaQueryWrapper<NoticeReadRecord>()
                         .eq(NoticeReadRecord::getUserId, userId)
                         .in(NoticeReadRecord::getNoticeId, noticeIds)
         );
-        
+
         return records.stream()
                 .collect(Collectors.toMap(
                         NoticeReadRecord::getNoticeId,
@@ -502,7 +503,7 @@ public class NoticeServiceImpl implements NoticeService, ApplicationContextAware
                         (v1, v2) -> v1
                 ));
     }
-    
+
     private NoticeListDto convertToListDto(Notice notice, Boolean isRead) {
         return NoticeListDto.builder()
                 .id(notice.getId())
@@ -516,7 +517,7 @@ public class NoticeServiceImpl implements NoticeService, ApplicationContextAware
                 .isRead(isRead != null && isRead)
                 .build();
     }
-    
+
     private NoticeDetailDto convertToDetailDto(Notice notice, Boolean isRead) {
         return NoticeDetailDto.builder()
                 .id(notice.getId())

@@ -1,11 +1,12 @@
 package com.hongjie.pms.refactor.scheduling;
 
 import com.hongjie.pms.common.punishment.scheduler.*;
-import com.hongjie.pms.common.punishment.util.PunishmentUtil;
+import com.hongjie.pms.refactor.scheduling.DelayTaskService;
+import com.hongjie.pms.refactor.user.policy.PunishmentUtil;
 import com.hongjie.pms.modules.activity.cache.ActivityCache;
 import com.hongjie.pms.modules.activity.mapper.*;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import com.hongjie.pms.refactor.support.MyBatisTestSupport;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -36,7 +37,7 @@ class ScheduledTaskMySqlTest {
         public void execute(Long id){calls.incrementAndGet();jdbc.update("UPDATE user SET following_count=following_count+1 WHERE id=?",id);if(fail.get())throw new IllegalStateException("injected failure");}
     }
     @Configuration(proxyBeanMethods=false) @EnableTransactionManagement(proxyTargetClass=true)
-    @Import({ScheduledTaskWorker.class,DueTaskBatch.class,ScheduledBusinessTasks.class,BusinessTaskConfiguration.class,DelayTaskService.class})
+    @Import({ScheduledTaskWorker.class,DueTaskBatch.class,ScheduledBusinessTasks.class,BusinessTaskConfiguration.class,DelayTaskService.class,LegacyDelayMessages.class})
     static class Config {
         @Bean com.hongjie.pms.refactor.user.UserCache userCache(){return mock(com.hongjie.pms.refactor.user.UserCache.class);}
         @Bean SchedulingProperties settings(){return new SchedulingProperties();}
@@ -91,6 +92,18 @@ class ScheduledTaskMySqlTest {
         Callable<Void> task=()->{ready.countDown();if(!gate.await(5,TimeUnit.SECONDS))throw new IllegalStateException("timeout");action.run();return null;};
         try{var one=pool.submit(task);var two=pool.submit(task);assertThat(ready.await(5,TimeUnit.SECONDS)).isTrue();gate.countDown();one.get(20,TimeUnit.SECONDS);two.get(20,TimeUnit.SECONDS);}
         finally{gate.countDown();pool.shutdownNow();assertThat(pool.awaitTermination(10,TimeUnit.SECONDS)).isTrue();}
+    }
+    @Test void duplicateLegacyMessagesCreateOneCanonicalTask() throws Exception {
+        var message=com.hongjie.pms.common.mq.DelayMessageDto.builder()
+                .type("ACTIVITY_REMIND").businessId(activity).executeTime(1L).build();
+        var bridge=context.getBean(LegacyDelayMessages.class);
+        try {
+            race(()->bridge.accept(message));
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM delay_task WHERE business_id=? AND task_type='ACTIVITY_REMIND'",Integer.class,activity)).isEqualTo(1);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM delay_task t JOIN activity a ON t.business_id=a.id WHERE a.id=? AND t.task_type='ACTIVITY_REMIND' AND t.execute_time=DATE_SUB(a.start_time,INTERVAL 30 MINUTE)",Integer.class,activity)).isEqualTo(1);
+        } finally {
+            jdbc.update("DELETE FROM delay_task WHERE business_id=? AND task_type='ACTIVITY_REMIND'",activity);
+        }
     }
     @Test void concurrentExecutionCommitsBusinessEffectOnce()throws Exception{
         long id=due("TEST_ATOMIC",user);race(()->worker.execute(id,LocalDateTime.now()));

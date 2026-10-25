@@ -1,4 +1,7 @@
 package com.hongjie.pms.refactor.search.index;
+import com.hongjie.pms.refactor.search.api.SearchDataSyncService;
+import com.hongjie.pms.refactor.search.api.FullDataSyncService;
+import com.hongjie.pms.refactor.search.api.UnifiedSearchService;
 
 import com.hongjie.pms.modules.search.service.*;
 import com.hongjie.pms.modules.search.config.ElasticsearchIndexInitializer;
@@ -36,8 +39,7 @@ class SearchIndexWiringTest {
             types.addAll(Arrays.asList(facade.getConstructors()[0].getParameterTypes()));
         types.remove(SearchDataSyncService.class);
         for(var type:types)collaborator(context,type);
-        context.register(SearchDataSyncService.class,FullDataSyncService.class,PmsSearchDataSyncService.class,PmsFullDataSyncService.class,
-                ElasticsearchIndexInitializer.class,SearchIndexBootstrap.class);
+        context.register(PmsSearchDataSyncService.class,PmsFullDataSyncService.class,ElasticsearchIndexInitializer.class,SearchIndexBootstrap.class);
         context.refresh();return context;
     }
     @Test void primaryFacadesAndOnlyOneStartupFlowAreActive(){
@@ -48,7 +50,7 @@ class SearchIndexWiringTest {
             context.publishEvent(new org.springframework.boot.context.event.ApplicationReadyEvent(
                     new org.springframework.boot.SpringApplication(Object.class),new String[0],context,Duration.ZERO));
             verify(maintenance).request();verifyNoMoreInteractions(maintenance);
-            verifyNoInteractions(context.getBean(co.elastic.clients.elasticsearch.ElasticsearchClient.class));
+            assertThat(context.getBeansOfType(ElasticsearchIndexInitializer.class)).isEmpty();
         }
     }
     @Test void staleEntitiesAreReducedToIdsAndNullPublishedEntitiesAreSafe(){
@@ -62,7 +64,7 @@ class SearchIndexWiringTest {
         }
     }
     @Test void legacyStartupHooksAreDisabledWithoutRemovingLegacyImplementations()throws Exception{
-        assertThat(FullDataSyncService.class.getMethod("syncAll").getAnnotation(EventListener.class).condition()).isEqualTo("false");
+        assertThat(com.hongjie.pms.modules.search.service.FullDataSyncService.class.getMethod("syncAll").getAnnotation(EventListener.class).condition()).isEqualTo("false");
         assertThat(ElasticsearchIndexInitializer.class.getMethod("initIndex").getAnnotation(EventListener.class).condition()).isEqualTo("false");
         for(var method:SearchDataSyncListener.class.getDeclaredMethods())assertThat(method.getAnnotation(Async.class)).isNull();
     }

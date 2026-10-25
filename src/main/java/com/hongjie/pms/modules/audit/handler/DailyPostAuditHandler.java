@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@org.springframework.context.annotation.Profile("legacy-reference")
 @Component
 @RequiredArgsConstructor
 public class DailyPostAuditHandler implements AuditTargetHandler {

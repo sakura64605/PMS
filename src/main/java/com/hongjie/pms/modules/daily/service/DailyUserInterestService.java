@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class DailyUserInterestService {
 
     private final DailyUserBehaviorMapper behaviorMapper;

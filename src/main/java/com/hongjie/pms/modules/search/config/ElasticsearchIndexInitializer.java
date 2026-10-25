@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class ElasticsearchIndexInitializer {
 
     private final ElasticsearchClient esClient;
@@ -46,7 +47,7 @@ public class ElasticsearchIndexInitializer {
     private void createIndex() throws Exception {
         // 读取mapping配置
         String mappingJson = readResourceFile("elasticsearch/mapping.json");
-        
+
         CreateIndexRequest request = CreateIndexRequest.of(i -> i
                 .index(INDEX_NAME)
                 .settings(s -> s
@@ -94,7 +95,7 @@ public class ElasticsearchIndexInitializer {
         );
 
         CreateIndexResponse response = esClient.indices().create(request);
-        
+
         if (response.acknowledged()) {
             log.info("索引 {} 创建成功", INDEX_NAME);
         } else {

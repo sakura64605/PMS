@@ -1,12 +1,8 @@
 package com.hongjie.pms.refactor.search.index;
 
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import com.hongjie.pms.modules.search.service.SearchDataSyncService;
+import com.hongjie.pms.refactor.search.api.SearchDataSyncService;
 import com.hongjie.pms.modules.search.document.UnifiedDoc;
-import com.hongjie.pms.modules.user.mapper.UserMapper;
 import com.hongjie.pms.modules.daily.mapper.*;
-import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
-import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
 import com.hongjie.pms.modules.petpost.entity.PetPost;
 import com.hongjie.pms.modules.activity.entity.Activity;
 import com.hongjie.pms.modules.daily.entity.DailyPost;
@@ -15,14 +11,12 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 @Service @Primary
-public class PmsSearchDataSyncService extends SearchDataSyncService {
+public class PmsSearchDataSyncService implements SearchDataSyncService {
     private final SearchSyncDispatch dispatch;
     private final SearchIndexCoordinator coordinator;
     private final SearchMaintenance maintenance;
-    public PmsSearchDataSyncService(ElasticsearchClient client,UserMapper users,TopicMapper topics,DailyTopicRelMapper links,
-            PetPostMapper pets,ActivityMapper activities,DailyPostMapper daily,
-            SearchSyncDispatch dispatch,SearchIndexCoordinator coordinator,SearchMaintenance maintenance){
-        super(client,users,topics,links,pets,activities,daily);
+    public PmsSearchDataSyncService(SearchSyncDispatch dispatch, SearchIndexCoordinator coordinator, SearchMaintenance maintenance){
+
         this.dispatch=dispatch;this.coordinator=coordinator;this.maintenance=maintenance;
     }
     @Override public void syncDailyPost(DailyPost post,List<Long> topics){if(post!=null)syncDailyPostById(post.getId());}

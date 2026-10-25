@@ -3,7 +3,7 @@ package com.hongjie.pms.modules.search.controller;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.pojo.CommonResult;
 import com.hongjie.pms.modules.search.dto.UnifiedSearchResponse;
-import com.hongjie.pms.modules.search.service.UnifiedSearchService;
+import com.hongjie.pms.refactor.search.api.UnifiedSearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;

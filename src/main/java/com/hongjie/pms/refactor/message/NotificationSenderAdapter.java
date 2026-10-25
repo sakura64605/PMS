@@ -3,7 +3,7 @@ package com.hongjie.pms.refactor.message;
 import com.hongjie.pms.refactor.extension.notify.NotificationMessage;
 import com.hongjie.pms.refactor.extension.notify.NotificationSender;
 import com.hongjie.pms.modules.message.entity.UserMessage;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

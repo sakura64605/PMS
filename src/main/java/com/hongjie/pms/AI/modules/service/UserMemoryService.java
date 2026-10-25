@@ -1,4 +1,5 @@
 package com.hongjie.pms.AI.modules.service;
+import com.hongjie.pms.refactor.ai.api.ChatMemoryService;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hongjie.pms.AI.modules.entity.AiUserMemory;
@@ -17,6 +18,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class UserMemoryService {
 
     /** 每用户长期记忆条数上限，超出按 重要度→更新时间 淘汰 */

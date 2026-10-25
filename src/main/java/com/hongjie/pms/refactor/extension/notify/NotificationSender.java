@@ -1,4 +1,5 @@
 package com.hongjie.pms.refactor.extension.notify;
+import com.hongjie.pms.refactor.message.api.MessageService;
 
 /**
  * 通知投递端口 —— 依赖倒置的那一半。

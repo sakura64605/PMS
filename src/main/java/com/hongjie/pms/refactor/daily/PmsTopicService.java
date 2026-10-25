@@ -1,4 +1,5 @@
 package com.hongjie.pms.refactor.daily;
+import com.hongjie.pms.refactor.daily.api.TopicService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.ErrorCode;
@@ -7,7 +8,6 @@ import com.hongjie.pms.modules.daily.entity.Topic;
 import com.hongjie.pms.modules.daily.mapper.TopicMapper;
 import com.hongjie.pms.modules.daily.service.*;
 import org.springframework.context.annotation.Primary;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,9 +15,9 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 @Service @Primary
-public class PmsTopicService extends TopicService {
+public class PmsTopicService implements TopicService {
     private final TopicMapper topics;private final DailyCacheInvalidator cache;
-    public PmsTopicService(TopicMapper topics,RedisTemplate<String,Object> redis,DailyCacheInvalidator cache){super(topics,redis);this.topics=topics;this.cache=cache;}
+    public PmsTopicService(TopicMapper topics, DailyCacheInvalidator cache){this.topics=topics;this.cache=cache;}
     @Override @Transactional public Topic createTopic(String name,String description){
         if(UserContext.getUserId()==null)throw new BusinessException(ErrorCode.UNAUTHORIZED);
         String canonical=name==null?"":name.strip().replaceAll("^#+|#+$","").strip();

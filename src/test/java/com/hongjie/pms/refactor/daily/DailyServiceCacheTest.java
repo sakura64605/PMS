@@ -1,4 +1,7 @@
 package com.hongjie.pms.refactor.daily;
+import com.hongjie.pms.modules.daily.service.DailyUserInterestService;
+import com.hongjie.pms.modules.daily.service.DailyRecommendService;
+import com.hongjie.pms.modules.daily.service.DailyPostService;
 
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.modules.daily.entity.DailyPost;

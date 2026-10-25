@@ -3,7 +3,7 @@ package com.hongjie.pms.refactor.audit;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.hongjie.pms.modules.audit.dto.*;
 import com.hongjie.pms.modules.audit.service.AuditService;
-import com.hongjie.pms.modules.audit.handler.AuditTargetHandlerFactory;
+import com.hongjie.pms.refactor.audit.handler.AuditTargetHandlerFactory;
 
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;

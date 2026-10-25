@@ -2,9 +2,7 @@ package com.hongjie.pms.refactor.message;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.hongjie.pms.modules.message.entity.UserMessage;
-import com.hongjie.pms.modules.message.mapper.UserMessageMapper;
-import com.hongjie.pms.modules.message.mq.MessageMqProducer;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import com.hongjie.pms.refactor.core.enums.BizTargetType;
 import com.hongjie.pms.refactor.extension.notify.*;
 import com.hongjie.pms.refactor.extension.notify.handler.*;
@@ -17,15 +15,14 @@ import java.util.List;
 /** Compatibility adapter for existing concrete-type injections. Every public legacy operation is overridden. */
 @Service
 @Primary
-public class PmsMessageService extends MessageService {
+public class PmsMessageService implements MessageService {
     private final MessageInbox inbox;
     private final MessageDelivery delivery;
     private final LikeNotificationHandler likes;
     private final CommentNotificationHandler comments;
     private final TargetTypeCodec codec;
-    public PmsMessageService(UserMessageMapper mapper,MessageMqProducer producer,MessageInbox inbox,MessageDelivery delivery,
-                             LikeNotificationHandler likes,CommentNotificationHandler comments,TargetTypeCodec codec){
-        super(mapper,producer);this.inbox=inbox;this.delivery=delivery;this.likes=likes;this.comments=comments;this.codec=codec;
+    public PmsMessageService(MessageInbox inbox, MessageDelivery delivery, LikeNotificationHandler likes, CommentNotificationHandler comments, TargetTypeCodec codec){
+        this.inbox=inbox;this.delivery=delivery;this.likes=likes;this.comments=comments;this.codec=codec;
     }
     @Override public Long getUnreadCount(Long actor){return inbox.unread(actor);}
     @Override public IPage<UserMessage> getMessageList(Long actor,Integer number,Integer size,String type){return inbox.list(actor,number,size,type);}

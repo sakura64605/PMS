@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Component
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class ToolRegistry {
 
     private final Map<String, BaseTool> tools = new ConcurrentHashMap<>();

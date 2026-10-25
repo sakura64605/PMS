@@ -12,7 +12,7 @@ import com.hongjie.pms.refactor.core.page.PageResult;
 import com.hongjie.pms.refactor.core.security.RequireRole;
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
-import com.hongjie.pms.common.punishment.scheduler.DelayTaskService;
+import com.hongjie.pms.refactor.scheduling.DelayTaskService;
 import com.hongjie.pms.modules.notice.dto.request.NoticeRequestDto;
 import com.hongjie.pms.modules.notice.dto.response.NoticeDetailDto;
 import com.hongjie.pms.modules.notice.dto.response.NoticeListDto;

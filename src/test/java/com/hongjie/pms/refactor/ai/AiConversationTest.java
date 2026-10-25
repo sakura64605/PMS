@@ -1,5 +1,8 @@
 package com.hongjie.pms.refactor.ai;
-import com.hongjie.pms.AI.agent.AIAgentEngine;
+import com.hongjie.pms.refactor.ai.api.HumanTransferService;
+import com.hongjie.pms.refactor.ai.api.ChatSessionService;
+import com.hongjie.pms.refactor.ai.api.ChatMemoryService;
+import com.hongjie.pms.refactor.ai.agent.AIAgentEngine;
 import com.hongjie.pms.AI.modules.dto.request.AIAgentRequest;
 import com.hongjie.pms.AI.modules.dto.response.AIAgentResponse;
 import com.hongjie.pms.AI.modules.entity.AiChatSession;

@@ -2,7 +2,7 @@ package com.hongjie.pms.refactor.local;
 
 import com.hongjie.pms.refactor.scheduling.*;
 import com.hongjie.pms.refactor.search.index.*;
-import com.hongjie.pms.AI.rag.*;
+import com.hongjie.pms.refactor.ai.rag.*;
 import com.hongjie.pms.AI.modules.mapper.AiKnowledgeBaseMapper;
 import com.hongjie.pms.common.config.CacheWarmer;
 import com.hongjie.pms.common.utils.RedisScanUtil;

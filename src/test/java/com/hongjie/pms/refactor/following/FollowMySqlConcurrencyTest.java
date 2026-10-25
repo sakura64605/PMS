@@ -7,7 +7,7 @@ import com.hongjie.pms.modules.feed.mapper.UserInboxMapper;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
 import com.hongjie.pms.modules.following.service.FollowService;
 import com.hongjie.pms.modules.following.controller.FollowingController;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
 import com.hongjie.pms.refactor.support.MyBatisTestSupport;

@@ -17,6 +17,7 @@ import java.util.*;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class MyActivitiesTool implements BaseTool {
 
     private final ActivitySignupMapper signupMapper;

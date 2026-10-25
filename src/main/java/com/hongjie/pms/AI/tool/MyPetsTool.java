@@ -14,6 +14,7 @@ import java.util.*;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class MyPetsTool implements BaseTool {
 
     private final PetPostMapper petPostMapper;

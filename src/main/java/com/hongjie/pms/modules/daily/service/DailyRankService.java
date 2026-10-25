@@ -1,4 +1,5 @@
 package com.hongjie.pms.modules.daily.service;
+import com.hongjie.pms.refactor.daily.api.DailyUserInterestService;
 
 import com.hongjie.pms.modules.daily.entity.DailyPost;
 import com.hongjie.pms.modules.daily.mapper.DailyPostMapper;
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class DailyRankService {
 
     private final DailyPostMapper dailyPostMapper;

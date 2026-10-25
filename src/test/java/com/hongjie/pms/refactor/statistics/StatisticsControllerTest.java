@@ -3,7 +3,7 @@ package com.hongjie.pms.refactor.statistics;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.pojo.UserInfo;
 import com.hongjie.pms.modules.statistics.controller.StatisticsController;
-import com.hongjie.pms.modules.statistics.service.StatisticsService;
+import com.hongjie.pms.refactor.statistics.api.StatisticsService;
 import com.hongjie.pms.modules.statistics.dto.StatisticsResponseDto.DailyStatisticsDto;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;

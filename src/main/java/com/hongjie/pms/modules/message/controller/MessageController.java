@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.pojo.CommonResult;
 import com.hongjie.pms.modules.message.entity.UserMessage;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -20,9 +20,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/pet-system/message")
 @RequiredArgsConstructor
 public class MessageController {
-    
+
     private final MessageService messageService;
-    
+
     /**
      * 获取未读消息数量
      */
@@ -32,7 +32,7 @@ public class MessageController {
         Long count = messageService.getUnreadCount(userId);
         return CommonResult.success(count);
     }
-    
+
     /**
      * 获取消息列表
      */
@@ -45,7 +45,7 @@ public class MessageController {
         IPage<UserMessage> page = messageService.getMessageList(userId, pageNum, pageSize, type);
         return CommonResult.success(page);
     }
-    
+
     /**
      * 标记消息为已读
      */
@@ -54,7 +54,7 @@ public class MessageController {
         messageService.markAsRead(id);
         return CommonResult.success("已标记为已读");
     }
-    
+
     /**
      * 全部标记为已读
      */

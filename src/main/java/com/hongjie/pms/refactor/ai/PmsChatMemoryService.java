@@ -1,24 +1,23 @@
 package com.hongjie.pms.refactor.ai;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.hongjie.pms.AI.modules.service.ChatMemoryService;
+import com.hongjie.pms.refactor.ai.api.ChatMemoryService;
 import com.hongjie.pms.AI.modules.mapper.AiChatMessageMapper;
 import com.hongjie.pms.AI.modules.entity.AiChatMessage;
 import com.hongjie.pms.common.enums.ErrorCode;
 import com.hongjie.pms.common.exception.BusinessException;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
-import org.springframework.data.redis.core.RedisTemplate;
 import java.time.ZoneId;
 import java.util.*;
 
 @Service @Primary
-public class PmsChatMemoryService extends ChatMemoryService {
+public class PmsChatMemoryService implements ChatMemoryService {
     private final AiChatMessageMapper messages;
     private final AiMessageWriter writer;
     private final AiSessionCache cache;
-    public PmsChatMemoryService(AiChatMessageMapper messages,RedisTemplate<String,Object> redis,AiMessageWriter writer,AiSessionCache cache){
-        super(messages,redis);this.messages=messages;this.writer=writer;this.cache=cache;
+    public PmsChatMemoryService(AiChatMessageMapper messages, AiMessageWriter writer, AiSessionCache cache){
+        this.messages=messages;this.writer=writer;this.cache=cache;
     }
     @Override public void saveMessage(String id,String role,String content,Long actor){saveMessage(id,role,content,actor,null,null);}
     @Override public void saveMessage(String id,String role,String content,Long actor,Integer tokens){saveMessage(id,role,content,actor,tokens,null);}

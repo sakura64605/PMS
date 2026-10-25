@@ -52,6 +52,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class PetPostServiceImpl implements PetPostService {
 
     private final PetPostMapper petPostMapper;

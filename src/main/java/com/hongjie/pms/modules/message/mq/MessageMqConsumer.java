@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 
 @Slf4j
+@org.springframework.context.annotation.Profile("legacy-reference")
 @Component
 @RequiredArgsConstructor
 @RocketMQMessageListener(
@@ -59,7 +60,7 @@ public class MessageMqConsumer implements RocketMQListener<String> {
         userMessage.setLink(dto.getLink());
         userMessage.setIsRead(0);
         userMessage.setCreateTime(dto.getCreateTime() != null ? dto.getCreateTime() : LocalDateTime.now());
-        
+
         messageMapper.insert(userMessage);
         log.info("消息已存储: userId={}, type={}", dto.getUserId(), dto.getType());
 

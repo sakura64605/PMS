@@ -11,7 +11,7 @@ import com.hongjie.pms.AI.modules.entity.AiKnowledgeBase;
 import com.hongjie.pms.AI.modules.entity.AiUserMemory;
 import com.hongjie.pms.AI.modules.mapper.AiKnowledgeBaseMapper;
 import com.hongjie.pms.AI.modules.service.AiMemoryExtractor;
-import com.hongjie.pms.AI.modules.service.ChatMemoryService;
+import com.hongjie.pms.refactor.ai.api.ChatMemoryService;
 import com.hongjie.pms.AI.modules.service.UserMemoryService;
 import com.hongjie.pms.AI.rag.KnowledgeBaseService;
 import com.hongjie.pms.AI.tool.ToolRegistry;
@@ -44,6 +44,7 @@ import java.util.*;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class AIAgentEngine {
 
     private final ChatModel chatLanguageModel;

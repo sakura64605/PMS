@@ -1,12 +1,13 @@
 package com.hongjie.pms.refactor.activity;
 
 import com.hongjie.pms.common.punishment.scheduler.*;
+import com.hongjie.pms.refactor.scheduling.DelayTaskService;
 import com.hongjie.pms.modules.activity.cache.ActivityCache;
 import com.hongjie.pms.modules.activity.entity.*;
 import com.hongjie.pms.modules.activity.mapper.*;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
-import com.hongjie.pms.common.punishment.util.PunishmentUtil;
+import com.hongjie.pms.refactor.user.policy.PunishmentUtil;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;

@@ -1,11 +1,8 @@
 package com.hongjie.pms.AI.modules.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hongjie.pms.AI.modules.entity.AiKnowledgeBase;
-import com.hongjie.pms.AI.modules.mapper.AiKnowledgeBaseMapper;
-import com.hongjie.pms.AI.rag.KnowledgeBaseService;
+import com.hongjie.pms.refactor.ai.rag.KnowledgeBaseService;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.pojo.CommonResult;
@@ -20,16 +17,15 @@ import java.util.List;
 @RequestMapping("/pet-system/admin/ai/knowledge")
 @RequiredArgsConstructor
 public class KnowledgeBaseAdminController {
-    
+
     private final KnowledgeBaseService knowledgeBaseService;
-    private final AiKnowledgeBaseMapper knowledgeBaseMapper;
-    
+
     private void checkAdmin() {
         if (!UserContext.isAdmin()) {
             throw new BusinessException(403, "需要管理员权限");
         }
     }
-    
+
     @PostMapping("/add")
     public CommonResult<String> addKnowledge(
             @RequestParam String title,
@@ -40,7 +36,7 @@ public class KnowledgeBaseAdminController {
         knowledgeBaseService.addKnowledge(title, content, category, tags);
         return CommonResult.success("知识添加成功");
     }
-    
+
     @GetMapping("/search")
     public CommonResult<IPage<AiKnowledgeBase>> searchKnowledge(
             @RequestParam(required = false) String keyword,
@@ -48,22 +44,10 @@ public class KnowledgeBaseAdminController {
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
         checkAdmin();
-        
-        Page<AiKnowledgeBase> page = new Page<>(pageNum, pageSize);
-        LambdaQueryWrapper<AiKnowledgeBase> wrapper = new LambdaQueryWrapper<>();
-        
-        if (keyword != null && !keyword.isEmpty()) {
-            wrapper.and(w -> w.like(AiKnowledgeBase::getTitle, keyword)
-                    .or().like(AiKnowledgeBase::getContent, keyword));
-        }
-        if (category != null && !category.isEmpty()) {
-            wrapper.eq(AiKnowledgeBase::getCategory, category);
-        }
-        wrapper.eq(AiKnowledgeBase::getStatus, 1);
-        
-        return CommonResult.success(knowledgeBaseMapper.selectPage(page, wrapper));
+
+        return CommonResult.success(knowledgeBaseService.search(keyword, category, pageNum, pageSize));
     }
-    
+
     @DeleteMapping("/delete/{id}")
     public CommonResult<String> deleteKnowledge(@PathVariable Long id) {
         checkAdmin();
@@ -71,7 +55,7 @@ public class KnowledgeBaseAdminController {
         knowledgeBaseService.removeKnowledge(id);
         return CommonResult.success("知识删除成功");
     }
-    
+
     @PostMapping("/reload")
     public CommonResult<String> reloadKnowledgeBase() {
         checkAdmin();

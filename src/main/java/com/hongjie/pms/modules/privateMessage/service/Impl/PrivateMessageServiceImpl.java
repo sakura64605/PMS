@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class PrivateMessageServiceImpl implements PrivateMessageService {
 
     private final PrivateConversationMapper conversationMapper;
@@ -88,7 +89,7 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
         String conversationCacheKeyTo = CacheUtil.buildKey("conversation", String.valueOf(toUserId), "1", "10");
         distributedCache.delete(conversationCacheKeyFrom);
         distributedCache.delete(conversationCacheKeyTo);
-        
+
         // 清理聊天记录缓存
         String messageCacheKey = CacheUtil.buildKey("message", String.valueOf(conversation.getId()), "1", "20");
         distributedCache.delete(messageCacheKey);
@@ -100,13 +101,13 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
     @Override
     public IPage<ConversationDto> getConversationList(Long userId, Integer pageNum, Integer pageSize) {
         String cacheKey = CacheUtil.buildKey("conversation", String.valueOf(userId), String.valueOf(pageNum), String.valueOf(pageSize));
-        
+
         // 尝试从缓存获取
         Page<ConversationDto> cachedPage = distributedCache.get(cacheKey, Page.class);
         if (cachedPage != null) {
             return cachedPage;
         }
-        
+
         // 缓存未命中，从数据库查询
         Page<PrivateConversation> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<PrivateConversation> wrapper = new LambdaQueryWrapper<PrivateConversation>()
@@ -121,10 +122,10 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
 
         Page<ConversationDto> resultPage = new Page<>(pageNum, pageSize, conversationPage.getTotal());
         resultPage.setRecords(records);
-        
+
         // 放入缓存，设置过期时间为5分钟
         distributedCache.put(cacheKey, resultPage, 300);
-        
+
         return resultPage;
     }
 
@@ -134,13 +135,13 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
     @Override
     public IPage<MessageDto> getMessageList(Long userId, Long conversationId, Integer pageNum, Integer pageSize) {
         String cacheKey = CacheUtil.buildKey("message", String.valueOf(conversationId), String.valueOf(pageNum), String.valueOf(pageSize));
-        
+
         // 尝试从缓存获取
         Page<MessageDto> cachedPage = distributedCache.get(cacheKey, Page.class);
         if (cachedPage != null) {
             return cachedPage;
         }
-        
+
         // 1. 验证权限
         PrivateConversation conversation = conversationMapper.selectById(conversationId);
         if (conversation == null || (!conversation.getUserA().equals(userId) && !conversation.getUserB().equals(userId))) {
@@ -177,10 +178,10 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
 
         Page<MessageDto> resultPage = new Page<>(pageNum, pageSize, messagePage.getTotal());
         resultPage.setRecords(records);
-        
+
         // 放入缓存，设置过期时间为5分钟
         distributedCache.put(cacheKey, resultPage, 300);
-        
+
         return resultPage;
     }
 
@@ -218,12 +219,12 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
             conversationMapper.clearUnreadB(conversationId, userId);
             messageMapper.markAsRead(conversationId, userId);
         }
-        
+
         // 清理缓存
         // 清理会话列表缓存
         String conversationCacheKey = CacheUtil.buildKey("conversation", String.valueOf(userId), "1", "10");
         distributedCache.delete(conversationCacheKey);
-        
+
         // 清理聊天记录缓存
         String messageCacheKey = CacheUtil.buildKey("message", String.valueOf(conversationId), "1", "20");
         distributedCache.delete(messageCacheKey);
@@ -341,7 +342,7 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
         // 清理会话列表缓存
         String conversationCacheKey = CacheUtil.buildKey("conversation", String.valueOf(userId), "1", "10");
         distributedCache.delete(conversationCacheKey);
-        
+
         // 清理聊天记录缓存
         String messageCacheKey = CacheUtil.buildKey("message", String.valueOf(conversationId), "1", "20");
         distributedCache.delete(messageCacheKey);
@@ -410,7 +411,7 @@ public class PrivateMessageServiceImpl implements PrivateMessageService {
         // 清理会话列表缓存
         String conversationCacheKey = CacheUtil.buildKey("conversation", String.valueOf(userId), "1", "10");
         distributedCache.delete(conversationCacheKey);
-        
+
         // 清理聊天记录缓存
         String messageCacheKey = CacheUtil.buildKey("message", String.valueOf(conversationId), "1", "20");
         distributedCache.delete(messageCacheKey);

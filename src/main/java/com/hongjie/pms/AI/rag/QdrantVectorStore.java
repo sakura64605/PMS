@@ -28,6 +28,7 @@ import java.util.UUID;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class QdrantVectorStore {
 
     @Value("${qdrant.host:127.0.0.1}")

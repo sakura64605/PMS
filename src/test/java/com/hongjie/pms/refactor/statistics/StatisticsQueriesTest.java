@@ -5,7 +5,7 @@ import com.hongjie.pms.common.pojo.UserInfo;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.modules.statistics.entity.DailyStatistics;
 import com.hongjie.pms.modules.statistics.mapper.DailyStatisticsMapper;
-import com.hongjie.pms.modules.statistics.service.StatisticsService;
+import com.hongjie.pms.refactor.statistics.api.StatisticsService;
 import org.junit.jupiter.api.*;
 import java.time.*;
 import java.util.*;

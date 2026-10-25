@@ -1,4 +1,5 @@
 package com.hongjie.pms.modules.message.mq;
+import com.hongjie.pms.refactor.message.messaging.MessageMqConsumer;
 
 import com.alibaba.fastjson2.JSON;
 import com.hongjie.pms.common.utils.SpringContextHolder;
@@ -49,9 +50,9 @@ public class MessageMqProducer {
             Message<String> message = MessageBuilder
                     .withPayload(JSON.toJSONString(dto))
                     .build();
-            
+
             rocketMQTemplate.syncSend(TOPIC + ":" + TAG, message, 3000, delayLevel);
-            log.info("延迟消息已发送到MQ: userId={}, type={}, delayLevel={}", 
+            log.info("延迟消息已发送到MQ: userId={}, type={}, delayLevel={}",
                      dto.getUserId(), dto.getType(), delayLevel);
         } catch (Exception e) {
             log.error("MQ延迟消息发送失败: {}", e.getMessage());

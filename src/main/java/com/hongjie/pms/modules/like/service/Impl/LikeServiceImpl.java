@@ -28,6 +28,7 @@ import java.time.LocalDateTime;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class LikeServiceImpl implements LikeService {
 
     private final PetPostMapper petPostMapper;

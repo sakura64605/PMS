@@ -1,8 +1,8 @@
 package com.hongjie.pms.refactor.scheduling;
 
-import com.hongjie.pms.common.punishment.scheduler.ActivityStatusScheduler;
-import com.hongjie.pms.modules.feed.task.InboxCleanupTask;
-import com.hongjie.pms.modules.statistics.service.StatisticsService;
+import com.hongjie.pms.refactor.activity.ActivityStatusScheduler;
+import com.hongjie.pms.refactor.feed.task.InboxCleanupTask;
+import com.hongjie.pms.refactor.statistics.api.StatisticsService;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;

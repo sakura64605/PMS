@@ -4,6 +4,7 @@ import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.pojo.UserInfo;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.punishment.scheduler.*;
+import com.hongjie.pms.refactor.scheduling.DelayTaskService;
 import com.hongjie.pms.modules.activity.cache.ActivityCache;
 import com.hongjie.pms.modules.activity.controller.ActivityController;
 import com.hongjie.pms.modules.activity.dto.request.ActivityRequestDto;
@@ -53,8 +54,7 @@ class ActivityContentMySqlTest {
     }
     @Configuration(proxyBeanMethods=false)
     @EnableTransactionManagement(proxyTargetClass=true)
-    @Import({PmsActivityServiceImpl.class,ActivityContentCommands.class,ActivityScheduleWriter.class,ActivityContentListener.class,
-            AuditWriteTargets.class,AuditCommandService.class,DelayTaskService.class,ActivityController.class})
+    @Import({PmsActivityServiceImpl.class,ActivityContentCommands.class,ActivityScheduleWriter.class,ActivityContentListener.class,AuditWriteTargets.class,AuditCommandService.class,DelayTaskService.class,ActivityController.class})
     static class Config {
         @Bean ActivityQueries queries(){return mock(ActivityQueries.class);}
         @Bean ActivityLifecycleCommands lifecycle(){return mock(ActivityLifecycleCommands.class);}

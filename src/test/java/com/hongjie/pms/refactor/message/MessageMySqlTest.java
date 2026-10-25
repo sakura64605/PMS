@@ -8,7 +8,7 @@ import com.hongjie.pms.modules.message.controller.MessageController;
 import com.hongjie.pms.modules.message.entity.UserMessage;
 import com.hongjie.pms.modules.message.mapper.UserMessageMapper;
 import com.hongjie.pms.modules.message.mq.*;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import com.hongjie.pms.refactor.extension.notify.*;
 import com.hongjie.pms.refactor.extension.notify.handler.*;
 import com.hongjie.pms.refactor.extension.target.TargetTypeCodec;
@@ -42,8 +42,7 @@ class MessageMySqlTest {
     }
     @Configuration(proxyBeanMethods=false)
     @EnableTransactionManagement(proxyTargetClass=true)
-    @Import({PmsMessageService.class,MessageInbox.class,MessageDelivery.class,LikeNotificationHandler.class,CommentNotificationHandler.class,TargetTypeCodec.class,
-            MessageController.class,NotificationSenderAdapter.class,NotificationFacade.class,NotificationHandlerRegistry.class})
+    @Import({PmsMessageService.class,MessageInbox.class,MessageDelivery.class,LikeNotificationHandler.class,CommentNotificationHandler.class,TargetTypeCodec.class,MessageController.class,NotificationSenderAdapter.class,NotificationFacade.class,NotificationHandlerRegistry.class})
     static class Config {
         @Bean MessageMqProducer producer(){return mock(MessageMqProducer.class);}
         @Bean MessageService legacyMessageService(){return mock(MessageService.class);}

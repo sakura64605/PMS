@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class FeedServiceImpl extends ServiceImpl<UserInboxMapper, UserInbox> implements FeedService{
 
     private final UserInboxMapper userInboxMapper;

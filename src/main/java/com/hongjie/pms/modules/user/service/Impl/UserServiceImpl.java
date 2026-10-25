@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
@@ -117,7 +118,7 @@ public class UserServiceImpl implements UserService {
                 throw new BusinessException(ErrorCode.PHONE_EXISTS);
             }
         }
-        
+
         // 布隆过滤器未命中，直接检查数据库
         if (findUserByUsername(userName) != null) {
             throw new BusinessException(ErrorCode.USERNAME_EXISTS);
@@ -235,7 +236,7 @@ public class UserServiceImpl implements UserService {
             // 清理缓存
             String cacheKey = CacheUtil.buildKey("user", String.valueOf(userId));
             AfterCommitCache.evict(() -> distributedCache.delete(cacheKey));
-            
+
             return UserInfoDto.builder()
                     .userId(userId)
                     .nickName(updateDto.getNickName())
@@ -390,8 +391,8 @@ public class UserServiceImpl implements UserService {
         userProfileDto.setJoinTime(user.getCreateTime());
         userProfileDto.setLastActiveTime(user.getLastActiveTime());
         userProfileDto.setGender(user.getGender());
-        
-        
+
+
         return userProfileDto;
     }
 

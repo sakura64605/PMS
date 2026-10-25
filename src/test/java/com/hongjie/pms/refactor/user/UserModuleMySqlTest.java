@@ -13,8 +13,9 @@ import com.hongjie.pms.modules.admin.service.AdminService;
 import com.hongjie.pms.modules.admin.controller.AdminController;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import com.hongjie.pms.common.punishment.scheduler.*;
+import com.hongjie.pms.refactor.scheduling.DelayTaskService;
 import com.hongjie.pms.refactor.admin.PmsAdminServiceImpl;
 import com.hongjie.pms.refactor.audit.AuditCommandService;
 import com.hongjie.pms.refactor.support.MyBatisTestSupport;
@@ -54,14 +55,7 @@ class UserModuleMySqlTest {
     final List<Long> extra=new ArrayList<>();
     final Map<String,String> redisData=new ConcurrentHashMap<>();
     @Configuration(proxyBeanMethods=false) @EnableTransactionManagement(proxyTargetClass=true)
-    @Import({PmsUserServiceImpl.class,UserAuthentication.class,UserProfiles.class,UserSessions.class,UserAssembler.class,UserCache.class,
-            UserAdministration.class,UserAdminItem.class,PmsAdminServiceImpl.class,UserAvatarCommands.class,PmsAvatarServiceImpl.class,
-            UserAuthController.class,UserController.class,AdminController.class,AuthInterceptor.class,
-            com.hongjie.pms.refactor.scheduling.ScheduledTaskWorker.class,com.hongjie.pms.refactor.scheduling.ScheduledBusinessTasks.class,
-            com.hongjie.pms.refactor.scheduling.BusinessTaskConfiguration.class,DelayTaskService.class,
-            com.hongjie.pms.modules.user.service.Impl.UserServiceImpl.class,
-            com.hongjie.pms.modules.user.service.Impl.AvatarServiceImpl.class,
-            com.hongjie.pms.modules.admin.service.Impl.AdminServiceImpl.class})
+    @Import({PmsUserServiceImpl.class,UserAuthentication.class,UserProfiles.class,UserSessions.class,UserAssembler.class,UserCache.class,UserAdministration.class,UserAdminItem.class,PmsAdminServiceImpl.class,UserAvatarCommands.class,PmsAvatarServiceImpl.class,UserAuthController.class,UserController.class,AdminController.class,AuthInterceptor.class,com.hongjie.pms.refactor.scheduling.ScheduledTaskWorker.class,com.hongjie.pms.refactor.scheduling.ScheduledBusinessTasks.class,com.hongjie.pms.refactor.scheduling.BusinessTaskConfiguration.class,DelayTaskService.class,com.hongjie.pms.modules.user.service.Impl.UserServiceImpl.class,com.hongjie.pms.modules.user.service.Impl.AvatarServiceImpl.class,com.hongjie.pms.modules.admin.service.Impl.AdminServiceImpl.class})
     static class Config {
         @Bean PasswordEncoder passwords(){return new BCryptPasswordEncoder(4);}
         @Bean JWTUtils jwt(){var jwt=new JWTUtils();jwt.setSecret("user-module-test-signing-key-only-1234567890");jwt.setExpire(3600L);jwt.setHeader("Authorization");jwt.setTokenPrefix("Bearer ");return jwt;}
@@ -71,7 +65,7 @@ class UserModuleMySqlTest {
         @Bean PetPostMapper posts(){return mock(PetPostMapper.class);}
         @Bean AuditCommandService audits(){return mock(AuditCommandService.class);}
         @Bean com.hongjie.pms.modules.activity.cache.ActivityCache activityCache(){return mock(com.hongjie.pms.modules.activity.cache.ActivityCache.class);}
-        @Bean com.hongjie.pms.common.punishment.util.PunishmentUtil punishment(){return mock(com.hongjie.pms.common.punishment.util.PunishmentUtil.class);}
+        @Bean com.hongjie.pms.refactor.user.policy.PunishmentUtil punishment(){return mock(com.hongjie.pms.refactor.user.policy.PunishmentUtil.class);}
         @Bean MessageService messages(){return mock(MessageService.class);}
     }
     @BeforeAll void open(){

@@ -1,6 +1,6 @@
 package com.hongjie.pms.refactor.extension.notify.handler;
+import com.hongjie.pms.refactor.message.api.MessageService;
 
-import com.hongjie.pms.refactor.core.enums.BizTargetType;
 import com.hongjie.pms.common.enums.MessageType;
 import com.hongjie.pms.refactor.extension.notify.LikeNotificationContext;
 import com.hongjie.pms.refactor.extension.notify.NotificationHandler;

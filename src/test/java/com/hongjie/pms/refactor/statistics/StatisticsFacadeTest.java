@@ -2,7 +2,7 @@ package com.hongjie.pms.refactor.statistics;
 
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.pojo.UserInfo;
-import com.hongjie.pms.modules.statistics.service.StatisticsService;
+import com.hongjie.pms.refactor.statistics.api.StatisticsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import java.time.LocalDate;
@@ -16,7 +16,7 @@ class StatisticsFacadeTest {
     @Test void primaryFacadeRoutesAllExistingEntrypointsToNewComponents(){
         try(var context=new AnnotationConfigApplicationContext()){
             for(Class<?> type:PmsStatisticsService.class.getConstructors()[0].getParameterTypes())collaborator(context,type);
-            context.register(StatisticsService.class,PmsStatisticsService.class);context.refresh();
+            context.register(PmsStatisticsService.class);context.refresh();
             StatisticsService service=context.getBean(StatisticsService.class);
             assertThat(service).isInstanceOf(PmsStatisticsService.class);
             var queries=context.getBean(StatisticsQueries.class);var generation=context.getBean(StatisticsGeneration.class);

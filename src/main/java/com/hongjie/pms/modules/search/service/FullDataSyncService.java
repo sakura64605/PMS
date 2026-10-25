@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class FullDataSyncService {
 
     private final SearchDataSyncService syncService;

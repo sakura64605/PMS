@@ -7,11 +7,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 
 @Service
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class DelayTaskService {
-    
+
     @Autowired
     private DelayTaskMapper delayTaskMapper;
-    
+
     @Transactional
     public void addTask(String taskType, Long businessId, LocalDateTime executeTime) {
         DelayTask task = new DelayTask();

@@ -1,4 +1,5 @@
 package com.hongjie.pms.refactor.extension.notify;
+import com.hongjie.pms.refactor.message.api.MessageService;
 
 /**
  * 通知上下文 —— 各业务场景构造通知文案所需的原始素材。

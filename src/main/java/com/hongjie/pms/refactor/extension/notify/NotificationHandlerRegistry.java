@@ -1,4 +1,5 @@
 package com.hongjie.pms.refactor.extension.notify;
+import com.hongjie.pms.refactor.message.api.MessageService;
 
 import com.hongjie.pms.refactor.core.strategy.StrategyRegistry;
 import com.hongjie.pms.common.enums.MessageType;

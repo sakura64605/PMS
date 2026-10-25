@@ -17,6 +17,7 @@ import java.time.Duration;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class AIAgentConfiguration {
 
     private final AIAgentConfig aiAgentConfig;

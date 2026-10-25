@@ -1,7 +1,7 @@
 package com.hongjie.pms.refactor.audit;
 
-import com.hongjie.pms.modules.audit.handler.AuditTargetHandlerFactory;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.audit.handler.AuditTargetHandlerFactory;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import com.hongjie.pms.modules.search.event.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -15,6 +15,7 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class ActivityStatusScheduler {
 
     private final ActivityMapper activityMapper;

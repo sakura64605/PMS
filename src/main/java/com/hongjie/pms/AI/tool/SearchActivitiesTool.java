@@ -18,6 +18,7 @@ import java.util.UUID;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class SearchActivitiesTool implements BaseTool {
 
     private static final int DEFAULT_PAGE_SIZE = 5;

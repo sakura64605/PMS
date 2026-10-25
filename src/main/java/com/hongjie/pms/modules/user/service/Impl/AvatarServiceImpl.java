@@ -26,6 +26,7 @@ import java.util.List;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class AvatarServiceImpl implements AvatarService {
 
     private static final int MAX_HISTORY_SIZE = 11;  // 最多保留10个历史头像

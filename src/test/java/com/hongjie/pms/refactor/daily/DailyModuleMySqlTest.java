@@ -1,4 +1,8 @@
 package com.hongjie.pms.refactor.daily;
+import com.hongjie.pms.refactor.daily.api.TopicService;
+import com.hongjie.pms.refactor.daily.api.DailyUserInterestService;
+import com.hongjie.pms.refactor.daily.api.DailyRecommendService;
+import com.hongjie.pms.refactor.daily.api.DailyPostService;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.pojo.UserInfo;
 import com.hongjie.pms.common.exception.BusinessException;
@@ -11,7 +15,6 @@ import com.hongjie.pms.modules.daily.service.*;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
 import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
-import com.hongjie.pms.modules.like.service.LikeService;
 import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
 import com.hongjie.pms.modules.audit.mapper.AuditRecordMapper;
@@ -53,10 +56,7 @@ class DailyModuleMySqlTest {
         @EventListener public void indexed(DailyPostUpdatedEvent event){ids.add(event.getDailyId());}
     }
     @Configuration(proxyBeanMethods=false) @EnableTransactionManagement(proxyTargetClass=true)
-    @Import({DailyCommands.class,DailyQueries.class,DailyAssembler.class,DailyInterest.class,DailyRecommendation.class,DailyRecallConfiguration.class,
-            DailyChangedListener.class,DailyLikeTarget.class,PmsDailyPostService.class,PmsTopicService.class,PmsDailyRecommendService.class,
-            PmsDailyUserInterestService.class,DailyPostController.class,PmsLikeServiceImpl.class,AuditWriteTargets.class,AuditCommandService.class,
-            DailyPostService.class,TopicService.class,DailyRecommendService.class,DailyRecallService.class,DailyRankService.class,DailyUserInterestService.class})
+    @Import({DailyCommands.class,DailyQueries.class,DailyAssembler.class,DailyInterest.class,DailyRecommendation.class,DailyRecallConfiguration.class,DailyChangedListener.class,DailyLikeTarget.class,PmsDailyPostService.class,PmsTopicService.class,PmsDailyRecommendService.class,PmsDailyUserInterestService.class,DailyPostController.class,PmsLikeServiceImpl.class,AuditWriteTargets.class,AuditCommandService.class,DailyRecallService.class,DailyRankService.class})
     static class Config {
         @Bean RedisTemplate<String,Object> redis(){return mock(RedisTemplate.class);}
         @Bean RedisScanUtil scan(){return mock(RedisScanUtil.class);}

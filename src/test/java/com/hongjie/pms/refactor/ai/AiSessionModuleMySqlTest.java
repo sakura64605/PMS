@@ -1,6 +1,9 @@
 package com.hongjie.pms.refactor.ai;
+import com.hongjie.pms.refactor.ai.api.HumanTransferService;
+import com.hongjie.pms.refactor.ai.api.ChatSessionService;
+import com.hongjie.pms.refactor.ai.api.ChatMemoryService;
 
-import com.hongjie.pms.AI.agent.AIAgentEngine;
+import com.hongjie.pms.refactor.ai.agent.AIAgentEngine;
 import com.hongjie.pms.AI.modules.service.*;
 import com.hongjie.pms.AI.modules.entity.*;
 import com.hongjie.pms.AI.modules.mapper.*;
@@ -36,9 +39,7 @@ class AiSessionModuleMySqlTest {
     static AtomicBoolean failUpdate=new AtomicBoolean();
     Set<String> owned=new HashSet<>();long actor;
     @Configuration @EnableTransactionManagement(proxyTargetClass=true)
-    @Import({AiSessions.class,AiTransfers.class,AiSessionCache.class,AiMessageWriter.class,AiConversationGateway.class,
-        ChatSessionService.class,ChatMemoryService.class,HumanTransferService.class,
-        PmsChatSessionService.class,PmsChatMemoryService.class,PmsHumanTransferService.class})
+    @Import({AiSessions.class,AiTransfers.class,AiSessionCache.class,AiMessageWriter.class,AiConversationGateway.class,PmsChatSessionService.class,PmsChatMemoryService.class,PmsHumanTransferService.class})
     static class Config {}
     @BeforeAll static void setup(){
         Assumptions.assumeTrue(MyBatisTestSupport.configured());

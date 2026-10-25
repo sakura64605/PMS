@@ -3,7 +3,7 @@ package com.hongjie.pms.refactor.message;
 import com.hongjie.pms.modules.message.entity.UserMessage;
 import com.hongjie.pms.modules.message.mapper.UserMessageMapper;
 import com.hongjie.pms.modules.message.mq.*;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import com.hongjie.pms.refactor.extension.notify.handler.*;
 import com.hongjie.pms.refactor.extension.target.TargetTypeCodec;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,10 @@ class MessageCompatibilityTest {
         doAnswer(call->{expected.add(call.getArgument(0));return null;}).when(producer).send(any());
         ApplicationEventPublisher publisher=event->actual.add(((PendingNotification)event).toMq());
         var delivery=new MessageDelivery(publisher,producer,mock(PlatformTransactionManager.class));
-        MessageService legacy=new MessageService(mapper,producer),replacement=new PmsMessageService(mapper,producer,mock(MessageInbox.class),delivery,new LikeNotificationHandler(),new CommentNotificationHandler(),new TargetTypeCodec());
+        var reference=new com.hongjie.pms.modules.message.service.MessageService(mapper,producer);
+        MessageService legacy=(MessageService)java.lang.reflect.Proxy.newProxyInstance(MessageService.class.getClassLoader(),new Class<?>[]{MessageService.class},
+            (proxy,method,args)->reference.getClass().getMethod(method.getName(),method.getParameterTypes()).invoke(reference,args));
+        MessageService replacement=new PmsMessageService(mock(MessageInbox.class),delivery,new LikeNotificationHandler(),new CommentNotificationHandler(),new TargetTypeCodec());
         List<Consumer<MessageService>> cases=new ArrayList<>();
         for(String type:List.of("pet_post","pet_comment","pet_activity","daily","系统通知","unknown")){
             cases.add(service->service.sendLikeNotification(1L,2L,type,"title",10L,"/link"));

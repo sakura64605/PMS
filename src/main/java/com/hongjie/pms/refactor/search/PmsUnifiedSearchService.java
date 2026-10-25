@@ -1,6 +1,6 @@
 package com.hongjie.pms.refactor.search;
+import com.hongjie.pms.refactor.search.api.UnifiedSearchService;
 
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.hongjie.pms.modules.search.service.*;
 import com.hongjie.pms.modules.search.dto.*;
 import org.springframework.context.annotation.Primary;
@@ -8,12 +8,11 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 @Service @Primary
-public class PmsUnifiedSearchService extends UnifiedSearchService {
+public class PmsUnifiedSearchService implements UnifiedSearchService {
     private final SearchBackend backend;
     private final SearchProjection projection;
-    public PmsUnifiedSearchService(ElasticsearchClient client,SearchDataSyncService sync,
-            SearchBackend backend,SearchProjection projection) {
-        super(client,sync);this.backend=backend;this.projection=projection;
+    public PmsUnifiedSearchService(SearchBackend backend, SearchProjection projection) {
+        this.backend=backend;this.projection=projection;
     }
     @Override
     public UnifiedSearchResponse search(String keyword,Integer page,Integer size,List<String> types,String sort,Long actor) {

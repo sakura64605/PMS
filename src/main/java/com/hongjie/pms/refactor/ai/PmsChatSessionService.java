@@ -1,5 +1,5 @@
 package com.hongjie.pms.refactor.ai;
-import com.hongjie.pms.AI.modules.service.*;
+import com.hongjie.pms.refactor.ai.api.ChatSessionService;
 import com.hongjie.pms.AI.modules.mapper.*;
 import com.hongjie.pms.AI.modules.entity.*;
 import com.hongjie.pms.common.base.core.UserContext;
@@ -9,10 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.context.annotation.Primary;
 import java.util.*;
 @Service @Primary
-public class PmsChatSessionService extends ChatSessionService {
+public class PmsChatSessionService implements ChatSessionService {
     private final AiSessions sessions;
-    public PmsChatSessionService(AiChatSessionMapper rows,AiChatMessageMapper messages,ChatMemoryService memory,AiSessions sessions){
-        super(rows,messages,memory);this.sessions=sessions;
+    public PmsChatSessionService(AiSessions sessions){
+        this.sessions=sessions;
     }
     private Long own(Long id){
         Long actor=UserContext.getUserId();AiSessions.actor(actor);

@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class InboxCleanupTask {
 
     private final UserInboxMapper userInboxMapper;
@@ -26,11 +27,11 @@ public class InboxCleanupTask {
         long startTime = System.currentTimeMillis();
 
         LocalDateTime expireTime = LocalDateTime.now().minusDays(30);
-        
+
         LambdaQueryWrapper<UserInbox> wrapper = new LambdaQueryWrapper<UserInbox>()
                 .eq(UserInbox::getIsRead, 1)
                 .lt(UserInbox::getCreateTime, expireTime);
-        
+
         int deletedCount = userInboxMapper.delete(wrapper);
 
         long endTime = System.currentTimeMillis();

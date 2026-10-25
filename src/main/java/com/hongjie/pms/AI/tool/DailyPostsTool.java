@@ -16,6 +16,7 @@ import java.util.*;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class DailyPostsTool implements BaseTool {
 
     private final DailyPostMapper dailyPostMapper;

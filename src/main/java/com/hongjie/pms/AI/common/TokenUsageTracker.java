@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
  * 由 {@code ChatModelListener} 在每次 LLM 响应时累加，process() 结束后取合计写入消息记录。</p>
  */
 @Component
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class TokenUsageTracker {
 
     private final ThreadLocal<TokenUsageAccumulator> current = new ThreadLocal<>();

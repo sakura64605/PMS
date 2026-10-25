@@ -1,32 +1,24 @@
 package com.hongjie.pms.refactor.daily;
+import com.hongjie.pms.refactor.daily.api.DailyPostService;
 import com.hongjie.pms.modules.daily.service.*;
 import com.hongjie.pms.modules.daily.mapper.*;
 import com.hongjie.pms.modules.daily.entity.DailyPost;
 import com.hongjie.pms.modules.daily.dto.*;
-import com.hongjie.pms.modules.user.mapper.UserMapper;
-import com.hongjie.pms.modules.following.mapper.FollowMapper;
-import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
 import com.hongjie.pms.modules.like.service.LikeService;
 import com.hongjie.pms.modules.like.dto.request.LikeRequest;
-import com.hongjie.pms.modules.audit.service.AuditService;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Primary;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
 /** Adapter for existing concrete-type injections; no public operation falls back to legacy business code. */
 @Service @Primary
-public class PmsDailyPostService extends DailyPostService {
+public class PmsDailyPostService implements DailyPostService {
     private final DailyCommands commands;private final DailyQueries queries;private final DailyAssembler assembler;
     private final DailyRecommendation recommendation;private final LikeService likes;
-    public PmsDailyPostService(DailyPostMapper posts,TopicMapper topics,DailyTopicRelMapper links,UserMapper users,
-            LikeRecordMapper records,FollowMapper follows,RedisTemplate<String,Object> redis,AuditService audits,
-            ApplicationEventPublisher events,DailyCacheInvalidator cache,DailyCommands commands,DailyQueries queries,
-            DailyAssembler assembler,DailyRecommendation recommendation,LikeService likes){
-        super(posts,topics,links,users,records,follows,redis,audits,events,cache);
+    public PmsDailyPostService(DailyCommands commands, DailyQueries queries, DailyAssembler assembler, DailyRecommendation recommendation, LikeService likes){
+
         this.commands=commands;this.queries=queries;this.assembler=assembler;this.recommendation=recommendation;this.likes=likes;
     }
     @Override public DailyPostDto publish(PublishDailyRequest request){return commands.publish(request);}

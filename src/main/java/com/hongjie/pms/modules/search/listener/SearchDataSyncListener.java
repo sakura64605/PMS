@@ -1,7 +1,7 @@
 package com.hongjie.pms.modules.search.listener;
 
 import com.hongjie.pms.modules.search.event.*;
-import com.hongjie.pms.modules.search.service.SearchDataSyncService;
+import com.hongjie.pms.refactor.search.api.SearchDataSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;

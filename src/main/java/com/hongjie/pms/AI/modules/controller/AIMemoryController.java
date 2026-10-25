@@ -2,7 +2,7 @@ package com.hongjie.pms.AI.modules.controller;
 
 import com.hongjie.pms.AI.modules.dto.request.AIUserMemoryRequest;
 import com.hongjie.pms.AI.modules.entity.AiUserMemory;
-import com.hongjie.pms.AI.modules.service.UserMemoryService;
+import com.hongjie.pms.refactor.ai.memory.UserMemoryService;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.common.pojo.CommonResult;

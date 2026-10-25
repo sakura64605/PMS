@@ -7,7 +7,7 @@ import com.hongjie.pms.common.enums.TargetType;
 import com.hongjie.pms.common.exception.BusinessException;
 import com.hongjie.pms.modules.activity.entity.Activity;
 import com.hongjie.pms.modules.activity.mapper.ActivityMapper;
-import com.hongjie.pms.modules.message.service.MessageService;
+import com.hongjie.pms.refactor.message.api.MessageService;
 import com.hongjie.pms.modules.search.event.ActivityUpdatedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@org.springframework.context.annotation.Profile("legacy-reference")
 @Component
 @RequiredArgsConstructor
 public class ActivityAuditHandler implements AuditTargetHandler {

@@ -2,7 +2,6 @@ package com.hongjie.pms.refactor.search.index;
 import com.hongjie.pms.refactor.like.LikeChanged;
 import com.hongjie.pms.refactor.comment.event.CommentCreatedEvent;
 import com.hongjie.pms.refactor.activity.ActivityParticipationChanged;
-import com.hongjie.pms.refactor.core.enums.BizTargetType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

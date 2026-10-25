@@ -31,6 +31,7 @@ import java.util.Map;
  */
 @Component
 @Slf4j
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class DelayTaskScheduler {
 
     @Autowired

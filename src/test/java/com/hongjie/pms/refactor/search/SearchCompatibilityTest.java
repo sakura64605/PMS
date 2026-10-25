@@ -1,4 +1,6 @@
 package com.hongjie.pms.refactor.search;
+import com.hongjie.pms.refactor.search.api.SearchDataSyncService;
+import com.hongjie.pms.refactor.search.api.UnifiedSearchService;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.hongjie.pms.modules.search.service.*;
@@ -22,7 +24,7 @@ class SearchCompatibilityTest {
             context.registerBean(SearchDataSyncService.class,()->mock(SearchDataSyncService.class));
             context.registerBean(SearchBackend.class,()->mock(SearchBackend.class));
             context.registerBean(SearchProjection.class,()->mock(SearchProjection.class));
-            context.register(UnifiedSearchService.class,PmsUnifiedSearchService.class);context.refresh();
+            context.register(PmsUnifiedSearchService.class);context.refresh();
             assertThat(context.getBean(UnifiedSearchService.class)).isInstanceOf(PmsUnifiedSearchService.class);
         }
     }

@@ -26,8 +26,7 @@ class CacheWiringTest {
             context.registerBean(UserMapper.class,()->mock(UserMapper.class));
             context.registerBean(FollowWriteMapper.class,()->mock(FollowWriteMapper.class));
             context.registerBean(FollowInboxWriter.class,()->mock(FollowInboxWriter.class));
-            context.register(CacheAutoConfiguration.class, ActivityCache.class,
-                    CommentCacheListener.class,PmsFollowServiceImpl.class);
+            context.register(CacheAutoConfiguration.class,ActivityCache.class,CommentCacheListener.class,PmsFollowServiceImpl.class);
             context.refresh();
             assertThat(context.getBeansOfType(DistributedCache.class)).hasSize(2);
             assertThat(context.getBean(DistributedCache.class)).isSameAs(context.getBean("distributedCache"));

@@ -1,18 +1,7 @@
 package com.hongjie.pms.refactor.statistics;
-import com.hongjie.pms.common.cache.DistributedCache;
-import com.hongjie.pms.common.utils.RedisScanUtil;
 import com.hongjie.pms.modules.activity.mapper.*;
-import com.hongjie.pms.modules.audit.mapper.AuditRecordMapper;
-import com.hongjie.pms.modules.comment.mapper.CommentMapper;
-import com.hongjie.pms.modules.daily.mapper.DailyPostMapper;
-import com.hongjie.pms.modules.following.mapper.FollowMapper;
-import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
 import com.hongjie.pms.modules.petpost.mapper.*;
-import com.hongjie.pms.modules.privateMessage.mapper.PrivateMessageMapper;
-import com.hongjie.pms.modules.report.mapper.ReportRecordMapper;
-import com.hongjie.pms.modules.statistics.mapper.DailyStatisticsMapper;
-import com.hongjie.pms.modules.user.mapper.UserMapper;
-import com.hongjie.pms.modules.statistics.service.StatisticsService;
+import com.hongjie.pms.refactor.statistics.api.StatisticsService;
 import com.hongjie.pms.modules.statistics.dto.StatisticsResponseDto.*;
 import com.hongjie.pms.common.base.core.UserContext;
 import com.hongjie.pms.common.enums.ErrorCode;
@@ -23,17 +12,12 @@ import java.time.LocalDate;
 
 /** Compatibility facade for the existing controllers and XXL-JOB actions. */
 @Service @Primary
-public class PmsStatisticsService extends StatisticsService {
+public class PmsStatisticsService implements StatisticsService {
     private final StatisticsQueries queries;
     private final StatisticsGeneration generation;
     private final StatisticsCache cache;
-    public PmsStatisticsService(DailyStatisticsMapper rows,UserMapper users,PetPostMapper pets,
-            ActivityMapper activities,DailyPostMapper daily,CommentMapper comments,LikeRecordMapper likes,
-            FollowMapper follows,FavoriteRecordMapper favorites,ActivitySignupMapper signups,
-            AuditRecordMapper audits,ReportRecordMapper reports,PrivateMessageMapper messages,
-            DistributedCache distributedCache,RedisScanUtil scan,
-            StatisticsQueries queries,StatisticsGeneration generation,StatisticsCache cache) {
-        super(rows,users,pets,activities,daily,comments,likes,follows,favorites,signups,audits,reports,messages,distributedCache,scan);
+    public PmsStatisticsService(StatisticsQueries queries, StatisticsGeneration generation, StatisticsCache cache) {
+
         this.queries=queries;this.generation=generation;this.cache=cache;
     }
     @Override public DailyStatisticsDto getDailyStatistics(LocalDate date){return queries.daily(date);}

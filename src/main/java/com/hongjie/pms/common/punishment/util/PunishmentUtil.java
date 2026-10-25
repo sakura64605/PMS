@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@org.springframework.context.annotation.Profile("legacy-reference")
 public class PunishmentUtil {
 
     private final PunishmentConfig punishmentConfig;

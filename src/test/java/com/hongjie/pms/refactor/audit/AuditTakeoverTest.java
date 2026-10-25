@@ -1,7 +1,7 @@
 package com.hongjie.pms.refactor.audit;
 
 import com.hongjie.pms.modules.audit.service.AuditService;
-import com.hongjie.pms.modules.audit.handler.AuditTargetHandlerFactory;
+import com.hongjie.pms.refactor.audit.handler.AuditTargetHandlerFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.*;
