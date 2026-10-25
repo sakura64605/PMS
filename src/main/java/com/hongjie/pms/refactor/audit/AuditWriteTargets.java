@@ -37,7 +37,7 @@ public class AuditWriteTargets {
             var row=mapper.selectById(id);if(row==null) throw missing();
             return new AuditWriteTarget.Snapshot(row.getUserId(),row.getContent(),"daily");
         },(id,status) -> mapper.update(null,new LambdaUpdateWrapper<DailyPost>().eq(DailyPost::getId,id)
-                .eq(DailyPost::getAuditStatus,0).set(DailyPost::getAuditStatus,status).set(DailyPost::getStatus,status==1?1:0)));
+                .eq(DailyPost::getAuditStatus,0).eq(DailyPost::getStatus,1).set(DailyPost::getAuditStatus,status)));
     }
     private AuditWriteTarget target(String type,Function<Long,Long> lock,
             Function<Long,AuditWriteTarget.Snapshot> load,BiFunction<Long,Integer,Integer> update) {

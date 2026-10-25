@@ -11,7 +11,7 @@ public interface AuditWriteMapper {
     Long lockPet(@Param("id") Long id, @Param("type") int type);
     @Select("SELECT id FROM activity WHERE id=#{id} AND deleted=0 AND status<>2 FOR UPDATE")
     Long lockActivity(@Param("id") Long id);
-    @Select("SELECT id FROM daily_post WHERE id=#{id} FOR UPDATE")
+    @Select("SELECT id FROM daily_post WHERE id=#{id} AND status=1 FOR UPDATE")
     Long lockDaily(@Param("id") Long id);
     @Select("SELECT * FROM audit_record WHERE target_type=#{type} AND target_id=#{id} AND audit_status=0 FOR UPDATE")
     List<AuditRecord> pending(@Param("type") String type, @Param("id") Long id);

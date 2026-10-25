@@ -1,0 +1,39 @@
+package com.hongjie.pms.refactor.daily;
+import com.hongjie.pms.modules.daily.service.*;
+import com.hongjie.pms.modules.daily.mapper.*;
+import com.hongjie.pms.modules.daily.entity.DailyPost;
+import com.hongjie.pms.modules.daily.dto.*;
+import com.hongjie.pms.modules.user.mapper.UserMapper;
+import com.hongjie.pms.modules.following.mapper.FollowMapper;
+import com.hongjie.pms.modules.like.mapper.LikeRecordMapper;
+import com.hongjie.pms.modules.like.service.LikeService;
+import com.hongjie.pms.modules.like.dto.request.LikeRequest;
+import com.hongjie.pms.modules.audit.service.AuditService;
+import com.hongjie.pms.common.base.core.UserContext;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Primary;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Service;
+import java.util.List;
+
+/** Adapter for existing concrete-type injections; no public operation falls back to legacy business code. */
+@Service @Primary
+public class PmsDailyPostService extends DailyPostService {
+    private final DailyCommands commands;private final DailyQueries queries;private final DailyAssembler assembler;
+    private final DailyRecommendation recommendation;private final LikeService likes;
+    public PmsDailyPostService(DailyPostMapper posts,TopicMapper topics,DailyTopicRelMapper links,UserMapper users,
+            LikeRecordMapper records,FollowMapper follows,RedisTemplate<String,Object> redis,AuditService audits,
+            ApplicationEventPublisher events,DailyCacheInvalidator cache,DailyCommands commands,DailyQueries queries,
+            DailyAssembler assembler,DailyRecommendation recommendation,LikeService likes){
+        super(posts,topics,links,users,records,follows,redis,audits,events,cache);
+        this.commands=commands;this.queries=queries;this.assembler=assembler;this.recommendation=recommendation;this.likes=likes;
+    }
+    @Override public DailyPostDto publish(PublishDailyRequest request){return commands.publish(request);}
+    @Override public DailyPostDto getDetail(Long id){return queries.detail(id);}
+    @Override public void delete(Long id){commands.delete(id);}
+    @Override public boolean like(Long id){var request=new LikeRequest();request.setTargetId(id);request.setTargetType("daily");return likes.like(request).getIsLiked();}
+    @Override public IPage<DailyPostDto> getRecommendFeed(Integer page,Integer size){return recommendation.recommend(UserContext.getUserId(),page,size);}
+    @Override public DailyPostDto convertToDto(DailyPost post,Long actor){return assembler.batch(List.of(post),actor).get(0);}
+    @Override public List<DailyPostDto> batchConvertToDto(List<DailyPost> posts,Long actor){return assembler.batch(posts,actor);}
+}

@@ -27,6 +27,7 @@ public class LikeChangedListener {
             scan.scanAndDelete("activityList_*");
             scan.scanAndDelete("userActivity_*");
         }
+        if ("daily".equals(event.targetType())) return; // Legacy daily likes did not send notifications.
         if (event.liked() && !Objects.equals(event.actorId(), event.target().ownerId())) {
             messages.sendLikeNotification(event.target().ownerId(), event.actorId(), event.targetType(),
                     event.target().title(), event.targetId(), event.target().link());

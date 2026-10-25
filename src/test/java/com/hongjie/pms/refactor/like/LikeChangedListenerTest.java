@@ -36,4 +36,8 @@ class LikeChangedListenerTest {
         verify(scan).scanAndDelete("activityList_*");
         verifyNoInteractions(messages);
     }
+    @Test void dailyLikesKeepTheirLegacySilentNotificationBehavior() {
+        listener.onChanged(new LikeChanged(1L,10L,"daily",new LikeTarget.Snapshot(2L,"body","/daily/10",0),true));
+        verifyNoInteractions(messages,redis,scan);
+    }
 }
