@@ -1,0 +1,195 @@
+[
+  {
+    "businessId": 10,
+    "content": "点赞了你的帖子《title》",
+    "link": "/link",
+    "senderId": 2,
+    "title": "有人点赞了你的帖子",
+    "type": "LIKE",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "评论了你的帖子《title》：commentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentc...",
+    "link": "/link",
+    "senderId": 2,
+    "title": "有人评论了你的帖子",
+    "type": "COMMENT",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "点赞了你的评论",
+    "link": "/link",
+    "senderId": 2,
+    "title": "有人点赞了你的评论",
+    "type": "LIKE",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "commentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentco...",
+    "link": "/link",
+    "senderId": 2,
+    "title": "有人评论了你",
+    "type": "COMMENT",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "点赞了你的活动《title》",
+    "link": "/link",
+    "senderId": 2,
+    "title": "有人点赞了你的活动",
+    "type": "LIKE",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "评论了你的活动《title》：commentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentc...",
+    "link": "/link",
+    "senderId": 2,
+    "title": "有人评论了你的活动",
+    "type": "COMMENT",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "点赞了《title》",
+    "link": "/link",
+    "senderId": 2,
+    "title": "有人点赞了",
+    "type": "LIKE",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "commentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentco...",
+    "link": "/link",
+    "senderId": 2,
+    "title": "有人评论了你",
+    "type": "COMMENT",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "系统通知:注意",
+    "link": "/link",
+    "senderId": 2,
+    "title": "系统通知",
+    "type": "LIKE",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "commentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentco...",
+    "link": "/link",
+    "senderId": 2,
+    "title": "有人评论了你",
+    "type": "COMMENT",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "点赞了《title》",
+    "link": "/link",
+    "senderId": 2,
+    "title": "有人点赞了",
+    "type": "LIKE",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "commentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentcommentco...",
+    "link": "/link",
+    "senderId": 2,
+    "title": "有人评论了你",
+    "type": "COMMENT",
+    "userId": 1
+  },
+  {
+    "content": "sender 关注了你",
+    "link": "/user/2",
+    "senderId": 2,
+    "title": "新粉丝",
+    "type": "FOLLOW",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "你已成功报名活动《title》",
+    "link": "/activity/10",
+    "title": "报名成功",
+    "type": "SIGN_UP",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "sender 报名了你的活动《title》",
+    "link": "/activity/signup-list/10",
+    "senderId": 2,
+    "title": "新报名",
+    "type": "SIGN_UP",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "你在活动《title》中签到成功",
+    "link": "/activity/10",
+    "title": "签到成功",
+    "type": "SIGN_IN",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "你报名的活动《title》即将在 30 分钟后开始",
+    "link": "/activity/10",
+    "title": "活动提醒",
+    "type": "ACTIVITY_REMINDER",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "你的活动《title》已报满",
+    "link": "/activity/10",
+    "title": "活动已满员",
+    "type": "ACTIVITY_FULL",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "你的activity《title》已通过审核",
+    "link": "/activity/10",
+    "title": "审核通过",
+    "type": "AUDIT_PASS",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "你的activity《title》未通过审核，原因：reason",
+    "link": "/activity/edit/10",
+    "title": "审核未通过",
+    "type": "AUDIT_REJECT",
+    "userId": 1
+  },
+  {
+    "content": "restricted",
+    "title": "账号受限",
+    "type": "PUNISHMENT",
+    "userId": 1
+  },
+  {
+    "content": "您的惩罚期已结束，可以正常报名活动了",
+    "title": "惩罚期结束",
+    "type": "PUNISHMENT",
+    "userId": 1
+  },
+  {
+    "businessId": 10,
+    "content": "您的活动《title》已结束。报名人数：10，签到人数：8，爽约人数：2",
+    "link": "/activity/10/statistics",
+    "title": "活动统计报告",
+    "type": "ACTIVITY_STATISTICS",
+    "userId": 1
+  }
+]

@@ -1,6 +1,5 @@
 package com.hongjie.pms.refactor.search.index;
 import com.hongjie.pms.refactor.search.api.FullDataSyncService;
-import com.hongjie.pms.modules.search.service.*;
 import com.hongjie.pms.modules.daily.mapper.*;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;

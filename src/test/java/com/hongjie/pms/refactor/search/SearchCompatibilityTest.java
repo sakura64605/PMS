@@ -3,7 +3,6 @@ import com.hongjie.pms.refactor.search.api.SearchDataSyncService;
 import com.hongjie.pms.refactor.search.api.UnifiedSearchService;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import com.hongjie.pms.modules.search.service.*;
 import com.hongjie.pms.modules.search.controller.SearchController;
 import com.hongjie.pms.modules.search.dto.*;
 import com.hongjie.pms.common.base.core.UserContext;

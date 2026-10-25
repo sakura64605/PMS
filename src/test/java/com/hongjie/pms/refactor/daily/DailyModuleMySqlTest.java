@@ -56,7 +56,7 @@ class DailyModuleMySqlTest {
         @EventListener public void indexed(DailyPostUpdatedEvent event){ids.add(event.getDailyId());}
     }
     @Configuration(proxyBeanMethods=false) @EnableTransactionManagement(proxyTargetClass=true)
-    @Import({DailyCommands.class,DailyQueries.class,DailyAssembler.class,DailyInterest.class,DailyRecommendation.class,DailyRecallConfiguration.class,DailyChangedListener.class,DailyLikeTarget.class,PmsDailyPostService.class,PmsTopicService.class,PmsDailyRecommendService.class,PmsDailyUserInterestService.class,DailyPostController.class,PmsLikeServiceImpl.class,AuditWriteTargets.class,AuditCommandService.class,DailyRecallService.class,DailyRankService.class})
+    @Import({DailyCommands.class,DailyQueries.class,DailyAssembler.class,DailyInterest.class,DailyRecommendation.class,DailyRecallConfiguration.class,DailyChangedListener.class,DailyLikeTarget.class,PmsDailyPostService.class,PmsTopicService.class,PmsDailyRecommendService.class,PmsDailyUserInterestService.class,DailyPostController.class,PmsLikeServiceImpl.class,AuditWriteTargets.class,AuditCommandService.class})
     static class Config {
         @Bean RedisTemplate<String,Object> redis(){return mock(RedisTemplate.class);}
         @Bean RedisScanUtil scan(){return mock(RedisScanUtil.class);}

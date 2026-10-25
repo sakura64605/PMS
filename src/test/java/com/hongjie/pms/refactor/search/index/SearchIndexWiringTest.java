@@ -3,8 +3,6 @@ import com.hongjie.pms.refactor.search.api.SearchDataSyncService;
 import com.hongjie.pms.refactor.search.api.FullDataSyncService;
 import com.hongjie.pms.refactor.search.api.UnifiedSearchService;
 
-import com.hongjie.pms.modules.search.service.*;
-import com.hongjie.pms.modules.search.config.ElasticsearchIndexInitializer;
 import com.hongjie.pms.modules.search.listener.SearchDataSyncListener;
 import com.hongjie.pms.modules.search.event.*;
 import com.hongjie.pms.modules.search.controller.SearchController;
@@ -39,7 +37,7 @@ class SearchIndexWiringTest {
             types.addAll(Arrays.asList(facade.getConstructors()[0].getParameterTypes()));
         types.remove(SearchDataSyncService.class);
         for(var type:types)collaborator(context,type);
-        context.register(PmsSearchDataSyncService.class,PmsFullDataSyncService.class,ElasticsearchIndexInitializer.class,SearchIndexBootstrap.class);
+        context.register(PmsSearchDataSyncService.class,PmsFullDataSyncService.class,SearchIndexBootstrap.class);
         context.refresh();return context;
     }
     @Test void primaryFacadesAndOnlyOneStartupFlowAreActive(){
@@ -50,7 +48,6 @@ class SearchIndexWiringTest {
             context.publishEvent(new org.springframework.boot.context.event.ApplicationReadyEvent(
                     new org.springframework.boot.SpringApplication(Object.class),new String[0],context,Duration.ZERO));
             verify(maintenance).request();verifyNoMoreInteractions(maintenance);
-            assertThat(context.getBeansOfType(ElasticsearchIndexInitializer.class)).isEmpty();
         }
     }
     @Test void staleEntitiesAreReducedToIdsAndNullPublishedEntitiesAreSafe(){
@@ -63,9 +60,7 @@ class SearchIndexWiringTest {
             assertThatThrownBy(sync::deleteIndex).isInstanceOf(UnsupportedOperationException.class);
         }
     }
-    @Test void legacyStartupHooksAreDisabledWithoutRemovingLegacyImplementations()throws Exception{
-        assertThat(com.hongjie.pms.modules.search.service.FullDataSyncService.class.getMethod("syncAll").getAnnotation(EventListener.class).condition()).isEqualTo("false");
-        assertThat(ElasticsearchIndexInitializer.class.getMethod("initIndex").getAnnotation(EventListener.class).condition()).isEqualTo("false");
+    @Test void searchListenersDelegateSynchronouslyToOneDispatchPath(){
         for(var method:SearchDataSyncListener.class.getDeclaredMethods())assertThat(method.getAnnotation(Async.class)).isNull();
     }
     @Test void allUpdateKindsReachAuthoritativeReload(){

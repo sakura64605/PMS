@@ -16,18 +16,18 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class MessageCompatibilityTest {
-    @Test void everyLegacyPublicEntryIsOverridden()throws Exception{
+    @Test void everyServiceContractEntryIsImplemented()throws Exception{
         for(var method:MessageService.class.getDeclaredMethods())if(Modifier.isPublic(method.getModifiers()))
             assertThat(PmsMessageService.class.getDeclaredMethod(method.getName(),method.getParameterTypes()).getDeclaringClass()).isEqualTo(PmsMessageService.class);
     }
-    @Test void notificationTemplatesPreserveExistingPayloads(){
-        var producer=mock(MessageMqProducer.class);var mapper=mock(UserMessageMapper.class);List<MessageMqDto> expected=new ArrayList<>();List<MessageMqDto> actual=new ArrayList<>();
-        doAnswer(call->{expected.add(call.getArgument(0));return null;}).when(producer).send(any());
+    @Test void notificationTemplatesPreserveExistingPayloads() throws Exception {
+        var producer=mock(MessageMqProducer.class);List<MessageMqDto> expected;List<MessageMqDto> actual=new ArrayList<>();
+        try(var fixture=getClass().getResourceAsStream("/contracts/notification-payloads.json")){
+            assertThat(fixture).isNotNull();
+            expected=com.alibaba.fastjson2.JSON.parseArray(new String(fixture.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8),MessageMqDto.class);
+        }
         ApplicationEventPublisher publisher=event->actual.add(((PendingNotification)event).toMq());
         var delivery=new MessageDelivery(publisher,producer,mock(PlatformTransactionManager.class));
-        var reference=new com.hongjie.pms.modules.message.service.MessageService(mapper,producer);
-        MessageService legacy=(MessageService)java.lang.reflect.Proxy.newProxyInstance(MessageService.class.getClassLoader(),new Class<?>[]{MessageService.class},
-            (proxy,method,args)->reference.getClass().getMethod(method.getName(),method.getParameterTypes()).invoke(reference,args));
         MessageService replacement=new PmsMessageService(mock(MessageInbox.class),delivery,new LikeNotificationHandler(),new CommentNotificationHandler(),new TargetTypeCodec());
         List<Consumer<MessageService>> cases=new ArrayList<>();
         for(String type:List.of("pet_post","pet_comment","pet_activity","daily","系统通知","unknown")){
@@ -45,7 +45,7 @@ class MessageCompatibilityTest {
         cases.add(service->service.sendPunishmentStartNotification(1L,"restricted"));
         cases.add(service->service.sendPunishmentEndNotification(1L));
         cases.add(service->service.sendActivityStatisticsNotification(1L,"title",10L,10,8,2));
-        for(var action:cases){action.accept(legacy);action.accept(replacement);}
+        for(var action:cases)action.accept(replacement);
         assertThat(actual).hasSize(cases.size());for(int i=0;i<actual.size();i++)assertThat(actual.get(i)).usingRecursiveComparison().ignoringFields("createTime").isEqualTo(expected.get(i));
     }
     @Test void enqueuedEntityIsAnImmutableSnapshot(){

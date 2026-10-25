@@ -1,7 +1,6 @@
 package com.hongjie.pms.refactor.search;
 import com.hongjie.pms.refactor.search.api.UnifiedSearchService;
 
-import com.hongjie.pms.modules.search.service.*;
 import com.hongjie.pms.modules.search.dto.*;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;

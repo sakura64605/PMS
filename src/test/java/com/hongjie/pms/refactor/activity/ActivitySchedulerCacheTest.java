@@ -26,11 +26,13 @@ class ActivitySchedulerCacheTest {
     @Mock PunishmentUtil punishment;
     @Mock DelayTaskService delay;
     @InjectMocks ActivityStatusScheduler scheduler;
-    @InjectMocks DelayTaskHandler handler;
+    @Mock com.hongjie.pms.refactor.scheduling.ScheduledTaskMapper locks;
+    @Mock com.hongjie.pms.refactor.user.UserCache userCache;
+    @InjectMocks com.hongjie.pms.refactor.scheduling.ScheduledBusinessTasks handler;
 
     Activity activity(int status) {
-        var activity = new Activity(); activity.setId(7L); activity.setStatus(status);
-        activity.setEndTime(LocalDateTime.now().minusMinutes(2));
+        var activity = new Activity(); activity.setId(7L); activity.setStatus(status); activity.setDeleted(0); activity.setAuditStatus(1);
+        activity.setStartTime(LocalDateTime.now().minusHours(1)); activity.setEndTime(LocalDateTime.now().minusMinutes(2));
         activity.setCurrentPeople(5); activity.setMaxPeople(10); activity.setTitle("fixture"); return activity;
     }
     @Test void scheduledStartAndEndEvictAllRegions() {
@@ -49,9 +51,8 @@ class ActivitySchedulerCacheTest {
         scheduler.syncActivityStatus(); verifyNoInteractions(cache);
     }
     @Test void delayedStartEvicts() {
-        when(mapper.selectById(7L)).thenReturn(activity(0));
         when(mapper.startIfDue(eq(7L), any())).thenReturn(1);
-        handler.handleActivityStart(7L); verify(cache).evictAfterCommit(7L);
+        handler.start(7L); verify(cache).evictAfterCommit(7L);
         verify(mapper).startIfDue(eq(7L), any());
         verify(mapper, never()).updateById(any(Activity.class));
     }
@@ -60,8 +61,7 @@ class ActivitySchedulerCacheTest {
         when(mapper.finishForStatisticsIfDue(eq(7L), any())).thenReturn(1);
         var signup = new ActivitySignup();
         when(signups.selectList(any())).thenReturn(List.of(signup));
-        when(signups.updateById(signup)).thenReturn(1);
-        handler.handleActivityStatistics(7L); verify(cache, times(2)).evictAfterCommit(7L);
+        handler.statistics(7L); verify(cache).evictAfterCommit(7L);
         verify(mapper).finishForStatisticsIfDue(eq(7L), any());
         verify(mapper, never()).updateById(any(Activity.class));
     }

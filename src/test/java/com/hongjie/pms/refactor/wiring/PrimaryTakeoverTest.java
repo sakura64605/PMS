@@ -8,7 +8,6 @@ import com.hongjie.pms.modules.audit.service.AuditService;
 import com.hongjie.pms.modules.comment.controller.CommentController;
 import com.hongjie.pms.modules.comment.mapper.CommentMapper;
 import com.hongjie.pms.modules.comment.service.CommentService;
-import com.hongjie.pms.modules.comment.service.Impl.CommentServiceImpl;
 import com.hongjie.pms.modules.daily.mapper.DailyPostMapper;
 import com.hongjie.pms.modules.feed.service.FeedService;
 import com.hongjie.pms.modules.following.mapper.FollowMapper;
@@ -19,12 +18,10 @@ import com.hongjie.pms.refactor.message.api.MessageService;
 import com.hongjie.pms.modules.notice.controller.NoticeController;
 import com.hongjie.pms.modules.notice.mapper.NoticeMapper;
 import com.hongjie.pms.modules.notice.mapper.NoticeReadRecordMapper;
-import com.hongjie.pms.modules.notice.service.Impl.NoticeServiceImpl;
 import com.hongjie.pms.modules.notice.service.NoticeService;
 import com.hongjie.pms.modules.petpost.controller.PetPostController;
 import com.hongjie.pms.modules.petpost.mapper.FavoriteRecordMapper;
 import com.hongjie.pms.modules.petpost.mapper.PetPostMapper;
-import com.hongjie.pms.modules.petpost.service.Impl.PetPostServiceImpl;
 import com.hongjie.pms.modules.petpost.service.PetPostService;
 import com.hongjie.pms.modules.user.mapper.UserMapper;
 import com.hongjie.pms.refactor.activity.handler.ActivityTargetHandler;
@@ -100,7 +97,6 @@ class PrimaryTakeoverTest {
             Object injected = ReflectionTestUtils.getField(
                     context.getBean(NoticeController.class), "noticeService");
             assertThat(injected).isInstanceOf(PmsNoticeServiceImpl.class);
-            assertThat(context.getBeansOfType(NoticeServiceImpl.class)).isEmpty();
             org.mockito.Mockito.verifyNoInteractions(context.getBean(RedissonClient.class));
         });
     }
@@ -108,7 +104,7 @@ class PrimaryTakeoverTest {
     @Test
     @DisplayName("Missing migrated implementations must fail rather than silently enable reference code")
     void missingNewImplementationDoesNotFallBackToLegacy() {
-        new ApplicationContextRunner().withUserConfiguration(LegacyOnlySlice.class)
+        new ApplicationContextRunner().withUserConfiguration(MissingImplementationSlice.class)
                 .run(context -> assertThat(context).hasFailed());
     }
 
@@ -275,25 +271,25 @@ class PrimaryTakeoverTest {
 
     /** petpost 模块的完整装配：老实现 + 新实现 + 控制器 */
     @Configuration(proxyBeanMethods = false)
-    @Import({Mocks.class,PetPostServiceImpl.class,PmsPetPostServiceImpl.class,PetPostController.class})
+    @Import({Mocks.class,PmsPetPostServiceImpl.class,PetPostController.class})
     static class PetPostSlice {
     }
 
     /** comment 模块的完整装配：老实现 + 新实现 + 控制器 + 策略族 */
     @Configuration(proxyBeanMethods = false)
-    @Import({Mocks.class,CommentServiceImpl.class,PmsCommentServiceImpl.class,CommentController.class,DomainEventPublisher.class,PetPostTargetHandler.class,ActivityTargetHandler.class,DailyPostTargetHandler.class,TargetHandlerRegistry.class})
+    @Import({Mocks.class,PmsCommentServiceImpl.class,CommentController.class,DomainEventPublisher.class,PetPostTargetHandler.class,ActivityTargetHandler.class,DailyPostTargetHandler.class,TargetHandlerRegistry.class})
     static class CommentSlice {
     }
 
     /** notice 模块的完整装配：老实现 + 新实现 + 控制器 */
     @Configuration(proxyBeanMethods = false)
-    @Import({Mocks.class,NoticeServiceImpl.class,PmsNoticeServiceImpl.class,NoticeController.class,DomainEventPublisher.class})
+    @Import({Mocks.class,PmsNoticeServiceImpl.class,NoticeController.class,DomainEventPublisher.class})
     static class NoticeSlice {
     }
 
     /** 仅注册已停用的参考类时，运行接线必须失败。 */
     @Configuration(proxyBeanMethods = false)
-    @Import({Mocks.class,PetPostServiceImpl.class,CommentServiceImpl.class,PetPostController.class,CommentController.class})
-    static class LegacyOnlySlice {
+    @Import({Mocks.class,PetPostController.class,CommentController.class})
+    static class MissingImplementationSlice {
     }
 }

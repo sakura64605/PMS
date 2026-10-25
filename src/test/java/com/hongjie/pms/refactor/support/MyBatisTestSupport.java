@@ -6,14 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import com.mysql.cj.jdbc.MysqlDataSource;
-import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.sql.SQLException;
-import java.sql.Statement;
 
 /**
  * 等价性测试的 MyBatis 支撑：直接架一个指向测试库的 {@link SqlSessionFactory}。
@@ -89,57 +83,6 @@ public final class MyBatisTestSupport {
             return factoryBean.getObject();
         } catch (Exception e) {
             throw new IllegalStateException("构建测试用 SqlSessionFactory 失败", e);
-        }
-    }
-
-    /**
-     * 每次调用都开一个<b>新的</b> autocommit 会话。
-     *
-     * <p>刻意不复用会话：MyBatis 有一级缓存（会话级），复用会让「改库以后再次查询」
-     * 拿回旧结果 —— 而等价性测试恰恰需要在两次调用之间重置数据（例如浏览计数）。
-     */
-    public static SqlSession openSession(SqlSessionFactory factory) {
-        return factory.openSession(true);
-    }
-
-    /**
-     * 灌入种子数据，让测试**自己建立前置状态**。
-     *
-     * <p>为什么必须这么做：等价性测试里有一半是<b>写路径</b>，它们会改数据。
-     * 只要有一个用例漏了还原，后面的用例就会读到被污染的状态 ——
-     * 表现为「单独跑某个测试类全绿，整个测试套一起跑就失败」，
-     * 而且失败点看起来跟真正的原因毫无关系（实测踩过一次：
-     * 写测试改了帖子的审核状态没还原，导致读测试的详情断言抛 AUDIT_WAITING）。
-     *
-     * <p>种子脚本自身是幂等的（先 DELETE 再 INSERT），所以每次调用都得到一个确定状态，
-     * 测试之间不再互相依赖执行顺序。
-     */
-    public static void applySeed(SqlSession session) {
-        String script = readClasspath("sql/seed-equivalence.sql");
-        // 去掉整行注释，避免注释被拼进语句里
-        String cleaned = script.lines()
-                .filter(line -> !line.trim().startsWith("--"))
-                .reduce("", (a, b) -> a + "\n" + b);
-
-        try (Statement statement = session.getConnection().createStatement()) {
-            for (String sql : cleaned.split(";")) {
-                if (!sql.isBlank()) {
-                    statement.execute(sql);
-                }
-            }
-        } catch (SQLException e) {
-            throw new IllegalStateException("灌入种子数据失败", e);
-        }
-    }
-
-    private static String readClasspath(String resource) {
-        try (InputStream in = MyBatisTestSupport.class.getClassLoader().getResourceAsStream(resource)) {
-            if (in == null) {
-                throw new IllegalStateException("类路径下找不到资源: " + resource);
-            }
-            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new IllegalStateException("读取资源失败: " + resource, e);
         }
     }
 
