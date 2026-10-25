@@ -1,0 +1,726 @@
+[
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityContentCommands.java",
+    "target": "com.hongjie.pms.modules.governance.audit.application.AuditCommandService"
+  },
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityContentCommands.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityContentCommands.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityDtoAssembler.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityDtoAssembler.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityLifecycleCommands.java",
+    "target": "com.hongjie.pms.modules.governance.audit.application.AuditCommandService"
+  },
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityParticipationCommands.java",
+    "target": "com.hongjie.pms.modules.identity.user.application.UserRestrictions.signupBlocked"
+  },
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityParticipationCommands.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityParticipationCommands.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityQueries.java",
+    "target": "com.hongjie.pms.modules.community.following.infrastructure.persistence.entity.Follow"
+  },
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityQueries.java",
+    "target": "com.hongjie.pms.modules.community.following.infrastructure.persistence.mapper.FollowMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityQueries.java",
+    "target": "com.hongjie.pms.modules.community.like.infrastructure.persistence.entity.LikeRecord"
+  },
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityQueries.java",
+    "target": "com.hongjie.pms.modules.community.like.infrastructure.persistence.mapper.LikeRecordMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityScheduleWriter.java",
+    "target": "com.hongjie.pms.modules.scheduling.application.DelayTaskService"
+  },
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityScheduleWriter.java",
+    "target": "com.hongjie.pms.modules.scheduling.infrastructure.persistence.entity.DelayTask"
+  },
+  {
+    "source": "com/hongjie/pms/modules/activity/application/ActivityScheduleWriter.java",
+    "target": "com.hongjie.pms.modules.scheduling.infrastructure.persistence.mapper.DelayTaskMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/api/websocket/AIAgentWebSocketHandler.java",
+    "target": "com.hongjie.pms.modules.identity.user.application.UserSessions"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/agent/AIAgentEngine.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.ActivitySignup"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/agent/AIAgentEngine.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.ActivitySignupMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/agent/AIAgentEngine.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.entity.PetPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/agent/AIAgentEngine.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper.PetPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/agent/AIAgentEngine.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/agent/AIAgentEngine.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/DailyPostsTool.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.entity.DailyPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/DailyPostsTool.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.entity.Topic"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/DailyPostsTool.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.mapper.DailyPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/DailyPostsTool.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.mapper.TopicMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/HotTopicsTool.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.entity.Topic"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/HotTopicsTool.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.mapper.TopicMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/MyActivitiesTool.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.Activity"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/MyActivitiesTool.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.ActivitySignup"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/MyActivitiesTool.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.ActivityMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/MyActivitiesTool.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.ActivitySignupMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/MyNotificationsTool.java",
+    "target": "com.hongjie.pms.modules.communication.notice.infrastructure.persistence.entity.Notice"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/MyNotificationsTool.java",
+    "target": "com.hongjie.pms.modules.communication.notice.infrastructure.persistence.entity.NoticeReadRecord"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/MyNotificationsTool.java",
+    "target": "com.hongjie.pms.modules.communication.notice.infrastructure.persistence.mapper.NoticeMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/MyNotificationsTool.java",
+    "target": "com.hongjie.pms.modules.communication.notice.infrastructure.persistence.mapper.NoticeReadRecordMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/MyPetsTool.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.entity.PetPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/MyPetsTool.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper.PetPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/SearchActivitiesTool.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.Activity"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/SearchActivitiesTool.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.ActivityMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/SearchPetsTool.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.entity.PetPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/ai/application/tool/SearchPetsTool.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper.PetPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/analytics/application/PmsStatisticsService.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper."
+  },
+  {
+    "source": "com/hongjie/pms/modules/analytics/application/PmsStatisticsService.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.*"
+  },
+  {
+    "source": "com/hongjie/pms/modules/analytics/application/PmsStatisticsService.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper."
+  },
+  {
+    "source": "com/hongjie/pms/modules/analytics/application/PmsStatisticsService.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper.*"
+  },
+  {
+    "source": "com/hongjie/pms/modules/communication/notice/application/service/PmsNoticeServiceImpl.java",
+    "target": "com.hongjie.pms.modules.scheduling.application.DelayTaskService"
+  },
+  {
+    "source": "com/hongjie/pms/modules/communication/notification/api/websocket/WebSocketHandler.java",
+    "target": "com.hongjie.pms.modules.identity.user.application.UserSessions"
+  },
+  {
+    "source": "com/hongjie/pms/modules/communication/privatemessage/application/PmsPrivateMessageServiceImpl.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/communication/privatemessage/application/PmsPrivateMessageServiceImpl.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/communication/privatemessage/application/PrivateMessageWriteMapper.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/comment/application/service/PmsCommentServiceImpl.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/comment/application/service/PmsCommentServiceImpl.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/feed/application/FeedAssembler.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.Activity"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/feed/application/FeedAssembler.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.ActivityMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/feed/application/FeedAssembler.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.entity.PetPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/feed/application/FeedAssembler.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper.PetPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/feed/application/FeedAssembler.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/feed/application/FeedAssembler.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/feed/application/PmsFeedServiceImpl.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/following/application/FollowInboxWriter.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.Activity"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/following/application/FollowInboxWriter.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.ActivityMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/following/application/FollowInboxWriter.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.entity.PetPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/following/application/FollowInboxWriter.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper.PetPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/following/application/FollowInboxWriter.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/following/application/FollowWriteMapper.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/following/application/PmsFollowServiceImpl.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/following/application/PmsFollowServiceImpl.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/like/application/LikeTargets.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.ActivityMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/community/like/application/LikeTargets.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper.PetPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/daily/application/DailyAssembler.java",
+    "target": "com.hongjie.pms.modules.community.following.infrastructure.persistence.mapper.FollowMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/daily/application/DailyAssembler.java",
+    "target": "com.hongjie.pms.modules.community.like.infrastructure.persistence.mapper.LikeRecordMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/daily/application/DailyAssembler.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/daily/application/DailyAssembler.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/daily/application/DailyCommands.java",
+    "target": "com.hongjie.pms.modules.governance.audit.application.AuditCommandService"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/daily/application/DailyCommands.java",
+    "target": "com.hongjie.pms.modules.governance.audit.infrastructure.persistence.entity.AuditRecord"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/daily/application/DailyCommands.java",
+    "target": "com.hongjie.pms.modules.governance.audit.infrastructure.persistence.mapper.AuditRecordMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/daily/application/DailyCommands.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/daily/application/DailyInterest.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/daily/application/DailyInterest.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/daily/application/DailyLikeTarget.java",
+    "target": "com.hongjie.pms.modules.community.like.application.LikeTarget"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/daily/application/DailyRecommendation.java",
+    "target": "com.hongjie.pms.modules.community.following.infrastructure.persistence.mapper.FollowMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/daily/application/listener/DailyCacheEvictListener.java",
+    "target": "com.hongjie.pms.modules.community.like.application.LikeChanged"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/daily/application/listener/DailyCacheEvictListener.java",
+    "target": "com.hongjie.pms.modules.governance.audit.application.AuditChanged"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/daily/application/listener/DailyCacheEvictListener.java",
+    "target": "com.hongjie.pms.modules.governance.report.application.ReportTargetChanged"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/petpost/application/service/PmsPetPostServiceImpl.java",
+    "target": "com.hongjie.pms.modules.community.following.infrastructure.persistence.entity.Follow"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/petpost/application/service/PmsPetPostServiceImpl.java",
+    "target": "com.hongjie.pms.modules.community.following.infrastructure.persistence.mapper.FollowMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/petpost/application/service/PmsPetPostServiceImpl.java",
+    "target": "com.hongjie.pms.modules.community.like.infrastructure.persistence.entity.LikeRecord"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/petpost/application/service/PmsPetPostServiceImpl.java",
+    "target": "com.hongjie.pms.modules.community.like.infrastructure.persistence.mapper.LikeRecordMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/petpost/application/service/PmsPetPostServiceImpl.java",
+    "target": "com.hongjie.pms.modules.governance.audit.application.AuditCommandService"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/petpost/application/service/PmsPetPostServiceImpl.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/content/petpost/application/service/PmsPetPostServiceImpl.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/AuditQueryService.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/AuditQueryService.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/AuditQuerySources.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.Activity"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/AuditQuerySources.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.ActivityMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/AuditQuerySources.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.entity.DailyPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/AuditQuerySources.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.mapper.DailyPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/AuditQuerySources.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.entity.PetPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/AuditQuerySources.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper.PetPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/AuditWriteTargets.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.Activity"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/AuditWriteTargets.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.ActivityMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/AuditWriteTargets.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.entity.DailyPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/AuditWriteTargets.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.mapper.DailyPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/AuditWriteTargets.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.entity.PetPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/AuditWriteTargets.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper.PetPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/handler/ActivityAuditHandler.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.cache.ActivityCache"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/handler/ActivityAuditHandler.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.Activity"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/handler/ActivityAuditHandler.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.ActivityMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/handler/DailyPostAuditHandler.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.entity.DailyPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/handler/DailyPostAuditHandler.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.mapper.DailyPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/handler/PetPostAuditHandler.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.entity.PetPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/audit/application/handler/PetPostAuditHandler.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper.PetPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/report/application/PmsReportServiceImpl.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/report/application/PmsReportServiceImpl.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/report/application/ReportTargets.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.Activity"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/report/application/ReportTargets.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.ActivityMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/report/application/ReportTargets.java",
+    "target": "com.hongjie.pms.modules.community.comment.infrastructure.persistence.entity.Comment"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/report/application/ReportTargets.java",
+    "target": "com.hongjie.pms.modules.community.comment.infrastructure.persistence.mapper.CommentMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/report/application/ReportTargets.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.entity.PetPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/report/application/ReportTargets.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper.PetPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/report/application/ReportTargets.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/report/application/ReportTargets.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/report/application/ReportTargets.java",
+    "target": "com.hongjie.pms.modules.scheduling.application.DelayTaskService"
+  },
+  {
+    "source": "com/hongjie/pms/modules/governance/report/application/ReportWriteMapper.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/identity/admin/application/PmsAdminServiceImpl.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper.PetPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/identity/admin/application/PmsAdminServiceImpl.java",
+    "target": "com.hongjie.pms.modules.governance.audit.application.AuditCommandService"
+  },
+  {
+    "source": "com/hongjie/pms/modules/identity/user/application/UserAdminItem.java",
+    "target": "com.hongjie.pms.modules.scheduling.infrastructure.persistence.entity."
+  },
+  {
+    "source": "com/hongjie/pms/modules/identity/user/application/UserAdminItem.java",
+    "target": "com.hongjie.pms.modules.scheduling.infrastructure.persistence.entity.*"
+  },
+  {
+    "source": "com/hongjie/pms/modules/identity/user/application/UserAdminItem.java",
+    "target": "com.hongjie.pms.modules.scheduling.infrastructure.persistence.mapper."
+  },
+  {
+    "source": "com/hongjie/pms/modules/identity/user/application/UserAdminItem.java",
+    "target": "com.hongjie.pms.modules.scheduling.infrastructure.persistence.mapper.*"
+  },
+  {
+    "source": "com/hongjie/pms/modules/identity/user/application/UserProfiles.java",
+    "target": "com.hongjie.pms.modules.community.following.infrastructure.persistence.entity.Follow"
+  },
+  {
+    "source": "com/hongjie/pms/modules/identity/user/application/UserProfiles.java",
+    "target": "com.hongjie.pms.modules.community.following.infrastructure.persistence.mapper.FollowMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/scheduling/application/LegacyDelayMessages.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.Activity"
+  },
+  {
+    "source": "com/hongjie/pms/modules/scheduling/application/LegacyDelayMessages.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.ActivityMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/scheduling/application/PmsJobActions.java",
+    "target": "com.hongjie.pms.modules.activity.application.ActivityStatusScheduler"
+  },
+  {
+    "source": "com/hongjie/pms/modules/scheduling/application/PmsJobActions.java",
+    "target": "com.hongjie.pms.modules.community.feed.application.task.InboxCleanupTask"
+  },
+  {
+    "source": "com/hongjie/pms/modules/scheduling/application/ScheduledBusinessTasks.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.cache.ActivityCache"
+  },
+  {
+    "source": "com/hongjie/pms/modules/scheduling/application/ScheduledBusinessTasks.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity."
+  },
+  {
+    "source": "com/hongjie/pms/modules/scheduling/application/ScheduledBusinessTasks.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.*"
+  },
+  {
+    "source": "com/hongjie/pms/modules/scheduling/application/ScheduledBusinessTasks.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper."
+  },
+  {
+    "source": "com/hongjie/pms/modules/scheduling/application/ScheduledBusinessTasks.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.*"
+  },
+  {
+    "source": "com/hongjie/pms/modules/scheduling/application/ScheduledBusinessTasks.java",
+    "target": "com.hongjie.pms.modules.identity.user.application.UserCache"
+  },
+  {
+    "source": "com/hongjie/pms/modules/scheduling/application/ScheduledBusinessTasks.java",
+    "target": "com.hongjie.pms.modules.identity.user.application.UserRestrictions.signupUntil"
+  },
+  {
+    "source": "com/hongjie/pms/modules/scheduling/application/ScheduledBusinessTasks.java",
+    "target": "com.hongjie.pms.modules.identity.user.domain.policy.PunishmentUtil"
+  },
+  {
+    "source": "com/hongjie/pms/modules/scheduling/application/ScheduledBusinessTasks.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/scheduling/application/ScheduledBusinessTasks.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/api/event/ActivityPublishedEvent.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.Activity"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/api/event/DailyPostPublishedEvent.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.entity.DailyPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/api/event/PetPostPublishedEvent.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.entity.PetPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/api/service/SearchDataSyncService.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.Activity"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/api/service/SearchDataSyncService.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.entity.DailyPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/api/service/SearchDataSyncService.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.entity.PetPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/SearchEnrichment.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.ActivitySignup"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/SearchEnrichment.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.ActivitySignupMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/SearchEnrichment.java",
+    "target": "com.hongjie.pms.modules.community.like.infrastructure.persistence.entity.LikeRecord"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/SearchEnrichment.java",
+    "target": "com.hongjie.pms.modules.community.like.infrastructure.persistence.mapper.LikeRecordMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/SearchEnrichment.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.entity.FavoriteRecord"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/SearchEnrichment.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper.FavoriteRecordMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/SearchEnrichment.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/SearchEnrichment.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/SearchSources.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.ActivityMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/SearchSources.java",
+    "target": "com.hongjie.pms.modules.content.daily.application.DailyAssembler"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/SearchSources.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.mapper.DailyPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/SearchSources.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper.PetPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/index/PmsFullDataSyncService.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.mapper."
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/index/PmsFullDataSyncService.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.mapper.*"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/index/PmsSearchDataSyncService.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.entity.Activity"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/index/PmsSearchDataSyncService.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.entity.DailyPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/index/PmsSearchDataSyncService.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.mapper."
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/index/PmsSearchDataSyncService.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.mapper.*"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/index/PmsSearchDataSyncService.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.entity.PetPost"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/index/SearchIndexDomainListener.java",
+    "target": "com.hongjie.pms.modules.activity.application.ActivityParticipationChanged"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/index/SearchIndexDomainListener.java",
+    "target": "com.hongjie.pms.modules.community.like.application.LikeChanged"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/index/SearchIndexSources.java",
+    "target": "com.hongjie.pms.modules.activity.infrastructure.persistence.mapper.ActivityMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/index/SearchIndexSources.java",
+    "target": "com.hongjie.pms.modules.content.daily.application.DailyAssembler"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/index/SearchIndexSources.java",
+    "target": "com.hongjie.pms.modules.content.daily.infrastructure.persistence.mapper.DailyPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/index/SearchIndexSources.java",
+    "target": "com.hongjie.pms.modules.content.petpost.infrastructure.persistence.mapper.PetPostMapper"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/index/SearchIndexSources.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.User"
+  },
+  {
+    "source": "com/hongjie/pms/modules/search/application/index/SearchIndexSources.java",
+    "target": "com.hongjie.pms.modules.identity.user.infrastructure.persistence.mapper.UserMapper"
+  }
+]

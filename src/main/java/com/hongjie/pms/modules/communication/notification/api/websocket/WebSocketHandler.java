@@ -1,0 +1,100 @@
+package com.hongjie.pms.modules.communication.notification.api.websocket;
+
+import com.alibaba.fastjson2.JSON;
+import com.hongjie.pms.platform.utils.JWTUtils;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class WebSocketHandler extends TextWebSocketHandler {
+
+    private final com.hongjie.pms.modules.identity.user.application.UserSessions userSessions;
+
+    // 在线用户: userId -> session
+    private static final Map<Long, WebSocketSession> SESSIONS = new ConcurrentHashMap<>();
+
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) {
+        String token = getTokenFromSession(session);
+        var identity = userSessions.authenticate(token);
+        if (identity == null) {
+            try {
+                session.close(CloseStatus.NOT_ACCEPTABLE);
+            } catch (Exception e) {
+                log.error("关闭非法连接失败", e);
+            }
+            return;
+        }
+
+        Long userId = identity.getUserId();
+        session.getAttributes().put("pms.auth", userSessions);
+        session.getAttributes().put("pms.token", token);
+        SESSIONS.put(userId, session);
+        log.info("用户 {} 已连接，在线人数: {}", userId, SESSIONS.size());
+    }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+        SESSIONS.entrySet().removeIf(entry -> entry.getValue().equals(session));
+        log.info("用户断开连接，在线人数: {}", SESSIONS.size());
+    }
+
+    /**
+     * 推送消息给指定用户
+     */
+    public static boolean pushToUser(Long userId, Object message) {
+        WebSocketSession session = SESSIONS.get(userId);
+        if (session != null && session.isOpen()) {
+            try {
+                var attributes = session.getAttributes();
+                if (attributes != null && attributes.get("pms.auth") instanceof com.hongjie.pms.modules.identity.user.application.UserSessions guard
+                        && guard.authenticate((String)attributes.get("pms.token")) == null) {
+                    SESSIONS.remove(userId, session); session.close(CloseStatus.NOT_ACCEPTABLE); return false;
+                }
+                String json = JSON.toJSONString(message);
+                // 并发推送同一 session 会抛 "Concurrent access"，加锁串行化
+                synchronized (session) {
+                    session.sendMessage(new TextMessage(json));
+                }
+                log.debug("推送成功: userId={}", userId);
+                return true;
+            } catch (Exception e) {
+                log.error("推送失败: userId={}", userId, e);
+                // 按 session 匹配移除：只删这个失效连接，避免误删重连后的新连接（旧做法 remove(userId) 会误删）
+                SESSIONS.entrySet().removeIf(entry -> entry.getValue().equals(session));
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 获取在线用户数量
+     */
+    public static int getOnlineCount() {
+        return SESSIONS.size();
+    }
+
+    private String getTokenFromSession(WebSocketSession session) {
+        // 从 URL 参数获取: ws://localhost/ws?token=xxx
+        String query = session.getUri().getQuery();
+        if (query != null) {
+            for (String param : query.split("&")) {
+                if (param.startsWith("token=")) {
+                    return java.net.URLDecoder.decode(param.substring(6), java.nio.charset.StandardCharsets.UTF_8);
+                }
+            }
+        }
+        // 从 Header 获取
+        return session.getHandshakeHeaders().getFirst("Authorization");
+    }
+}

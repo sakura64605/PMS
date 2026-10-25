@@ -1,0 +1,65 @@
+package com.hongjie.pms.modules.ai.api.controller;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.hongjie.pms.modules.ai.infrastructure.persistence.entity.AiKnowledgeBase;
+import com.hongjie.pms.modules.ai.application.rag.KnowledgeBaseService;
+import com.hongjie.pms.platform.base.core.UserContext;
+import com.hongjie.pms.platform.exception.BusinessException;
+import com.hongjie.pms.platform.pojo.CommonResult;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@Slf4j
+@RestController
+@RequestMapping("/pet-system/admin/ai/knowledge")
+@RequiredArgsConstructor
+public class KnowledgeBaseAdminController {
+
+    private final KnowledgeBaseService knowledgeBaseService;
+
+    private void checkAdmin() {
+        if (!UserContext.isAdmin()) {
+            throw new BusinessException(403, "需要管理员权限");
+        }
+    }
+
+    @PostMapping("/add")
+    public CommonResult<String> addKnowledge(
+            @RequestParam String title,
+            @RequestParam String content,
+            @RequestParam String category,
+            @RequestParam(required = false) List<String> tags) {
+        checkAdmin();
+        knowledgeBaseService.addKnowledge(title, content, category, tags);
+        return CommonResult.success("知识添加成功");
+    }
+
+    @GetMapping("/search")
+    public CommonResult<IPage<AiKnowledgeBase>> searchKnowledge(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "20") Integer pageSize) {
+        checkAdmin();
+
+        return CommonResult.success(knowledgeBaseService.search(keyword, category, pageNum, pageSize));
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public CommonResult<String> deleteKnowledge(@PathVariable Long id) {
+        checkAdmin();
+        // 下架：改 MySQL 状态 + 同步删除 Qdrant 向量
+        knowledgeBaseService.removeKnowledge(id);
+        return CommonResult.success("知识删除成功");
+    }
+
+    @PostMapping("/reload")
+    public CommonResult<String> reloadKnowledgeBase() {
+        checkAdmin();
+        knowledgeBaseService.loadKnowledgeToVectorStore();
+        return CommonResult.success("知识库重新加载成功");
+    }
+}
