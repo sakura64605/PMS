@@ -28,7 +28,7 @@ pipeline {
         stage('部署') {
             steps {
                 sh '''
-                    # Keep the Jenkins job's existing script path; build the React application.
+                    # Build and publish the sole React frontend.
                     # Back up first and retain hashed assets required by already-open tabs.
                     ssh ${REMOTE_HOST} "mkdir -p /opt/pms && tar -czf /opt/pms/frontend.bak-ci-$(date +%Y%m%d-%H%M%S).tar.gz -C /var/www/html pms"
                     scp -r PMS-react/dist/assets ${REMOTE_HOST}:${DEPLOY_PATH}/
