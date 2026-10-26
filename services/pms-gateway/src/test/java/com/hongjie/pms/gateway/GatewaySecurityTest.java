@@ -32,6 +32,10 @@ class GatewaySecurityTest {
         String signed=header+"."+payload;return signed+"."+b64.encodeToString(mac.doFinal(signed.getBytes(StandardCharsets.UTF_8)));
     }
     @Test void publicPathsRouteThroughLoadBalancer(){http.get().uri("/pet-system/pet/list").exchange().expectStatus().isOk().expectBody().jsonPath("$.code").isEqualTo(200);}
+    @Test void sockJsInfoUsesHttpRouteWithQueryToken(){
+        http.get().uri(builder->builder.path("/pet-system/ws/info").queryParam("token",uncheckedToken(120)).build())
+            .exchange().expectStatus().isOk().expectBody().jsonPath("$.code").isEqualTo(200);
+    }
     @Test void protectedPathsRequireValidNonExpiredSignature()throws Exception{
         http.get().uri("/pet-system/user/info").exchange().expectStatus().isUnauthorized();
         http.get().uri("/pet-system/user/info").headers(h->h.setBearerAuth("invalid")).exchange().expectStatus().isUnauthorized();
