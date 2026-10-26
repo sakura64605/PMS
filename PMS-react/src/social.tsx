@@ -623,6 +623,7 @@ export function Profile() {
           </section>
           <section className="panel">
             <h2>我的小天地</h2>
+            <Link className="btn" to="/my-signups">我的报名</Link>
             <div className="row-actions">
               <Link className="btn" to="/pets/my-posts">
                 我的发布

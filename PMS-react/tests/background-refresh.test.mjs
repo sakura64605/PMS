@@ -22,6 +22,7 @@ const {DiaryCard,Messages}=await server.ssrLoadModule('/src/social.tsx');
 const {default:Admin}=await server.ssrLoadModule('/src/admin.tsx');
 dom.window.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
 dom.window.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');};
+const {MySignups}=await server.ssrLoadModule('/src/mySignups.tsx');
 const {Detail,Editor}=await server.ssrLoadModule('/src/content.tsx');
 let root,host,calls,current,mounts,unmounts;
 let frames=new Map(),frameSequence=0,scrolls=0;
@@ -555,4 +556,21 @@ test('direct private-message URL closes safely to the default background',async(
  assert.ok(calls.some(c=>c.path.includes('conversationId=42')));
  await act(async()=>host.querySelector('dialog .chat-head button[aria-label="关闭私信"]').click());
  assert.equal(window.location.pathname,'/pets');
+});
+
+const signupFixture=(id=7,extra={})=>({activity:{id,title:'周末宠友聚会',content:'一起散步',images:'/cover.jpg',location:'公园',status:0,currentPeople:2,maxPeople:10,startTime:'2026-11-01T10:00:00',endTime:'2026-11-01T12:00:00',user:{nickname:'活动发起人'}},signup:{signupId:id+100,realName:'我的姓名',phone:'13800000000',signupTime:'2026-10-26T10:00:00',status:1,remark:'带一只猫'},available:true,canCancel:true,...extra});
+async function renderSignups(){await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},React.createElement(MySignups))));}
+async function signupData(records){await reply(calls.findIndex(c=>c.path.includes('/my-signups?')),{records,total:records.length});await reply(calls.findIndex(c=>c.path.endsWith('/my-signups/summary')),{total:records.length,pending:records.length,checkedIn:0,finished:0});}
+test('my registrations shows actual personal proof and ticket without self check-in',async()=>{
+ await renderSignups();await signupData([signupFixture()]);assert.ok(host.textContent.includes('周末宠友聚会'));assert.ok(host.textContent.includes('我的姓名'));assert.ok(host.textContent.includes('13800000000'));
+ const button=[...host.querySelectorAll('button')].find(b=>b.textContent==='入场凭证');await act(async()=>button.click());assert.ok(host.querySelector('dialog').textContent.includes('凭证编号 #107'));assert.equal([...host.querySelectorAll('button')].some(b=>/现场签到|撤销签到|核销/.test(b.textContent)),false);
+});
+test('my registrations filters on server and retains existing cards while refreshing',async()=>{
+ await renderSignups();await signupData([signupFixture()]);const card=host.querySelector('.signup-card');const select=host.querySelector('select');await act(async()=>{select.value='2';select.dispatchEvent(new Event('change',{bubbles:true}));});assert.equal(host.querySelector('.signup-card'),card);assert.ok(calls.at(-1).path.includes('status=2'));await reply(calls.length-1,{records:[],total:0});assert.ok(host.textContent.includes('暂无符合条件的报名活动'));
+});
+test('my registrations cancels via authenticated endpoint and refreshes both counts and list',async()=>{
+ await renderSignups();await signupData([signupFixture()]);await act(async()=>[...host.querySelectorAll('button')].find(b=>b.textContent==='取消报名').click());await act(async()=>[...host.querySelectorAll('button')].find(b=>b.textContent==='确认取消报名').click());const index=calls.findIndex(c=>c.path.endsWith('/activity/cancelSignUp/7'));assert.ok(index>=0);assert.equal(calls[index].options.method,'POST');await reply(index,'ok');assert.equal(host.querySelector('dialog'),null);assert.ok(calls.slice(index+1).some(c=>c.path.includes('/my-signups?')));assert.ok(calls.slice(index+1).some(c=>c.path.endsWith('/my-signups/summary')));
+});
+test('my registrations retains unavailable history but hides invalid actions',async()=>{
+ await renderSignups();await signupData([signupFixture(9,{available:false,canCancel:false})]);assert.ok(host.textContent.includes('活动暂不可查看'));assert.equal([...host.querySelectorAll('button')].some(b=>b.textContent==='取消报名'),false);assert.equal(host.querySelector('a[href="/pets/activity/9"]'),null);
 });

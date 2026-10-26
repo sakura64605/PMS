@@ -68,7 +68,7 @@ class ActivityTakeoverMySqlTest {
     @BeforeAll void open(){
         assertThat(MyBatisTestSupport.jdbcUrl()).matches("jdbc:mysql://(127\\.0\\.0\\.1|localhost):3306/pet_system_test(?:\\?.*)?");
         assertThat(MyBatisTestSupport.configured()).isTrue();
-        Class<?>[] types={ActivityMapper.class,ActivitySignupMapper.class,UserMapper.class,LikeRecordMapper.class,
+        Class<?>[] types={MySignupsMapper.class,ActivityMapper.class,ActivitySignupMapper.class,UserMapper.class,LikeRecordMapper.class,
                 FollowMapper.class,AuditWriteMapper.class,AuditRecordMapper.class,PetPostMapper.class,DailyPostMapper.class,DelayTaskMapper.class};
         var factory=MyBatisTestSupport.createFactory(types);var source=factory.getConfiguration().getEnvironment().getDataSource();
         jdbc=new JdbcTemplate(source);assertThat(jdbc.queryForObject("SELECT DATABASE()",String.class)).isEqualTo("pet_system_test");
@@ -301,5 +301,78 @@ class ActivityTakeoverMySqlTest {
     }
     @Test void anonymousMyActivityDoesNotFallBackToPublicQuery(){
         assertThatThrownBy(()->context.getBean(ActivityController.class).getMyActivityList(query())).isInstanceOf(BusinessException.class);
+    }
+
+    MySignupsQueries mySignups(){return new MySignupsQueries(context.getBean(MySignupsMapper.class),context.getBean(ActivityMapper.class),context.getBean(ActivityDtoAssembler.class));}
+    com.hongjie.pms.modules.activity.api.dto.request.MySignupsRequest signupQuery(){return new com.hongjie.pms.modules.activity.api.dto.request.MySignupsRequest();}
+    @Test void mySignupsRequiresAuthentication(){
+        assertThatThrownBy(()->mySignups().list(signupQuery())).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(()->mySignups().summary()).isInstanceOf(BusinessException.class);
+    }
+    @Test void mySignupsOnlyReturnsCurrentActorsPrivateRecordAndStablePages(){
+        long other=activity("other-signup",0,1,0);signup(activity,viewer,1);signup(other,admin,1);
+        as(viewer,0,()->{
+            var request=signupQuery();request.setPageSize(1L);
+            var result=mySignups().list(request);
+            assertThat(result.getTotal()).isEqualTo(1);
+            assertThat(result.getRecords()).hasSize(1);
+            var row=result.getRecords().get(0);
+            assertThat(row.activity().getId()).isEqualTo(activity);
+            assertThat(row.signup().getUser().getUserId()).isEqualTo(viewer);
+            assertThat(row.signup().getPhone()).isEqualTo("13800000000");
+            assertThat(row.canCancel()).isTrue();assertThat(row.available()).isTrue();
+            request.setPageNum(2L);assertThat(mySignups().list(request).getRecords()).isEmpty();
+            assertThat(((Number)mySignups().summary().get("total")).longValue()).isEqualTo(1);
+        });
+    }
+    @Test void mySignupsKeepsUnavailableAndHistoricalRecordsWithoutOfferingInvalidActions(){
+        long pending=activity("pending-signup",0,0,0),deleted=activity("deleted-signup",0,1,1),finished=activity("finished-signup",2,1,0);
+        signup(pending,viewer,1);signup(deleted,viewer,1);signup(finished,viewer,4);
+        as(viewer,0,()->{
+            var result=mySignups().list(signupQuery());assertThat(result.getTotal()).isEqualTo(3);
+            var records=result.getRecords().stream().collect(java.util.stream.Collectors.toMap(r->r.activity().getId(),r->r));
+            assertThat(records.get(pending).available()).isFalse();assertThat(records.get(pending).canCancel()).isTrue();
+            assertThat(records.get(deleted).available()).isFalse();assertThat(records.get(deleted).canCancel()).isFalse();
+            assertThat(records.get(finished).canCancel()).isFalse();
+            assertThat(((Number)mySignups().summary().get("finished")).longValue()).isEqualTo(1);
+            assertThat(((Number)mySignups().summary().get("pending")).longValue()).isZero();
+        });
+    }
+    @Test void mySignupsFiltersAcrossOwnNotesAuthorsAndActivityAndRejectsArbitrarySqlSort(){
+        long checked=activity("checked-signup",1,1,0);signup(activity,viewer,1);signup(checked,viewer,3);
+        as(viewer,0,()->{
+            var request=signupQuery();request.setKeyword("private");request.setSignupStatus(3);
+            assertThat(mySignups().list(request).getRecords()).extracting(r->r.activity().getId()).containsExactly(checked);
+            request.setKeyword(marker+"v");assertThat(mySignups().list(request).getRecords()).isEmpty();
+            request.setKeyword(marker+"o");assertThat(mySignups().list(request).getTotal()).isEqualTo(1);
+            request.setSort("a.id; DROP TABLE activity");assertThatThrownBy(()->mySignups().list(request)).isInstanceOf(BusinessException.class);
+            request.setSort("signupTime_desc");request.setSignupStatus(2);assertThatThrownBy(()->mySignups().list(request)).isInstanceOf(BusinessException.class);
+        });
+    }
+    @Test void mySignupsSupportsAllSortsTimeWindowsAndRemovedSignupDisappears(){
+        long past=activity("past-signup",2,1,0);signup(activity,viewer,1);signup(past,viewer,3);
+        as(viewer,0,()->{
+            var request=signupQuery();
+            for(String sort:List.of("startTime_asc","startTime_desc","signupTime_asc","signupTime_desc","participants_desc")){
+                request.setSort(sort);assertThat(mySignups().list(request).getTotal()).isEqualTo(2);
+            }
+            request.setTimeRange("upcoming");assertThat(mySignups().list(request).getRecords()).extracting(r->r.activity().getId()).containsExactly(activity);
+            request.setTimeRange("past");assertThat(mySignups().list(request).getRecords()).extracting(r->r.activity().getId()).containsExactly(past);
+            jdbc.update("DELETE FROM activity_signup WHERE activity_id=? AND user_id=?",activity,viewer);
+            assertThat(((Number)mySignups().summary().get("total")).longValue()).isEqualTo(1);
+        });
+    }
+
+    @Test void mySignupsHttpContractIgnoresForgedUserAndSerializesOwnProof() throws Exception {
+        signup(activity,viewer,1);
+        var mvc=MockMvcBuilders.standaloneSetup(new com.hongjie.pms.modules.activity.api.controller.MySignupsController(mySignups())).build();
+        UserContext.setUser(new UserInfo(viewer,"fixture",0,null,null));
+        mvc.perform(get("/pet-system/activity/my-signups").param("userId",String.valueOf(admin)))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.code").value(200))
+            .andExpect(jsonPath("$.data.total").value(1))
+            .andExpect(jsonPath("$.data.records[0].signup.user.userId").value(viewer))
+            .andExpect(jsonPath("$.data.records[0].canCancel").value(true));
+        mvc.perform(get("/pet-system/activity/my-signups/summary"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.total").value(1));
     }
 }

@@ -1,3 +1,4 @@
+import { MySignups } from "./mySignups";
 import {maintainNotificationConnection} from "./notificationConnection";
 import {
   lazy,
@@ -181,6 +182,7 @@ function Header({ path }: { path: string }) {
                   {[
                     ["/profile", "个人中心"],
                     ["/pets/my-posts", "我的发布"],
+                    ["/my-signups", "我的报名"],
                     ["/pets/collections", "我的收藏"],
                     ["/recycle", "回收站"],
                   ].map(([p, n]) => (
@@ -235,6 +237,7 @@ function Router({ path }: { path: string }) {
         activity={new URLSearchParams(path.split('?')[1]).get("type") === "2"}
       />
     );
+  if (p === "/my-signups") return <MySignups />;
   if (p === "/pets/my-posts") return <MyContent />;
   if (p === "/pets/collections") return <MyContent mode="collections" />;
   if (p === "/recycle") return <MyContent mode="recycle" />;

@@ -221,6 +221,7 @@ export function Home() {
       </DataState>
       <div className="section-heading">
         <h2>和毛孩子一起，去见见新朋友</h2>
+        <Link to="/my-signups">我的活动报名</Link>
         <Link to="/pets?type=2">
           同城活动 <ArrowRight size={14} />
         </Link>
