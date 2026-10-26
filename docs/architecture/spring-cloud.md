@@ -11,8 +11,9 @@
 | pms-config-server | 提供非敏感配置、超时和熔断策略 | 8888 |
 | pms-core-service | 现有业务、权限与归属校验、数据库事务、搜索结果装配和索引同步 | 8180 |
 | pms-search-service | 独立 Elasticsearch 检索，通过版本化协议返回候选 ID | 8181、8182 |
+| pms-ai-service | Agent、模型、会话记忆、转人工、知识库与 AI WebSocket | 8281 |
 
-目前是两个业务应用和三个治理应用。两个搜索实例属于同一服务。核心业务尚未全部分离，搜索索引写入仍由核心应用负责。
+代码已形成三个业务应用和三个治理应用；AI 抽取已完成本地相关验证，尚未部署。详见 [AI 服务抽取](ai-service-extraction.md)。两个搜索实例属于同一服务。核心业务尚未全部分离，搜索索引写入仍由核心应用负责。
 
 调用链：React → Gateway → Core → OpenFeign → LoadBalancer → Search → Elasticsearch。Eureka 发现实例，Config 提供策略，Resilience4j 保护搜索调用；Micrometer / OpenTelemetry 传播 traceId。网关保留原 `/pet-system/...` 路径，核心应用继续校验账户状态、角色和资源归属。
 

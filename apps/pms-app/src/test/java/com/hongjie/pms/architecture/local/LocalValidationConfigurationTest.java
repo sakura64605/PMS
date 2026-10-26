@@ -2,8 +2,6 @@ package com.hongjie.pms.architecture.local;
 
 import com.hongjie.pms.modules.scheduling.application.*;
 import com.hongjie.pms.modules.search.application.index.*;
-import com.hongjie.pms.modules.ai.application.rag.*;
-import com.hongjie.pms.modules.ai.infrastructure.persistence.mapper.AiKnowledgeBaseMapper;
 import com.hongjie.pms.bootstrap.warmup.CacheWarmer;
 import com.hongjie.pms.platform.utils.RedisScanUtil;
 import com.hongjie.pms.modules.communication.notice.infrastructure.persistence.mapper.*;
@@ -27,11 +25,9 @@ class LocalValidationConfigurationTest {
     static class Binding {}
     ApplicationContextRunner runner(){
         return new ApplicationContextRunner().withUserConfiguration(Binding.class,LocalJobScheduler.class,XxlJobHandlers.class,
-                SearchIndexBootstrap.class,CacheWarmer.class,KnowledgeBaseService.class)
+                SearchIndexBootstrap.class,CacheWarmer.class)
                 .withBean(PmsJobActions.class,()->mock(PmsJobActions.class))
                 .withBean(SearchMaintenance.class,()->mock(SearchMaintenance.class))
-                .withBean(AiKnowledgeBaseMapper.class,()->mock(AiKnowledgeBaseMapper.class))
-                .withBean(QdrantVectorStore.class,()->mock(QdrantVectorStore.class))
                 .withBean(RedisTemplate.class,()->mock(RedisTemplate.class))
                 .withBean(RedisScanUtil.class,()->mock(RedisScanUtil.class))
                 .withBean(NoticeMapper.class,()->mock(NoticeMapper.class))
@@ -47,7 +43,6 @@ class LocalValidationConfigurationTest {
             assertThat(context).doesNotHaveBean(LocalJobScheduler.class).doesNotHaveBean(XxlJobHandlers.class)
                     .doesNotHaveBean(SearchIndexBootstrap.class).doesNotHaveBean(CacheWarmer.class);
             assertThat(context.getBean(SchedulingProperties.class).getMode()).isEqualTo(SchedulingProperties.Mode.DISABLED);
-            verifyNoInteractions(context.getBean(AiKnowledgeBaseMapper.class),context.getBean(QdrantVectorStore.class));
             var listeners=context.getBean(RocketMQProperties.class).getConsumer().getListeners();
             assertThat(listeners.get("message-consumer-group").get("message-topic")).isFalse();
             assertThat(listeners.get("delay-task-consumer-group").get("delay-task-topic")).isFalse();
@@ -57,7 +52,6 @@ class LocalValidationConfigurationTest {
     @Test void existingDefaultsStillEnableStartupWork(){
         runner().run(context->{
             assertThat(context).hasNotFailed().hasSingleBean(LocalJobScheduler.class).hasSingleBean(SearchIndexBootstrap.class).hasSingleBean(CacheWarmer.class);
-            verify(context.getBean(AiKnowledgeBaseMapper.class)).selectList(any());
         });
     }
 }

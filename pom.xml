@@ -41,11 +41,14 @@
     </dependencyManagement>
     <modules>
         <module>contracts/search-contracts</module>
+        <module>contracts/ai-contracts</module>
+        <module>components/service-runtime</module>
         <module>components/search-engine</module>
         <module>services/pms-registry</module>
         <module>services/pms-config-server</module>
         <module>services/pms-gateway</module>
         <module>services/pms-search-service</module>
+        <module>services/pms-ai-service</module>
         <module>apps/pms-app</module>
     </modules>
 </project>

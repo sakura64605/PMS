@@ -1,0 +1,15 @@
+[Unit]
+Description=PMS AI service
+After=network-online.target pms-cloud-registry.service pms-cloud-config.service
+Wants=network-online.target pms-cloud-registry.service pms-cloud-config.service
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/pms/ai
+EnvironmentFile=/opt/pms/ai/ai.env
+ExecStart=/usr/bin/java -Xms64m -Xmx512m -XX:ActiveProcessorCount=2 -Duser.timezone=Asia/Shanghai -jar /opt/pms/ai/pms-ai-service.jar --spring.profiles.active=cloud --server.address=127.0.0.1 --server.port=8281
+Restart=on-failure
+RestartSec=5
+SuccessExitStatus=143
+[Install]
+WantedBy=multi-user.target

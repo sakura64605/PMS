@@ -1,0 +1,37 @@
+server:
+  address: 127.0.0.1
+  port: ${PMS_AI_PORT:8281}
+spring:
+  application:
+    name: pms-ai-service
+  cloud:
+    config:
+      enabled: false
+  datasource:
+    url: ${PMS_AI_DB_URL:jdbc:mysql://127.0.0.1:3306/pet_system_test?serverTimezone=Asia/Shanghai}
+    username: ${PMS_AI_DB_USER:root}
+    password: ${PMS_AI_DB_PASSWORD:}
+  data:
+    redis:
+      host: ${PMS_REDIS_HOST:127.0.0.1}
+      port: ${PMS_REDIS_PORT:6379}
+      password: ${PMS_REDIS_PASSWORD:}
+eureka:
+  client:
+    enabled: false
+pms:
+  ai:
+    core:
+      service-token: ${PMS_AI_CORE_SERVICE_TOKEN:}
+    knowledge:
+      sync-on-startup: false
+ai:
+  agent:
+    api-key: ${PMS_AI_API_KEY:}
+    base-url: ${PMS_AI_BASE_URL:https://api.deepseek.com}
+    model-name: ${PMS_AI_MODEL:deepseek-chat}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

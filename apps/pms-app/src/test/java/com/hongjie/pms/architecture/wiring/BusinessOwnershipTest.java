@@ -4,10 +4,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.*;
 class BusinessOwnershipTest {
     @Test void migratedFacadesDoNotInheritLegacyImplementations() throws Exception {
-        for (String name : List.of("com.hongjie.pms.modules.ai.application.PmsChatMemoryService",
-"com.hongjie.pms.modules.ai.application.PmsChatSessionService",
-"com.hongjie.pms.modules.ai.application.PmsHumanTransferService",
-"com.hongjie.pms.modules.content.daily.application.PmsDailyPostService",
+        for (String name : List.of("com.hongjie.pms.modules.content.daily.application.PmsDailyPostService",
 "com.hongjie.pms.modules.content.daily.application.PmsDailyRecommendService",
 "com.hongjie.pms.modules.content.daily.application.PmsDailyUserInterestService",
 "com.hongjie.pms.modules.content.daily.application.PmsTopicService",
@@ -95,5 +92,10 @@ class BusinessOwnershipTest {
 "com.hongjie.pms.modules.search.repository.UnifiedSearchRepository")) {
             assertThatThrownBy(()->Class.forName(name)).as(name).isInstanceOf(ClassNotFoundException.class);
         }
+    }
+
+    @Test void aiRuntimeHasLeftCoreClasspath(){
+        for(String name:List.of("com.hongjie.pms.modules.ai.application.agent.AIAgentEngine","dev.langchain4j.model.chat.ChatModel"))
+            assertThatThrownBy(()->Class.forName(name)).isInstanceOf(ClassNotFoundException.class);
     }
 }

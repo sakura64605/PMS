@@ -13,6 +13,7 @@
     <name>PMS</name>
     <description>PMS</description>
     <dependencies>
+<dependency><groupId>com.hongjie</groupId><artifactId>pms-service-runtime</artifactId><version>${project.version}</version></dependency><dependency><groupId>com.hongjie</groupId><artifactId>pms-ai-contracts</artifactId><version>${project.version}</version></dependency>
         <dependency>
             <groupId>org.springframework.retry</groupId>
             <artifactId>spring-retry</artifactId>
@@ -63,51 +64,6 @@
             <groupId>com.hongjie</groupId>
             <artifactId>pms-search-engine</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        <!-- ========== AI 相关依赖（排除 slf4j-simple 冲突） ========== -->
-        <!-- langchain4j 核心 -->
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-simple</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <!-- langchain4j-agentic：内置 ReAct Agent（beta 轨，版本由 BOM 钉住） -->
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-agentic</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-simple</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <!-- langchain4j-open-ai（DashScope 兼容端点） -->
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-open-ai</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-simple</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <!-- 向量存储：中文嵌入模型（BGE-small-zh-v1.5，512维，本地ONNX推理） -->
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-embeddings-bge-small-zh-v15</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-simple</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <!-- Spring Boot 依赖会使用 logback -->
         <dependency>

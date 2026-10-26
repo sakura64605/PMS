@@ -18,13 +18,12 @@ apps/pms-app/src/main/java/com/hongjie/pms/
     ├── community/                # comment、like、following、feed
     ├── communication/            # notification、privatemessage、notice
     ├── governance/               # audit、report：内容审核和举报
-    ├── ai/                       # 会话、长期记忆、Agent、工具和知识库
     ├── search/                   # 搜索查询、索引同步与维护
     ├── analytics/                # 数据统计和快照
     └── scheduling/               # XXL-JOB 接入、任务记录和调度
 
 apps/pms-app/src/main/resources/mapper/         # 按模块组织 MyBatis XML
-apps/pms-app/src/main/resources/compatibility/  # 持久化 Java 类型别名，迁移兼容资料
+components/service-runtime/src/main/resources/compatibility/  # 持久化 Java 类型别名，迁移兼容资料
 apps/pms-app/src/test/java/.../modules/         # 对应业务模块测试
 apps/pms-app/src/test/java/.../architecture/    # 包布局、依赖基线、集成装配约束
 apps/pms-app/src/test/java/.../platform/        # 技术设施测试
@@ -56,7 +55,7 @@ docs/architecture/archive/        # 历史架构图
 - MyBatis XML namespace 和资源位置同步更新，并验证自定义语句能绑定到 Mapper。
 - Redis 历史类型通过 `compatibility/java-type-aliases.properties` 映射。读兼容旧/新类名，写继续使用历史类型 ID，支持已有实例与当前本地验证实例共用缓存；不通过清空 Redis 解决改包问题。别名只应用于类型元数据，不改普通业务字符串。
 - `ModuleLayoutTest` 检查源码路径、公共层不反向依赖业务，以及新增跨模块内部依赖；`BusinessOwnershipTest` 继续检查旧实现不存在。
-- 现存跨模块内部引用记录在 `module-internal-dependencies.json`。目前有 181 条 import/引用项，这是迁移债务清单，不能理解为已经隔离完成。
+- 现存跨模块内部引用记录在 `module-internal-dependencies.json`。目前有 154 条 import/引用项，这是迁移债务清单，不能理解为已经隔离完成。
 - 运行 `python scripts/architecture/check_module_dependencies.py` 查看关系并阻止新增内部引用。只有实际审查了必要性后才用 `--update-baseline` 更新基线；优先提供模块 API，不以扩大白名单代替解耦。
 
 ## 后续拆分顺序
@@ -66,3 +65,5 @@ docs/architecture/archive/        # 历史架构图
 3. 最后按确定的边界拆 Maven 子模块和独立启动服务，调整网关、认证传播、WebSocket、XXL-JOB 和部署配置。当前 bootstrap 负责单体装配，届时由各服务的启动装配接替。
 
 本轮没有变更数据库表，也没有部署线上服务；新增远程检索调用和验证详见首批服务拆分说明。已完成受影响业务回归；结构约束、Redis 类型别名、MyBatis XML 和启动配置重点补跑 11 项通过，构建成功。本地原启动类启动成功，10 组真实 HTTP/WebSocket 冒烟通过，测试账号已清理。
+
+AI 已抽取至 `services/pms-ai-service`，共享协议在 `contracts/ai-contracts`，基础设施在 `components/service-runtime`。详见 [AI 服务抽取](ai-service-extraction.md)。

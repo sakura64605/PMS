@@ -30,9 +30,25 @@ def ready():
         except Exception:pass
         time.sleep(1)
     return False
+def require_extracted_ai_ready(incoming):
+    # The old single-JAR pipeline must never perform the first three-process migration.
+    with zipfile.ZipFile(incoming) as archive:
+        extracted='BOOT-INF/classes/com/hongjie/pms/bootstrap/ai/AiCoreController.class' in archive.namelist()
+    if not extracted:return
+    state=subprocess.run(['systemctl','is-active','pms-ai'],capture_output=True,text=True)
+    if state.returncode!=0:
+        raise RuntimeError('This core requires the coordinated AI extraction rollout; pms-ai is not active. See docs/architecture/ai-service-extraction.md')
+    command=subprocess.check_output(['systemctl','show','pms-cloud-gateway','-p','ExecStart','--value'],text=True)
+    match=re.search(r'-jar\s+([^;\s}]+)',command)
+    if not match:raise RuntimeError('Cannot verify the deployed AI gateway route')
+    with zipfile.ZipFile(match[1]) as gateway:
+        routes=gateway.read('BOOT-INF/classes/com/hongjie/pms/gateway/GatewayRoutes.class')
+    if b'pms-ai-service' not in routes:raise RuntimeError('Deploy the AI gateway route as part of the coordinated first rollout')
+
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--incoming',required=True,type=Path);parser.add_argument('--sha',required=True);args=parser.parse_args()
     current=Path('/opt/pms/pms.jar');assert sha(args.incoming)==args.sha,'Upload checksum mismatch'
+    require_extracted_ai_ready(args.incoming)
     before=sha(current);stamp=datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')
     stage=current.with_name('pms-stage-'+stamp+'.jar');backup=current.with_name('pms.jar.bak-ci-'+stamp)
     assemble(current,args.incoming,stage);shutil.copy2(current,backup)

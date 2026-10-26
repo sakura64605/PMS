@@ -1,6 +1,5 @@
 package com.hongjie.pms.bootstrap.config;
 
-import com.hongjie.pms.modules.ai.api.websocket.AIAgentWebSocketHandler;
 import com.hongjie.pms.modules.communication.notification.api.websocket.WebSocketHandler;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
@@ -14,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 public class WebSocketConfig implements WebSocketConfigurer {
     
     private final WebSocketHandler webSocketHandler;
-    private final AIAgentWebSocketHandler aiAgentWebSocketHandler;
     
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
@@ -25,8 +23,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
                 .setAllowedOriginPatterns("*")
                 .withSockJS();
 
-        // AI 客服 WebSocket
-        registry.addHandler(aiAgentWebSocketHandler, "/pet-system/ai/ws")
-                .setAllowedOriginPatterns("*");
+
     }
 }

@@ -18,13 +18,18 @@ import static org.assertj.core.api.Assertions.*;
 class GatewaySecurityTest {
     static final String SECRET="gateway-test-key-at-least-32-characters";
     static HttpServer backend;
+    static HttpServer ai;
     @Autowired WebTestClient http;
+    @Autowired @org.springframework.beans.factory.annotation.Qualifier("publicRoutes") org.springframework.cloud.gateway.route.RouteLocator routes;
     @DynamicPropertySource static void downstream(DynamicPropertyRegistry values)throws Exception{
         backend=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
         backend.createContext("/pet-system",exchange->{byte[] body="{\"code\":200}".getBytes(StandardCharsets.UTF_8);exchange.getResponseHeaders().set("Content-Type","application/json");exchange.sendResponseHeaders(200,body.length);exchange.getResponseBody().write(body);exchange.close();});backend.start();
+        ai=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
+        ai.createContext("/pet-system",exchange->{byte[] body="{\"code\":200,\"service\":\"ai\"}".getBytes(StandardCharsets.UTF_8);exchange.getResponseHeaders().set("Content-Type","application/json");exchange.sendResponseHeaders(200,body.length);exchange.getResponseBody().write(body);exchange.close();});ai.start();
+        values.add("spring.cloud.discovery.client.simple.instances.pms-ai-service[0].uri",()->"http://127.0.0.1:"+ai.getAddress().getPort());
         values.add("spring.cloud.discovery.client.simple.instances.pms-core-service[0].uri",()->"http://127.0.0.1:"+backend.getAddress().getPort());
     }
-    @AfterAll static void close(){backend.stop(0);}
+    @AfterAll static void close(){backend.stop(0);ai.stop(0);}
     String token(long expiry)throws Exception{
         var b64=Base64.getUrlEncoder().withoutPadding();String header=b64.encodeToString("{\"alg\":\"HS256\",\"typ\":\"JWT\"}".getBytes(StandardCharsets.UTF_8));
         String payload=b64.encodeToString(("{\"userId\":7,\"exp\":"+expiry+"}").getBytes(StandardCharsets.UTF_8));
@@ -55,5 +60,19 @@ class GatewaySecurityTest {
             assertThat(next.getRequest().getHeaders().getFirst("X-PMS-Actor")).isNull();
             assertThat(next.getRequest().getHeaders().getFirst("Authorization")).isEqualTo("Bearer retained");return reactor.core.publisher.Mono.empty();
         }).block();
+    }
+
+    @Test void aiAndKnowledgeManagementRoutesUseIndependentService(){
+        for(String path:List.of("/pet-system/ai/sessions","/pet-system/admin/ai/knowledge"))
+            http.get().uri(path).headers(h->h.setBearerAuth(uncheckedToken(120))).exchange().expectStatus().isOk().expectBody().jsonPath("$.service").isEqualTo("ai");
+        http.get().uri("/internal/ai/v1/profile/7").headers(h->h.setBearerAuth(uncheckedToken(120))).exchange().expectStatus().isForbidden();
+    }
+
+    @Test void websocketRouteTargetsAiBeforeCoreCatchAll(){
+        var configured=routes.getRoutes().collectList().block();
+        assertThat(configured).isNotNull();
+        assertThat(configured.get(0).getId()).isEqualTo("ai-websocket");
+        assertThat(configured.get(0).getUri().toString()).isEqualTo("lb:ws://pms-ai-service");
+        assertThat(configured.stream().filter(r->r.getId().equals("community-websocket")).findFirst().orElseThrow().getUri().toString()).isEqualTo("lb:ws://pms-core-service");
     }
 }

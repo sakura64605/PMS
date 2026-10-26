@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[2]
 RUN=ROOT/'target/cloud-validation'
 STATE=RUN/'runtime.json'
 CLIENT=urllib.request.build_opener(urllib.request.ProxyHandler({}))
-PORTS=[8761,8888,8088,8180,8181,8182,5175]
+PORTS=[8761,8888,8088,8180,8181,8182,8281,5175]
 FORWARDS={13306:3306,16379:6379,19200:9200,16333:6333,19876:9876,10911:10911,10909:10909}
 def listening(port):
     with socket.socket() as connection:
@@ -65,6 +65,7 @@ def main():
     jwt=os.environ.get('PMS_GATEWAY_JWT_SECRET') or str(config['jwt']['secret'])
     if jwt.startswith('${') or len(jwt.encode())<32:raise RuntimeError('Provide the actual existing JWT secret for the gateway')
     token=secrets.token_hex(32)
+    ai_token=secrets.token_hex(32)
     state={'processes':[],'frontend':'http://127.0.0.1:5175','gateway':'http://127.0.0.1:8088','core':'http://127.0.0.1:8180','registry':'http://127.0.0.1:8761','config':'http://127.0.0.1:8888'}
     save(state)
     java=shutil.which('java');common={'PMS_CONFIG_URL':'http://127.0.0.1:8888','PMS_EUREKA_URL':'http://127.0.0.1:8761/eureka/'}
@@ -91,8 +92,13 @@ def main():
                 ['--pms.instance-id=search-'+str(i),'--pms.search-service.elasticsearch-url=http://127.0.0.1:19200','--spring.elasticsearch.uris=http://127.0.0.1:19200'],{'PMS_SEARCH_SERVICE_TOKEN':token},cloud=True)
             wait_ready(entry,'http://127.0.0.1:'+str(port)+'/actuator/health')
         core=service('core','apps/pms-app/target/PMS-0.0.1-SNAPSHOT.jar',8180,
-            ['--spring.profiles.active=local-validation,cloud','--pms.search.mode=cloud','--spring.datasource.url=jdbc:mysql://127.0.0.1:13306/pet_system?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowMultiQueries=true&rewriteBatchedStatements=true','--spring.data.redis.host=127.0.0.1','--spring.data.redis.port=16379','--elasticsearch.host=127.0.0.1','--elasticsearch.port=19200','--spring.elasticsearch.uris=http://127.0.0.1:19200','--rocketmq.name-server=127.0.0.1:19876'],{'PMS_SEARCH_TOKEN':token})
+            ['--spring.profiles.active=local-validation,cloud','--pms.search.mode=cloud','--spring.datasource.url=jdbc:mysql://127.0.0.1:13306/pet_system?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowMultiQueries=true&rewriteBatchedStatements=true','--spring.data.redis.host=127.0.0.1','--spring.data.redis.port=16379','--elasticsearch.host=127.0.0.1','--elasticsearch.port=19200','--spring.elasticsearch.uris=http://127.0.0.1:19200','--rocketmq.name-server=127.0.0.1:19876'],{'PMS_SEARCH_TOKEN':token,'PMS_AI_CORE_ENABLED':'true','PMS_AI_CORE_SERVICE_TOKEN':ai_token})
         wait_ready(core,'http://127.0.0.1:8180/pet-system/pet/list?pageSize=1',core=True)
+        ai_config=config.get('ai',{}).get('agent',{})
+        ai_entry=service('ai','services/pms-ai-service/target/pms-ai-service-0.0.1-SNAPSHOT.jar',8281,
+            ['--qdrant.port=16333','--pms.ai.knowledge.sync-on-startup=false'],
+            {'PMS_AI_CORE_SERVICE_TOKEN':ai_token,'PMS_AI_DB_URL':'jdbc:mysql://127.0.0.1:13306/pet_system?serverTimezone=Asia/Shanghai','PMS_AI_DB_USER':str(config['spring']['datasource'].get('username','root')),'PMS_AI_DB_PASSWORD':str(config['spring']['datasource']['password']),'PMS_REDIS_HOST':'127.0.0.1','PMS_REDIS_PORT':'16379','PMS_REDIS_PASSWORD':str(config['spring']['data']['redis'].get('password','')),'PMS_AI_API_KEY':str(ai_config.get('api-key','')),'PMS_AI_BASE_URL':str(ai_config.get('base-url','https://api.deepseek.com')),'PMS_AI_MODEL':str(ai_config.get('model-name','deepseek-chat'))},cloud=True)
+        wait_ready(ai_entry,'http://127.0.0.1:8281/actuator/health')
         gateway=service('gateway','services/pms-gateway/target/pms-gateway-0.0.1-SNAPSHOT.jar',8088,extra={'PMS_GATEWAY_JWT_SECRET':jwt},cloud=True)
         wait_ready(gateway,'http://127.0.0.1:8088/actuator/health')
         vite=ROOT/'PMS-react/node_modules/vite/bin/vite.js'

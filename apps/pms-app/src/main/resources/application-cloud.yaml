@@ -18,3 +18,9 @@ eureka:
     registry-fetch-interval-seconds: 2
     service-url:
       defaultZone: ${PMS_EUREKA_URL:http://127.0.0.1:8761/eureka/}
+
+pms:
+  ai:
+    core:
+      enabled: ${PMS_AI_CORE_ENABLED:false}
+      service-token: ${PMS_AI_CORE_SERVICE_TOKEN:}
