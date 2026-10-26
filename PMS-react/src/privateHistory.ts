@@ -4,8 +4,8 @@ import {useRouteRequest} from "./routeTransition";
 
 type Slice = {records: Row[]; nextCursor: string | number | null; hasMore: boolean};
 type Session = {
-  id: string; active: boolean; records: Row[]; latest: string | number | null; cursor: Slice["nextCursor"];
-  more: boolean; loading: boolean; older: boolean; newer: boolean; error: string;
+  id: string; owner: string; active: boolean; records: Row[]; latest: string | number | null; cursor: Slice["nextCursor"];
+  more: boolean; loading: boolean; older: boolean; newer: boolean; error: string; syncAgain: boolean; syncError: string;
   unseen: Set<string>; following: boolean; controllers: Set<AbortController>;
 };
 export function mergeMessages(current: Row[], incoming: Row[]) {
@@ -19,6 +19,7 @@ export function usePrivateHistory(conversation: unknown, visible: boolean, actor
   const viewport = useRef<HTMLDivElement>(null);
   const session = useRef<Session | null>(null);
   const anchor = useRef<{session: Session; height: number; top: number; messageId?: string; offset?: number} | "bottom" | null>(null);
+  const sync = useRef<() => void>(() => {});
   const [, render] = useState(0);
   const publish = useCallback(() => render(n => n + 1), []);
   const request = useCallback(async (s: Session, params: Row = {}) => {
@@ -34,15 +35,15 @@ export function usePrivateHistory(conversation: unknown, visible: boolean, actor
     if (session.current) { session.current.active = false; session.current.controllers.forEach(c => c.abort()); }
     anchor.current = null;
     if (!id) { session.current = null; publish(); return; }
-    const s: Session = {id, active: true, records: [], latest: null, cursor: null, more: false, loading: true, older: false, newer: false, error: "", unseen: new Set(), following: true, controllers: new Set()};
+    const s: Session = {id, owner: String(actorId), active: true, records: [], latest: null, cursor: null, more: false, loading: true, older: false, newer: false, error: "", syncAgain: false, syncError: "", unseen: new Set(), following: true, controllers: new Set()};
     session.current = s; publish();
     void request(s).then(page => {
       if (!valid(s)) return;
       s.records = mergeMessages(s.records, page.records); s.latest = page.records[0]?.id ?? null; s.cursor = page.nextCursor; s.more = page.hasMore;
       anchor.current = "bottom";
     }).catch(error => { if (valid(s)) s.error = error.message; })
-      .finally(() => { if (valid(s)) { s.loading = false; publish(); } });
-  }, [id, publish, request]);
+      .finally(() => { if (valid(s)) { s.loading = false; publish(); if (s.syncAgain) sync.current(); } });
+  }, [id, actorId, publish, request]);
 
   useEffect(() => {
     reset();
@@ -71,13 +72,17 @@ export function usePrivateHistory(conversation: unknown, visible: boolean, actor
 
   const refreshLatest = useCallback(async () => {
     const s = session.current;
-    if (!s || !valid(s) || s.loading || s.newer) return;
-    s.newer = true;
+    if (!s || !valid(s)) return;
+    if (s.loading || s.newer) { s.syncAgain = true; return; }
+    s.newer = true; s.syncAgain = false;
+    let succeeded = false;
     try {
       for (let n = 0; n < 20; n++) {
         const last = s.latest;
         const page = await request(s, last == null ? {} : {afterId: last});
         if (!valid(s)) return;
+        if (s.syncError) { s.syncError = ""; publish(); }
+        if (last == null && s.error) { s.error = ""; publish(); }
         if (page.records.length) {
           const follow = anchor.current === "bottom" || nearBottom();
           s.following = follow;
@@ -93,17 +98,35 @@ export function usePrivateHistory(conversation: unknown, visible: boolean, actor
           s.latest = last == null ? page.records[0].id : page.nextCursor; publish();
         }
         if (last == null || !page.hasMore || !page.records.length) break;
+        if (s.latest === last) throw new Error("消息同步游标未前进");
+        if (n === 19) s.syncAgain = true;
       }
-    } catch { /* Keep the current history; retry on the next push or poll. */ }
-    finally { if (valid(s)) s.newer = false; }
+      succeeded = true;
+    } catch (error) { if (valid(s)) { s.syncError = (error as Error).message; publish(); } }
+    finally {
+      if (valid(s)) {
+        s.newer = false;
+        if (succeeded && s.syncAgain) queueMicrotask(() => { if (valid(s)) sync.current(); });
+      }
+    }
   }, [publish, request, actorId]);
+
+  sync.current = () => { void refreshLatest(); };
 
   useEffect(() => {
     if (!id || !visible) return;
-    const update = () => { if (document.visibilityState !== "hidden") void refreshLatest(); };
+    const update = () => { if (document.visibilityState !== "hidden" && navigator.onLine !== false) void refreshLatest(); };
     window.addEventListener("server-message", update);
+    window.addEventListener("message-connection-open", update);
+    window.addEventListener("online", update);
+    document.addEventListener("visibilitychange", update);
     const timer = window.setInterval(update, 5000);
-    return () => { window.removeEventListener("server-message", update); window.clearInterval(timer); };
+    return () => {
+      window.removeEventListener("server-message", update);
+      window.removeEventListener("message-connection-open", update);
+      window.removeEventListener("online", update);
+      document.removeEventListener("visibilitychange", update); window.clearInterval(timer);
+    };
   }, [id, visible, refreshLatest]);
 
   useLayoutEffect(() => {
@@ -146,10 +169,11 @@ export function usePrivateHistory(conversation: unknown, visible: boolean, actor
     const s = session.current; if (!s || !valid(s) || s.id !== id) return;
     s.records = mergeMessages(s.records, [message]); s.unseen.clear(); s.following = true; anchor.current = "bottom"; publish();
   };
-  const current = session.current?.id === id ? session.current : null;
+  const current = session.current?.id === id && session.current.owner === String(actorId) ? session.current : null;
   useRouteRequest(!!id && (!current || current.loading));
   return {
     data: {records: current?.records || []}, viewport, append, loadOlder, reload: reset,
+    retrySync: refreshLatest, syncError: current?.syncError || "",
     onScroll, jumpToLatest, newMessageCount: current?.unseen.size || 0,
     loading: !!id && (!current || current.loading), refreshing: false,
     error: current?.records.length ? "" : current?.error || "",

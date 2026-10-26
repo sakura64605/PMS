@@ -43,6 +43,10 @@ class PrivateMessageMySqlTest {
         var factory=MyBatisTestSupport.createFactory(mappers);source=factory.getConfiguration().getEnvironment().getDataSource();jdbc=new JdbcTemplate(source);
         assertThat(jdbc.queryForObject("SELECT DATABASE()",String.class)).isEqualTo("pet_system_test");
         for(String table:List.of("user","private_conversation","private_message"))assertThat(jdbc.queryForObject("SELECT ENGINE FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name=?",String.class,table)).isEqualToIgnoringCase("InnoDB");
+        // Guarded local test schema migration; never touches pet_system or a remote host.
+        if(jdbc.queryForObject("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='private_message' AND column_name='client_message_id'",Integer.class)==0)
+            jdbc.execute("ALTER TABLE private_message ADD COLUMN client_message_id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL, ADD UNIQUE INDEX uk_private_message_sender_client (from_user_id,client_message_id)");
+        assertThat(jdbc.queryForObject("SELECT GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='private_message' AND index_name='uk_private_message_sender_client' AND NON_UNIQUE=0",String.class)).isEqualTo("from_user_id,client_message_id");
         var template=new SqlSessionTemplate(factory);var manager=new DataSourceTransactionManager(source);tx=new TransactionTemplate(manager);tx.setTimeout(15);
         context=new AnnotationConfigApplicationContext();context.registerBean("transactionManager",DataSourceTransactionManager.class,()->manager);
         for(Class<?> mapper:mappers)register(mapper,template);context.register(Config.class);context.refresh();service=context.getBean(PmsPrivateMessageServiceImpl.class);push=context.getBean(PrivateMessagePush.class);
@@ -147,4 +151,39 @@ class PrivateMessageMySqlTest {
         assertThat(service.getMessageHistory(b,id,null,null,30).records()).isEmpty();
         as(a);assertThat(service.getMessageHistory(a,id,null,null,30).records()).hasSize(2);
     }
+    SendMessageRequest keyed(long to,String content,String key){var request=new SendMessageRequest();request.setToUserId(to);request.setContent(content);request.setClientMessageId(key);return request;}
+    @Test void replayAfterLostResponseReturnsOriginalWithoutIncrementingUnreadOrPushingAgain(){
+        String key="lost-response-"+UUID.randomUUID();as(a);var request=keyed(b,"persisted once",key);
+        var first=service.sendMessage(a,request);var replay=service.sendMessage(a,request);
+        assertThat(replay.getId()).isEqualTo(first.getId());assertThat(replay.getClientMessageId()).isEqualTo(key);
+        assertThat(messages()).isEqualTo(1);as(b);assertThat(service.getTotalUnreadCount(b)).isEqualTo(1);verify(push,times(1)).send(anyLong(),any());
+        assertThat(service.getMessageHistory(b,conversation(),null,null,30).records().get(0).getClientMessageId()).isEqualTo(key);
+    }
+    @Test void concurrentSameKeyRetryCreatesOneMessageAndPush()throws Exception{
+        String key="concurrent-"+UUID.randomUUID();List<Long> ids=new CopyOnWriteArrayList<>();
+        race(()->{as(a);ids.add(service.sendMessage(a,keyed(b,"same retry",key)).getId());},()->{as(a);ids.add(service.sendMessage(a,keyed(b,"same retry",key)).getId());});
+        assertThat(ids).hasSize(2);assertThat(new HashSet<>(ids)).hasSize(1);assertThat(messages()).isEqualTo(1);verify(push,times(1)).send(anyLong(),any());
+    }
+    @Test void sameKeyCannotChangePayloadOrRecipientButIndependentMessagesMayHaveSameContent(){
+        String key="different-"+UUID.randomUUID();as(a);service.sendMessage(a,keyed(b,"original",key));
+        assertThatThrownBy(()->service.sendMessage(a,keyed(b,"changed",key))).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(()->service.sendMessage(a,keyed(outsider,"original",key))).isInstanceOf(BusinessException.class);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM private_conversation WHERE user_a=? AND user_b=?",Integer.class,Math.min(a,outsider),Math.max(a,outsider))).isZero();
+        service.sendMessage(a,keyed(b,"original","another-"+UUID.randomUUID()));assertThat(messages()).isEqualTo(2);
+    }
+    @Test void clearedMessageCannotBeResurrectedByRetry(){
+        String key="cleared-"+UUID.randomUUID();as(a);var request=keyed(b,"cleared",key);service.sendMessage(a,request);service.clearMessages(a,conversation());
+        assertThatThrownBy(()->service.sendMessage(a,request)).isInstanceOf(BusinessException.class);
+        assertThat(service.getMessageHistory(a,conversation(),null,null,30).records()).isEmpty();assertThat(messages()).isEqualTo(1);
+    }
+    @Test void rolledBackSendDoesNotConsumeIdempotencyKey(){
+        String key="rollback-"+UUID.randomUUID();as(a);var request=keyed(b,"retry rollback",key);
+        assertThatThrownBy(()->tx.executeWithoutResult(status->{service.sendMessage(a,request);throw new IllegalStateException("rollback");})).isInstanceOf(IllegalStateException.class);
+        assertThat(messages()).isZero();service.sendMessage(a,request);assertThat(messages()).isEqualTo(1);verify(push,times(1)).send(anyLong(),any());
+    }
+    @Test void differentSendersMayUseTheSameClientKey(){
+        String key="per-sender-"+UUID.randomUUID();as(a);var first=service.sendMessage(a,keyed(b,"from a",key));
+        as(b);var second=service.sendMessage(b,keyed(a,"from b",key));assertThat(first.getId()).isNotEqualTo(second.getId());assertThat(messages()).isEqualTo(2);
+    }
+
 }

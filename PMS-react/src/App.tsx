@@ -1,3 +1,4 @@
+import {maintainNotificationConnection} from "./notificationConnection";
 import {
   lazy,
   useCallback,
@@ -326,39 +327,11 @@ export default function App() {
   }, []);
   useEffect(() => {
     if (!user) return;
-    let disposed = false,
-      socket: any;
-    let timer: ReturnType<typeof setTimeout>;
-    let attempt = 0;
     const token = localStorage.getItem("token");
-    async function connect() {
-      try {
-        const { default: SockJS } = await import("sockjs-client");
-        if (disposed) return;
-        socket = new SockJS(
-          `/pet-system/ws?token=${encodeURIComponent(token || "")}`,
-        );
-        socket.onmessage = () => {
-          refresh();
-          window.dispatchEvent(new Event("server-message"));
-        };
-        socket.onopen = () => {
-          attempt = 0;
-        };
-        socket.onclose = () => {
-          if (!disposed && attempt++ < 5)
-            timer = setTimeout(connect, Math.min(30000, 2000 * 2 ** attempt));
-        };
-      } catch {
-        /* unread counts continue with bounded polling */
-      }
-    }
-    void connect();
-    return () => {
-      disposed = true;
-      clearTimeout(timer);
-      socket?.close();
-    };
+    return maintainNotificationConnection(async () => {
+      const {default: SockJS} = await import("sockjs-client");
+      return new SockJS(`/pet-system/ws?token=${encodeURIComponent(token || "")}`);
+    }, refresh);
   }, [uid(user)]);
   useEffect(() => {
     document.title = `${displayedPath.startsWith("/audit") ? "管理工作台" : displayedPath.startsWith("/ai-chat") ? "AI养宠顾问" : displayedPath.startsWith("/private-message") ? "私信" : "宠友社区"} · PetCircle 宠友社`;

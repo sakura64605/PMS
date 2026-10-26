@@ -45,4 +45,6 @@ class PrivateMessageServiceTest {
         for(int size:new int[]{0,-1,101})assertThatThrownBy(()->service.getMessageHistory(1L,10L,null,null,size)).isInstanceOf(BusinessException.class);
         verifyNoInteractions(writes);
     }
+    @Test void invalidClientKeyRejectedBeforeLocks(){var request=request();request.setClientMessageId("bad key");assertThatThrownBy(()->service.sendMessage(1L,request)).isInstanceOf(BusinessException.class);verifyNoInteractions(writes,messages);}
+
 }

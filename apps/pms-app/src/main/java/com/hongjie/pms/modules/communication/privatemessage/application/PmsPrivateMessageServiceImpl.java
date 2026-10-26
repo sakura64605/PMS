@@ -41,9 +41,22 @@ public class PmsPrivateMessageServiceImpl implements PrivateMessageService {
             throw new BusinessException(ErrorCode.PARAM_ERROR,"私信内容需为1到1000个字符");
         int type=request.getMessageType()==null?1:request.getMessageType();
         if(type!=1&&type!=2)throw new BusinessException(ErrorCode.PARAM_ERROR,"不支持的私信类型");
+        String key=request.getClientMessageId();
+        if(key!=null&&!key.matches("[A-Za-z0-9_-]{16,64}"))throw new BusinessException(ErrorCode.PARAM_ERROR,"无效的客户端消息标识");
+        // pair locks both users in a stable order, serializing retries from the same sender.
         var conversation=pair(actor,request.getToUserId());
+        if(key!=null){
+            var existing=writes.byClientMessageId(actor,key);
+            if(existing!=null){
+                if(!Objects.equals(existing.getToUserId(),request.getToUserId())||!Objects.equals(existing.getContent(),request.getContent())||!Objects.equals(existing.getMessageType(),type))
+                    throw new BusinessException(ErrorCode.PARAM_ERROR,"消息标识已用于另一条消息");
+                if(Integer.valueOf(1).equals(existing.getIsDeletedByFrom()))throw new BusinessException(ErrorCode.PARAM_ERROR,"该消息已清空，请重新发送");
+                return messageDto(existing,users.selectById(actor));
+            }
+        }
         var message=new PrivateMessage();message.setConversationId(conversation.getId());message.setFromUserId(actor);message.setToUserId(request.getToUserId());
         message.setMessageType(type);message.setContent(request.getContent());message.setIsRead(0);message.setIsDeletedByFrom(0);message.setIsDeletedByTo(0);message.setCreateTime(LocalDateTime.now());
+        message.setClientMessageId(key);
         messages.insert(message);
         String content=request.getContent();String preview=content.substring(0,content.offsetByCodePoints(0,Math.min(500,content.codePointCount(0,content.length()))));
         writes.sent(conversation.getId(),request.getToUserId(),preview,message.getCreateTime());
@@ -118,6 +131,6 @@ public class PmsPrivateMessageServiceImpl implements PrivateMessageService {
         return ConversationDto.builder().conversationId(row.getId()).lastMessage(row.getLastMessage()).lastMessageTime(row.getLastMessageTime()).unreadCount(row.getUnreadCount())
                 .otherUser(other==null?null:UserSimpleDto.builder().userId(other.getId()).username(other.getUserName()).nickname(other.getNickName()).avatar(other.getAvatar()).build()).build();
     }
-    private MessageDto messageDto(PrivateMessage row,User author){return MessageDto.builder().id(row.getId()).fromUserId(row.getFromUserId()).toUserId(row.getToUserId()).messageType(row.getMessageType())
+    private MessageDto messageDto(PrivateMessage row,User author){return MessageDto.builder().id(row.getId()).clientMessageId(row.getClientMessageId()).fromUserId(row.getFromUserId()).toUserId(row.getToUserId()).messageType(row.getMessageType())
             .content(row.getContent()).isRead(row.getIsRead()).createTime(row.getCreateTime()).fromUserName(author==null?null:author.getUserName()).fromUserAvatar(author==null?null:author.getAvatar()).build();}
 }

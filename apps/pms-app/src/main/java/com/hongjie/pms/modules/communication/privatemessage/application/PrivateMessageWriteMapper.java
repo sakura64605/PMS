@@ -9,6 +9,8 @@ import java.util.List;
 
 @Mapper
 public interface PrivateMessageWriteMapper {
+    @Select("SELECT * FROM private_message WHERE from_user_id=#{actor} AND client_message_id=#{key} FOR UPDATE")
+    PrivateMessage byClientMessageId(@Param("actor") Long actor, @Param("key") String key);
     @Select("SELECT id,status FROM user WHERE id=#{id} FOR UPDATE") User lockUser(@Param("id") Long id);
     @Select("SELECT * FROM private_conversation WHERE user_a=#{low} AND user_b=#{high} FOR UPDATE")
     PrivateConversation pair(@Param("low") Long low,@Param("high") Long high);

@@ -1993,3 +1993,10 @@ textarea {
 .private-new-messages{position:absolute;right:16px;bottom:14px;z-index:2;display:flex;align-items:center;gap:6px;border:1px solid #d7dfd8;border-radius:20px;padding:8px 13px;color:#425b46;background:#fff;box-shadow:0 3px 14px #2b413022;font-size:12px;cursor:pointer}
 .private-new-messages:hover{background:#f2f6f1}
 .private-new-messages:focus-visible{outline:2px solid #5f7161;outline-offset:3px}
+
+.private-sync-error{display:flex;align-items:center;justify-content:center;gap:8px;flex:none;padding:5px 12px;color:#956c31;background:#fff9ec;font-size:12px}
+.private-send-status{flex:none;max-height:140px;overflow:auto;padding:6px 14px;background:#fff9f3;border-top:1px solid #f0e1ce}
+.private-send-entry{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:5px 0;min-width:0;font-size:12px}
+.private-send-entry>div{min-width:0}
+.private-send-preview{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#514b44}
+.private-send-description{display:block;color:#956c31;margin-top:3px}

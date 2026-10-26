@@ -1,4 +1,4 @@
-import {test, before, after, beforeEach, afterEach} from 'node:test';
+import {test, before, after, beforeEach, afterEach, mock} from 'node:test';
 import assert from 'node:assert/strict';
 import {JSDOM} from 'jsdom';
 import {fileURLToPath} from 'node:url';
@@ -15,6 +15,8 @@ const {AtomicRoutes,useRouteLocation}=await server.ssrLoadModule('/src/routeTran
 const {PrivateChat,AIChat}=await server.ssrLoadModule('/src/chat.tsx');
 const {usePrivateHistory}=await server.ssrLoadModule('/src/privateHistory.ts');
 const {privateMessageTimeline}=await server.ssrLoadModule('/src/privateMessageTime.ts');
+const {usePrivateComposer}=await server.ssrLoadModule('/src/privateComposer.ts');
+const {maintainNotificationConnection}=await server.ssrLoadModule('/src/notificationConnection.ts');
 dom.window.HTMLElement.prototype.scrollIntoView=()=>{};
 const {DiaryCard,Messages}=await server.ssrLoadModule('/src/social.tsx');
 const {default:Admin}=await server.ssrLoadModule('/src/admin.tsx');
@@ -382,6 +384,137 @@ test('appending a sent message does not skip incoming messages with an intermedi
  await act(async()=>window.dispatchEvent(new Event('server-message')));
  await replyWhere(p=>p.includes('afterId=5'),{records:[{id:6,content:'incoming'},{id:7,content:'sent'}],nextCursor:7,hasMore:false});
  assert.deepEqual([...host.querySelectorAll('p')].map(p=>p.textContent),['initial','incoming','sent']);
+});
+
+test('reconnection drains every missing message batch using the last confirmed ID',async()=>{
+ const viewport=await cursorChat();viewport.scrollTop=60;
+ await act(async()=>window.dispatchEvent(new Event('message-connection-open')));
+ await replyWhere(p=>p.includes('afterId=5'),{records:[{id:6,fromUserId:2,content:'missed first'}],nextCursor:6,hasMore:true});
+ await replyWhere(p=>p.includes('afterId=6'),{records:[{id:7,fromUserId:2,content:'missed second'}],nextCursor:7,hasMore:false});
+ assert.ok(host.textContent.includes('missed first'));assert.ok(host.textContent.includes('missed second'));
+ assert.equal(viewport.scrollTop,60);assert.equal(host.querySelector('.private-new-messages').textContent,'2 条新消息');
+});
+test('online recovery retries the last unconfirmed batch without discarding history',async()=>{
+ const viewport=await cursorChat();viewport.scrollTop=60;
+ await act(async()=>window.dispatchEvent(new Event('message-connection-open')));
+ const index=calls.findIndex(c=>c.path.includes('afterId=5'));calls[index].replied=true;await reply(index,{},500);
+ assert.equal(host.querySelectorAll('.bubble-wrap').length,3);assert.ok(host.querySelector('.private-sync-error'));
+ await act(async()=>window.dispatchEvent(new Event('online')));
+ await replyWhere(p=>p.includes('afterId=5'),{records:[{id:6,fromUserId:2,content:'recovered'}],nextCursor:6,hasMore:false});
+ assert.equal(host.querySelector('.private-sync-error'),null);assert.ok(host.textContent.includes('recovered'));
+});
+test('a reconnect received during an active fetch queues one follow-up sync',async()=>{
+ await cursorChat();await act(async()=>window.dispatchEvent(new Event('server-message')));
+ await act(async()=>{window.dispatchEvent(new Event('message-connection-open'));window.dispatchEvent(new Event('online'));});
+ assert.equal(calls.filter(c=>c.path.includes('afterId=5')).length,1);
+ await replyWhere(p=>p.includes('afterId=5'),{records:[],nextCursor:null,hasMore:false});
+ assert.equal(calls.filter(c=>c.path.includes('afterId=5')).length,2);
+ await replyWhere(p=>p.includes('afterId=5'),{records:[{id:6,content:'queued recovery'}],nextCursor:6,hasMore:false});
+ assert.ok(host.textContent.includes('queued recovery'));
+});
+test('changing accounts resets private history even when the conversation ID stays the same',async()=>{
+ function History({actor}){current=usePrivateHistory(42,true,actor);return React.createElement('div',null,current.data.records.map(m=>React.createElement('p',{key:m.id},m.content)));}
+ await act(async()=>root.render(React.createElement(History,{actor:'1'})));
+ await replyWhere(p=>p.includes('conversationId=42'),{records:[{id:1,content:'account one secret'}],nextCursor:1,hasMore:false});
+ await act(async()=>root.render(React.createElement(History,{actor:'9'})));
+ assert.equal(host.textContent.includes('account one secret'),false);assert.equal(current.loading,true);
+});
+test('catch-up continues beyond one bounded sync round without skipping IDs',async()=>{
+ const viewport=await cursorChat();viewport.scrollTop=60;
+ await act(async()=>window.dispatchEvent(new Event('message-connection-open')));
+ for(let id=6;id<=26;id++)await replyWhere(p=>p.includes(`afterId=${id-1}`),{records:[{id,fromUserId:2,content:`missed ${id}`}],nextCursor:id,hasMore:id<26});
+ assert.equal(host.querySelectorAll('.bubble-wrap').length,24);assert.equal(host.querySelector('.private-new-messages').textContent,'21 条新消息');
+});
+
+let composerDelivered;
+async function composer(conversation=42,recipient=2,actor='1'){
+ // Keep the same component type across contact switches.
+ if(!composer.Component)composer.Component=({conversation,recipient,actor})=>{current=usePrivateComposer(actor,conversation,recipient,(message,id)=>composerDelivered.push({message,id}));return React.createElement('span',null,current.draft);};
+ await act(async()=>root.render(React.createElement(composer.Component,{conversation,recipient,actor})));
+}
+test('failed send retains draft and retry reuses the same client key and payload',async()=>{
+ composerDelivered=[];await composer();await act(async()=>current.setDraft(' original draft '));
+ await act(async()=>{void current.send();});
+ const first=JSON.parse(calls[0].options.body);assert.match(first.clientMessageId,/^[a-f0-9]{32}$/);
+ await reply(0,{},500);assert.equal(current.draft,' original draft ');assert.equal(current.pending[0].status,'failed');
+ await act(async()=>{void current.retry(current.pending[0]);void current.retry(current.pending[0]);});
+ assert.equal(calls.length,2);assert.deepEqual(JSON.parse(calls[1].options.body),first);
+ await reply(1,{id:10,clientMessageId:first.clientMessageId,content:first.content,fromUserId:1});
+ assert.equal(current.draft,'');assert.equal(current.pending.length,0);assert.equal(composerDelivered.length,1);
+});
+test('the real chat shows a retry action and preserves a newly edited draft after retry succeeds',async()=>{
+ await cursorChat();const input=host.querySelector('.chat-compose input');
+ await act(async()=>{Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype,'value').set.call(input,'failed message');input.dispatchEvent(new Event('input',{bubbles:true}));});
+ const send=host.querySelector('.chat-compose button');assert.equal(send.disabled,false);
+ await act(async()=>{send.click();send.click();});
+ const index=calls.findIndex(c=>c.path.endsWith('/message/private/send'));assert.ok(index>=0);
+ const original=JSON.parse(calls[index].options.body);assert.equal(calls.filter(c=>c.path.endsWith('/message/private/send')).length,1);
+ calls[index].replied=true;await reply(index,{},500);assert.equal(input.value,'failed message');
+ const retry=host.querySelector('.private-send-status button');assert.ok(retry);
+ await act(async()=>{Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype,'value').set.call(input,'new draft');input.dispatchEvent(new Event('input',{bubbles:true}));retry.click();});
+ const retries=calls.filter(c=>c.path.endsWith('/message/private/send'));assert.equal(retries.length,2);assert.deepEqual(JSON.parse(retries[1].options.body),original);
+ await replyWhere((p,c)=>p.endsWith('/message/private/send')&&!c.replied,{id:9,content:'failed message',clientMessageId:original.clientMessageId,fromUserId:1});
+ assert.equal(input.value,'new draft');assert.equal(host.querySelector('.private-send-status'),null);
+ assert.ok([...host.querySelectorAll('.bubble p')].some(p=>p.textContent==='failed message'));
+});
+test('retry never overwrites a new draft or sends the failed message to another contact',async()=>{
+ composerDelivered=[];await composer();await act(async()=>current.setDraft('failed text'));await act(async()=>{void current.send();});await reply(0,{},500);
+ await act(async()=>current.setDraft('new draft in original conversation'));await composer(43,3);
+ assert.equal(current.draft,'');assert.equal(current.pending.length,0);await act(async()=>current.setDraft('another contact draft'));
+ await composer();assert.equal(current.draft,'new draft in original conversation');
+ await act(async()=>{void current.retry(current.pending[0]);});assert.equal(JSON.parse(calls[1].options.body).toUserId,'2');
+ await reply(1,{id:11,fromUserId:1,content:'failed text'});assert.equal(current.draft,'new draft in original conversation');
+ await composer(43,3);assert.equal(current.draft,'another contact draft');
+});
+test('incremental history reconciles a committed send whose HTTP response was lost',async()=>{
+ composerDelivered=[];await composer();await act(async()=>current.setDraft('committed'));await act(async()=>{void current.send();});
+ const key=JSON.parse(calls[0].options.body).clientMessageId;await reply(0,{},500);
+ await act(async()=>current.reconcile([{id:12,clientMessageId:key,fromUserId:1,content:'committed'}]));
+ assert.equal(current.pending.length,0);assert.equal(current.draft,'');assert.equal(composerDelivered.length,1);
+});
+test('a malformed receipt never clears the draft or loses the retry key',async()=>{
+ composerDelivered=[];await composer();await act(async()=>current.setDraft('keep me'));await act(async()=>{void current.send();});
+ const key=JSON.parse(calls[0].options.body).clientMessageId;await reply(0,{});
+ assert.equal(current.draft,'keep me');assert.equal(current.pending[0].clientMessageId,key);assert.equal(current.pending[0].status,'failed');assert.equal(composerDelivered.length,0);
+});
+test('editing text while a send is pending preserves the new draft after the acknowledgment',async()=>{
+ composerDelivered=[];await composer();await act(async()=>current.setDraft('first'));await act(async()=>{void current.send();});
+ await act(async()=>current.setDraft('second draft'));await reply(0,{id:13,fromUserId:1,content:'first'});
+ assert.equal(current.draft,'second draft');assert.equal(current.pending.length,0);
+});
+test('logging into a different account exposes neither the previous draft nor its failed send',async()=>{
+ composerDelivered=[];await composer();await act(async()=>current.setDraft('private draft'));await act(async()=>{void current.send();});await reply(0,{},500);
+ await composer(42,2,'9');assert.equal(current.draft,'');assert.equal(current.pending.length,0);
+});
+test('notification reconnects beyond five failures with capped retry delays and cancels on cleanup',async()=>{
+ mock.timers.enable({apis:['setTimeout']});let attempts=0;
+ const stop=maintainNotificationConnection(async()=>{attempts++;throw new Error('offline');},()=>{});
+ try{
+  await new Promise(setImmediate);
+  for(let i=0;i<8;i++){mock.timers.tick(30_000);await new Promise(setImmediate);}
+  assert.equal(attempts,9);stop();mock.timers.tick(60_000);await new Promise(setImmediate);assert.equal(attempts,9);
+ }finally{stop();mock.timers.reset();}
+});
+test('notification open broadcasts a catch-up event and online recovery owns only one connection',async()=>{
+ const previous=Object.getOwnPropertyDescriptor(navigator,'onLine');Object.defineProperty(navigator,'onLine',{configurable:true,value:false});
+ let creates=0,opens=0,refreshes=0;const sockets=[];
+ const opened=()=>opens++;window.addEventListener('message-connection-open',opened);
+ const stop=maintainNotificationConnection(async()=>{creates++;const socket={readyState:0,close(){this.readyState=3;this.onclose?.();}};sockets.push(socket);return socket;},()=>refreshes++);
+ try{
+  await new Promise(setImmediate);assert.equal(creates,0);
+  Object.defineProperty(navigator,'onLine',{configurable:true,value:true});window.dispatchEvent(new Event('online'));await new Promise(setImmediate);
+  window.dispatchEvent(new Event('online'));await new Promise(setImmediate);assert.equal(creates,1);
+  sockets[0].readyState=1;sockets[0].onopen();assert.equal(opens,1);assert.equal(refreshes,1);
+  stop();assert.equal(sockets[0].readyState,3);window.dispatchEvent(new Event('online'));await new Promise(setImmediate);assert.equal(creates,1);
+ }finally{stop();window.removeEventListener('message-connection-open',opened);if(previous)Object.defineProperty(navigator,'onLine',previous);else delete navigator.onLine;}
+});
+test('a stalled notification handshake is closed before starting a replacement',async()=>{
+ mock.timers.enable({apis:['setTimeout']});const sockets=[];
+ const stop=maintainNotificationConnection(async()=>{const socket={readyState:0,close(){this.readyState=3;this.onclose?.();}};sockets.push(socket);return socket;},()=>{});
+ try{
+  await new Promise(setImmediate);assert.equal(sockets.length,1);mock.timers.tick(15_000);await new Promise(setImmediate);assert.equal(sockets[0].readyState,3);
+  mock.timers.tick(2000);await new Promise(setImmediate);assert.equal(sockets.length,2);
+ }finally{stop();mock.timers.reset();}
 });
 
 test('private chat is a native modal with Escape close and body scroll locking',async()=>{

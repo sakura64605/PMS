@@ -10,6 +10,7 @@ public class PrivateMessage {
 
     @TableId(type = IdType.AUTO)
     private Long id;
+    private String clientMessageId;
 
     private Long conversationId;
     private Long fromUserId;

@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import {usePrivateHistory} from "./privateHistory";
+import {usePrivateComposer} from "./privateComposer";
 import {privateMessageTimeline} from "./privateMessageTime";
 import { useRouteLocation, useRouteVisible } from "./routeTransition";
 import { marked } from "marked";
@@ -58,7 +59,6 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
   const { user, notify, refresh } = useApp();
   const [page, setPage] = useState(1),
     [selected, setSelected] = useState<Row | null>(null),
-    [text, setText] = useState(""),
     [find, setFind] = useState(false),
     [keyword, setKeyword] = useState(""),
     [showList, setShowList] = useState(true);
@@ -67,11 +67,16 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
   );
   const history = usePrivateHistory(selected?.conversationId || routeConversation, visible, uid(user));
   const search = useData(keyword ? url("/user/search", { keyword }) : null);
-  const sendLock = useRef(false);
   const matchedRoute = useRef<string | null>(null);
-  const [sending, setSending] = useState(false);
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
+  const composer = usePrivateComposer(uid(user), selected?.conversationId || routeConversation,
+    selected?.otherUser?.userId || selected?.otherUser?.id, (message, conversationId, fromHistory) => {
+      if (!fromHistory && String(selectedRef.current?.conversationId) === conversationId) history.append(message);
+      list.reload(); refresh();
+    });
+  const {draft: text, setDraft: setText, sending, send} = composer;
+  useEffect(() => { composer.reconcile(rows(history.data)); }, [history.data.records]);
   useEffect(() => {
     const id = new URLSearchParams(route.split('?')[1]).get("conversation");
     if (id && matchedRoute.current !== id) {
@@ -91,28 +96,6 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
     await api(`/message/private/read/${c.conversationId}`, "PUT");
     list.reload();
     refresh();
-  }
-  async function send() {
-    if (!text.trim() || !selected || sendLock.current) return;
-    const draft = text;
-    const conversation = selected;
-    sendLock.current = true;
-    setSending(true);
-    try {
-      const sent = await api("/message/private/send", "POST", {
-        toUserId: conversation.otherUser?.userId || conversation.otherUser?.id,
-        content: draft.trim(), messageType: 1,
-      });
-      if (String(selectedRef.current?.conversationId) === String(conversation.conversationId)) {
-        setText(current => current === draft ? "" : current);
-        history.append(sent);
-      }
-      list.reload();
-      refresh();
-    } finally {
-      sendLock.current = false;
-      setSending(false);
-    }
   }
   return (
 
@@ -180,6 +163,9 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
           </header>
           {selected ? <>
             <div className="private-history-pane">
+            {history.syncError && <div className="private-sync-error" role="status">消息同步暂时失败，已保留当前记录。
+              <Button tone="ghost small" action={history.retrySync}>重试同步</Button>
+            </div>}
             <div className="chat-messages" aria-label="聊天记录" ref={history.viewport}
               onScroll={history.onScroll}>
               <div className="private-history-status" aria-live="polite">
@@ -205,8 +191,19 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
               <ArrowDown size={14} /><span aria-live="polite">{history.newMessageCount} 条新消息</span>
             </button>}
             </div>
+            {composer.pending.length > 0 && <div className="private-send-status" aria-live="polite">
+              {composer.pending.map(job => <div className="private-send-entry" key={job.clientMessageId}>
+                <div><span className="private-send-preview" title={job.content}>{job.content}</span>
+                  <span className="private-send-description" role={job.status === "failed" ? "alert" : undefined}>
+                    {job.status === "sending" ? "正在发送，内容暂时保留…" : `发送未确认，内容已保留。${job.error ? `（${job.error}）` : ""}`}
+                  </span>
+                </div>
+                {job.status === "failed" && <Button tone="ghost small" disabled={sending}
+                  action={() => composer.retry(job)}>重试发送</Button>}
+              </div>)}
+            </div>}
             <form className="chat-compose" onSubmit={e => {e.preventDefault(); if (!sending && text.trim()) void send().catch(error => notify(error.message, true));}}>
-              <input value={text} onChange={e => setText(e.target.value)} maxLength={5000} aria-label="私信内容" placeholder="输入私信内容，回车发送..."
+              <input value={text} onChange={e => setText(e.target.value)} maxLength={1000} aria-label="私信内容" placeholder="输入私信内容，回车发送..."
                 onKeyDown={e => {if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault();}} />
               <Button tone="primary" disabled={sending || !text.trim()} action={send}><Send size={14} />发送</Button>
             </form>

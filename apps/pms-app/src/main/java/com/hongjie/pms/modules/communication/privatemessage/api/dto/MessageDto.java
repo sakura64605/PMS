@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 public class MessageDto {
 
     private Long id;
+    private String clientMessageId;
     private Long fromUserId;
     private String fromUserName;
     private String fromUserAvatar;
