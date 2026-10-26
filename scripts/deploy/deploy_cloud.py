@@ -173,6 +173,13 @@ ExecStart=/usr/bin/java -Xms128m -Xmx1024m -XX:ActiveProcessorCount=2 -Xlog:gc*:
         wait('http://127.0.0.1:8088/pet-system/pet/list?pageSize=1', True, 90)
         wait('http://127.0.0.1:8088/pet-system/search/global?keyword=cat&pageSize=1', True, 90)
         candidate = nginx_before.decode().replace('proxy_pass http://127.0.0.1:8080;', 'proxy_pass http://127.0.0.1:8088;')
+        frontend = release / 'frontend'
+        if (frontend / 'index.html').is_file():
+            assert candidate.count('root /var/www/html/pms;') == 1, 'Unexpected frontend root'
+            # Keep hashed assets requested by clients that still hold the old index.
+            previous_assets = Path('/var/www/html/pms/assets')
+            if previous_assets.exists(): shutil.copytree(previous_assets, frontend / 'assets', dirs_exist_ok=True)
+            candidate = candidate.replace('root /var/www/html/pms;', 'root ' + str(frontend) + ';')
         sudo_write(NGINX, candidate.encode())
         run(['sudo', '-n', 'nginx', '-t']); run(['sudo', '-n', 'systemctl', 'reload', 'nginx'])
         wait('http://127.0.0.1/pet-system/pet/list?pageSize=1', True, 45)
