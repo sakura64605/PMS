@@ -1988,3 +1988,8 @@ textarea {
 .private-workspace .chat-messages{overflow-anchor:none}
 .private-history-status{flex:none;min-height:22px;text-align:center;font-size:12px;color:var(--muted,#8a8a8a)}
 .private-history-status button{border:0;background:none;color:inherit;cursor:pointer}
+
+.private-history-pane{position:relative;display:flex;flex-direction:column;flex:1;min-height:0;min-width:0}
+.private-new-messages{position:absolute;right:16px;bottom:14px;z-index:2;display:flex;align-items:center;gap:6px;border:1px solid #d7dfd8;border-radius:20px;padding:8px 13px;color:#425b46;background:#fff;box-shadow:0 3px 14px #2b413022;font-size:12px;cursor:pointer}
+.private-new-messages:hover{background:#f2f6f1}
+.private-new-messages:focus-visible{outline:2px solid #5f7161;outline-offset:3px}

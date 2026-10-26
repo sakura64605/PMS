@@ -6,6 +6,7 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 import {
   ArrowLeft,
+  ArrowDown,
   Bot,
   MessageCircle,
   NotebookPen,
@@ -64,7 +65,7 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
   const list = useData(
     url("/message/private/conversations", { pageNum: page, pageSize: 20 }),
   );
-  const history = usePrivateHistory(selected?.conversationId || routeConversation, visible);
+  const history = usePrivateHistory(selected?.conversationId || routeConversation, visible, uid(user));
   const search = useData(keyword ? url("/user/search", { keyword }) : null);
   const sendLock = useRef(false);
   const matchedRoute = useRef<string | null>(null);
@@ -178,8 +179,9 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
             </div>
           </header>
           {selected ? <>
+            <div className="private-history-pane">
             <div className="chat-messages" aria-label="聊天记录" ref={history.viewport}
-              onScroll={event => { if (event.currentTarget.scrollTop <= 48) void history.loadOlder(); }}>
+              onScroll={history.onScroll}>
               <div className="private-history-status" aria-live="polite">
                 {history.loadingOlder ? "正在加载更早消息…" : history.moreError
                   ? <button type="button" onClick={() => void history.loadOlder()}>加载失败，重试</button>
@@ -190,13 +192,18 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
                   const mine = String(m.fromUserId) === uid(user);
                   return <Fragment key={m.id}>
                     {separator && <div className="private-time-separator"><time dateTime={dateTime}>{separator}</time></div>}
-                    <div className={`bubble-wrap ${mine ? "me" : ""}`}>
+                    <div className={`bubble-wrap ${mine ? "me" : ""}`} data-message-id={m.id}>
                     <Avatar user={mine ? user : selected.otherUser} size={28} />
                     <div className="bubble" title={fullTime || undefined}><p>{m.content}</p></div>
                     </div>
                   </Fragment>;
                 })}
               </DataState>
+            </div>
+            {history.newMessageCount > 0 && <button type="button" className="private-new-messages"
+              aria-label={`查看 ${history.newMessageCount} 条新消息`} onClick={history.jumpToLatest}>
+              <ArrowDown size={14} /><span aria-live="polite">{history.newMessageCount} 条新消息</span>
+            </button>}
             </div>
             <form className="chat-compose" onSubmit={e => {e.preventDefault(); if (!sending && text.trim()) void send().catch(error => notify(error.message, true));}}>
               <input value={text} onChange={e => setText(e.target.value)} maxLength={5000} aria-label="私信内容" placeholder="输入私信内容，回车发送..."

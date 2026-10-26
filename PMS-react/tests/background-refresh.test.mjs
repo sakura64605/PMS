@@ -320,6 +320,43 @@ test('incoming messages append without removing loaded history or scrolling a re
  await replyWhere(p=>p.includes('afterId=5'),{records:[{id:6,fromUserId:2,content:'new message'}],nextCursor:6,hasMore:false});
  assert.equal(host.querySelectorAll('.bubble-wrap').length,4);assert.equal(viewport.scrollTop,10);
  assert.ok(host.textContent.includes('message 3'));assert.ok(host.textContent.includes('new message'));
+ const hint=host.querySelector('.private-new-messages');assert.equal(hint.textContent,'1 条新消息');
+ const count=calls.length;await act(async()=>hint.click());
+ assert.equal(viewport.scrollTop,viewport.scrollHeight);assert.equal(host.querySelector('.private-new-messages'),null);assert.equal(calls.length,count);
+});
+test('a reader already at the bottom follows new messages without showing a hint',async()=>{
+ const viewport=await cursorChat();
+ await act(async()=>{viewport.scrollTop=200;viewport.dispatchEvent(new Event('scroll'));window.dispatchEvent(new Event('server-message'));});
+ await replyWhere(p=>p.includes('afterId=5'),{records:[{id:6,fromUserId:2,content:'follow me'}],nextCursor:6,hasMore:false});
+ assert.equal(viewport.scrollTop,viewport.scrollHeight);assert.equal(host.querySelector('.private-new-messages'),null);
+});
+test('new message counts exclude duplicates and own messages and clear when manually reaching bottom',async()=>{
+ const viewport=await cursorChat();viewport.scrollTop=60;
+ await act(async()=>window.dispatchEvent(new Event('server-message')));
+ await replyWhere(p=>p.includes('afterId=5'),{records:[{id:6,fromUserId:2,content:'first incoming'}],nextCursor:6,hasMore:false});
+ await act(async()=>window.dispatchEvent(new Event('server-message')));
+ await replyWhere(p=>p.includes('afterId=6'),{records:[{id:6,fromUserId:2,content:'first incoming'},{id:7,fromUserId:1,content:'my message'},{id:8,fromUserId:2,content:'second incoming'}],nextCursor:8,hasMore:false});
+ assert.equal(viewport.scrollTop,60);assert.equal(host.querySelector('.private-new-messages').textContent,'2 条新消息');
+ await act(async()=>{viewport.scrollTop=viewport.scrollHeight-viewport.clientHeight;viewport.dispatchEvent(new Event('scroll'));});
+ assert.equal(host.querySelector('.private-new-messages'),null);
+});
+test('scrolling away while a new message request is pending disables automatic following',async()=>{
+ const viewport=await cursorChat();viewport.scrollTop=200;
+ await act(async()=>window.dispatchEvent(new Event('server-message')));
+ await act(async()=>{viewport.scrollTop=80;viewport.dispatchEvent(new Event('scroll'));});
+ await replyWhere(p=>p.includes('afterId=5'),{records:[{id:6,fromUserId:2,content:'do not jump'}],nextCursor:6,hasMore:false});
+ assert.equal(viewport.scrollTop,80);assert.equal(host.querySelector('.private-new-messages').textContent,'1 条新消息');
+});
+test('loading old messages preserves the new message hint and switching contacts resets it',async()=>{
+ const viewport=await cursorChat([{conversationId:42,otherUser:{userId:2,nickName:'friend'}},{conversationId:43,otherUser:{userId:3,nickName:'other'}}]);
+ viewport.scrollTop=60;await act(async()=>window.dispatchEvent(new Event('server-message')));
+ await replyWhere(p=>p.includes('afterId=5'),{records:[{id:6,fromUserId:2,content:'incoming'}],nextCursor:6,hasMore:false});
+ await act(async()=>{viewport.scrollTop=10;viewport.dispatchEvent(new Event('scroll'));});
+ await replyWhere(p=>p.includes('beforeId=3'),{records:[{id:2,fromUserId:2,content:'older'},{id:1,fromUserId:2,content:'oldest'}],nextCursor:1,hasMore:false});
+ assert.equal(viewport.scrollTop,210);assert.equal(host.querySelector('.private-new-messages').textContent,'1 条新消息');
+ await act(async()=>host.querySelectorAll('.chat-session')[1].click());
+ await replyWhere(p=>p.includes('conversationId=43'),{records:[],nextCursor:null,hasMore:false});
+ assert.equal(host.querySelector('.private-new-messages'),null);
 });
 test('failed older batch retains bubbles and allows an explicit retry',async()=>{
  const viewport=await cursorChat();await act(async()=>{viewport.scrollTop=0;viewport.dispatchEvent(new Event('scroll'));});
