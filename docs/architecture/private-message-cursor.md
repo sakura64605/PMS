@@ -11,4 +11,4 @@
 
 聊天窗口初始定位到底部，接近顶部时自动加载历史，合并去重后补偿 scrollTop。发送消息直接追加，推送通知 / 可见页面定时检查用独立的已同步 ID 获取增量，避免发送回包导致遗漏中间消息。阅读旧消息时收到新消息不强制滚到底部；主动发送则定位新消息。切换联系人、清空历史和卸载会废弃旧请求。
 
-部署前执行一次 `database/manual/20261026-private-message-cursor-index.sql`。索引用于 `(conversation_id, id)` 范围查询；未自动修改线上数据库。前后端应一起发布，此改动尚未部署到线上。
+索引用于 `(conversation_id, id)` 范围查询；新环境部署前可执行 `database/manual/20261026-private-message-cursor-index.sql`，先检查有无等价索引。2026-10-26 已按用户授权添加线上索引并同步发布前后端，详见[发布记录](../deployment/private-message-cursor-20261026.md)。
