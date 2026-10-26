@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import {usePrivateHistory} from "./privateHistory";
+import {privateMessageTimeline} from "./privateMessageTime";
 import { useRouteLocation, useRouteVisible } from "./routeTransition";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
@@ -185,12 +186,15 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
                   : !history.loading && !history.hasMore && rows(history.data).length > 0 ? "已到最早的消息" : history.hasMore ? "上滑查看更早消息" : null}
               </div>
               <DataState request={history} empty={!rows(history.data).length}>
-                {rows(history.data).map(m => {
+                {privateMessageTimeline(rows(history.data)).map(({message: m, separator, fullTime, dateTime}) => {
                   const mine = String(m.fromUserId) === uid(user);
-                  return <div className={`bubble-wrap ${mine ? "me" : ""}`} key={m.id}>
+                  return <Fragment key={m.id}>
+                    {separator && <div className="private-time-separator"><time dateTime={dateTime}>{separator}</time></div>}
+                    <div className={`bubble-wrap ${mine ? "me" : ""}`}>
                     <Avatar user={mine ? user : selected.otherUser} size={28} />
-                    <div className="bubble"><p>{m.content}</p><time>{time(m.createTime)}</time></div>
-                  </div>;
+                    <div className="bubble" title={fullTime || undefined}><p>{m.content}</p></div>
+                    </div>
+                  </Fragment>;
                 })}
               </DataState>
             </div>

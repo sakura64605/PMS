@@ -14,6 +14,7 @@ const {useData,DataState,AppContext,Button}=await server.ssrLoadModule('/src/cor
 const {AtomicRoutes,useRouteLocation}=await server.ssrLoadModule('/src/routeTransition.tsx');
 const {PrivateChat,AIChat}=await server.ssrLoadModule('/src/chat.tsx');
 const {usePrivateHistory}=await server.ssrLoadModule('/src/privateHistory.ts');
+const {privateMessageTimeline}=await server.ssrLoadModule('/src/privateMessageTime.ts');
 dom.window.HTMLElement.prototype.scrollIntoView=()=>{};
 const {DiaryCard,Messages}=await server.ssrLoadModule('/src/social.tsx');
 const {default:Admin}=await server.ssrLoadModule('/src/admin.tsx');
@@ -259,6 +260,35 @@ test('private reference layout renders avatars and bubbles without changing hist
  await replyWhere(p=>p.includes('/private/messages?'),{total:2,records:[{id:1,fromUserId:2,content:'their message',createTime:'2026-10-24T12:01:00'},{id:2,fromUserId:1,content:'my message',createTime:'2026-10-24T12:02:00'}]});
  assert.ok(host.querySelector('.private-window'));assert.ok(host.textContent.includes('宠友私信会话'));assert.equal(host.querySelectorAll('.bubble-wrap').length,2);assert.equal(host.querySelectorAll('.bubble-wrap.me').length,1);assert.equal(host.querySelector('.bubble-wrap .avatar').style.width,'28px');
  assert.ok(host.querySelector('.chat-compose input'));assert.ok(host.querySelector('.private-options'));assert.equal(calls.length,2);
+ assert.equal(host.querySelector('.bubble time'),null);
+ assert.equal(host.querySelectorAll('.private-time-separator').length,1);
+ const divider=host.querySelector('.private-time-separator');assert.equal(divider.closest('.bubble-wrap'),null);
+ assert.ok(divider.textContent.includes('12:01'));
+ assert.equal(host.querySelectorAll('.bubble')[0].title,'2026-10-24 12:01:00');
+ assert.equal(host.querySelectorAll('.bubble')[1].title,'2026-10-24 12:02:00');
+});
+
+test('private time separators compare adjacent gaps and include the five-minute boundary',()=>{
+ const rows=['10:00:00','10:04:59','10:09:58','10:14:58'].map((clock,id)=>({id,createTime:`2026-10-26T${clock}`}));
+ const timeline=privateMessageTimeline(rows,new Date('2026-10-26T04:00:00Z'));
+ assert.deepEqual(timeline.map(t=>t.separator),['10:00','','','10:14']);
+ assert.equal(timeline[3].fullTime,'2026-10-26 10:14:58');
+});
+test('private time separators split at midnight and format yesterday and previous years in China time',()=>{
+ const midnight=privateMessageTimeline([{createTime:'2026-10-25T23:59:00'},{createTime:'2026-10-26T00:01:00'}],new Date('2026-10-26T04:00:00Z'));
+ assert.deepEqual(midnight.map(t=>t.separator),['昨天 23:59','00:01']);
+ const dates=privateMessageTimeline([{createTime:'2025-12-30T10:00:00'},{createTime:'2026-10-24T10:00:00'}],new Date('2026-10-26T04:00:00Z'));
+ assert.deepEqual(dates.map(t=>t.separator),['2025年12月30日 10:00','10月24日 10:00']);
+ const zone=privateMessageTimeline([{createTime:'2026-10-26T02:00:00Z'},{createTime:'2026-10-26T10:01:00'}],new Date('2026-10-26T04:00:00Z'));
+ assert.deepEqual(zone.map(t=>t.separator),['10:00','']);assert.equal(zone[0].fullTime,'2026-10-26 10:00:00');
+});
+test('prepending nearby historical messages moves the first time divider without duplicating it',()=>{
+ const now=new Date('2026-10-26T04:00:00Z');
+ const recent=[{id:3,createTime:'2026-10-26T10:00:00'},{id:4,createTime:'2026-10-26T10:01:00'}];
+ assert.deepEqual(privateMessageTimeline(recent,now).map(t=>t.separator),['10:00','']);
+ const merged=[{id:1,createTime:'2026-10-26T09:58:00'},{id:2,createTime:'2026-10-26T09:59:00'},...recent];
+ assert.deepEqual(privateMessageTimeline(merged,now).map(t=>t.separator),['09:58','','','']);
+ assert.equal(privateMessageTimeline([{createTime:null}],now)[0].fullTime,'');
 });
 
 async function cursorChat(conversations=[{conversationId:42,otherUser:{userId:2,nickName:'friend'}}]){

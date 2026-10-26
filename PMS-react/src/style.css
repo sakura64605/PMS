@@ -1943,8 +1943,8 @@ textarea {
 .private-workspace .bubble{padding:12px;border-radius:0 16px 16px 16px;background:#faf7f2;border:1px solid #ece5db;color:#2e2a27;font-size:12px;line-height:1.65;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
 .private-workspace .me .bubble{border-radius:16px 0 16px 16px;background:#5f7161;border-color:#5f7161;color:#fff}
 .private-workspace .bubble p{margin:0}
-.private-workspace .bubble time{display:block;color:#8a827b;font-size:10px;line-height:1.5;margin-top:4px}
-.private-workspace .me .bubble time{color:#ffffffb3;text-align:right}
+.private-workspace .private-time-separator{display:block;width:100%;margin:6px 0 18px;text-align:center;color:#8a827b;font-size:11px;line-height:1.5;clear:both}
+.private-workspace .private-time-separator time{background:none;border:0;padding:0}
 .private-workspace .chat-compose{display:flex;align-items:center;gap:8px;padding:12px;border-top:1px solid #ece5db;background:#fff}
 .private-workspace .chat-compose input{min-width:0;flex:1;padding:8px 12px;font-size:12px;background:#faf7f2;border:1px solid #ddd5c9;border-radius:12px;line-height:1.5}
 .private-workspace .chat-compose .btn{padding:8px 16px;gap:4px;background:#5f7161;border-color:#5f7161;border-radius:12px;color:#fff;font-size:12px;font-weight:600}
