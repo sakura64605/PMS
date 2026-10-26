@@ -136,6 +136,7 @@ def main():
     nginx_before = NGINX.read_bytes()
     shutil.copy2(current, release / 'backend-before.jar')
     (release / 'nginx-before.conf').write_bytes(nginx_before)
+    shutil.copy2('/var/www/html/pms/index.html', release / 'frontend-index-before.html')
     previous_pointer = Path('/opt/pms/releases/current.json').read_bytes()
     (release / 'current-before.json').write_bytes(previous_pointer)
     assembled = release / 'backend-live-config.jar'
@@ -176,10 +177,9 @@ ExecStart=/usr/bin/java -Xms128m -Xmx1024m -XX:ActiveProcessorCount=2 -Xlog:gc*:
         frontend = release / 'frontend'
         if (frontend / 'index.html').is_file():
             assert candidate.count('root /var/www/html/pms;') == 1, 'Unexpected frontend root'
-            # Keep hashed assets requested by clients that still hold the old index.
-            previous_assets = Path('/var/www/html/pms/assets')
-            if previous_assets.exists(): shutil.copytree(previous_assets, frontend / 'assets', dirs_exist_ok=True)
-            candidate = candidate.replace('root /var/www/html/pms;', 'root ' + str(frontend) + ';')
+            # Publish assets first, then the index; retain the stable Jenkins path.
+            shutil.copytree(frontend / 'assets', Path('/var/www/html/pms/assets'), dirs_exist_ok=True)
+            atomic(Path('/var/www/html/pms/index.html'), (frontend / 'index.html').read_bytes())
         sudo_write(NGINX, candidate.encode())
         run(['sudo', '-n', 'nginx', '-t']); run(['sudo', '-n', 'systemctl', 'reload', 'nginx'])
         wait('http://127.0.0.1/pet-system/pet/list?pageSize=1', True, 45)
@@ -198,6 +198,8 @@ ExecStart=/usr/bin/java -Xms128m -Xmx1024m -XX:ActiveProcessorCount=2 -Xlog:gc*:
 
 def rollback(switched=True, installed=SERVICES):
     # Restore routing first and then the exact previous backend/configuration.
+    old_index = release / 'frontend-index-before.html'
+    if old_index.exists(): atomic(Path('/var/www/html/pms/index.html'), old_index.read_bytes())
     sudo_write(NGINX, (release / 'nginx-before.conf').read_bytes())
     run(['sudo', '-n', 'nginx', '-t']); run(['sudo', '-n', 'systemctl', 'reload', 'nginx'])
     if switched:
