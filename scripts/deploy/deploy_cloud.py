@@ -114,7 +114,7 @@ def main():
     assert len(secret.encode()) >= 32 and '\n' not in secret and '\r' not in secret and not secret.startswith('${')
     assert re.fullmatch(r'[A-Za-z0-9+/=_\-:.]+', secret), 'JWT secret needs systemd environment escaping'
     token = secrets.token_hex(32)
-    env = release / 'env'; env.mkdir(mode=0o700)
+    env = release / 'env'; env.mkdir(mode=0o700, exist_ok=True)
     common = 'PMS_CONFIG_URL=http://127.0.0.1:8888\nPMS_EUREKA_URL=http://127.0.0.1:8761/eureka/\n'
     for name in ['registry', 'config', 'search-1', 'search-2', 'gateway', 'core']:
         extra = ''
@@ -157,7 +157,7 @@ After=pms-cloud-registry.service pms-cloud-config.service
 [Service]
 EnvironmentFile={env}/core.env
 ExecStart=
-ExecStart=/usr/bin/java -Xms128m -Xmx1024m -XX:ActiveProcessorCount=2 -Xlog:gc*:file=/opt/pms/logs/gc-%%t.log:time,uptime,level,tags:filecount=5,filesize=20m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/opt/pms/logs/ -Duser.timezone=Asia/Shanghai -jar /opt/pms/pms.jar --spring.profiles.active=prod,cloud --server.address=127.0.0.1 --pms.search.mode=cloud --pms.search.rebuild-on-startup=false --spring.redisson.config=file:/opt/pms/config/redisson.yml --eureka.instance.lease-renewal-interval-in-seconds=15 --eureka.instance.lease-expiration-duration-in-seconds=45 --eureka.client.registry-fetch-interval-seconds=5
+ExecStart=/usr/bin/java -Xms128m -Xmx1024m -XX:ActiveProcessorCount=2 -Xlog:gc*:file=/opt/pms/logs/gc-%%t.log:time,uptime,level,tags:filecount=5,filesize=20m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/opt/pms/logs/ -Duser.timezone=Asia/Shanghai -jar /opt/pms/pms.jar --spring.profiles.active=prod,cloud --spring.application.name=pms-core-service --server.address=127.0.0.1 --pms.search.mode=cloud --pms.search.rebuild-on-startup=false --spring.redisson.config=file:/opt/pms/config/redisson.yml --eureka.instance.lease-renewal-interval-in-seconds=15 --eureka.instance.lease-expiration-duration-in-seconds=45 --eureka.client.registry-fetch-interval-seconds=5
 '''.encode()
         assert digest(current) == args.expected_sha, 'Live jar changed during preparation'
         run(['sudo', '-n', 'systemctl', 'stop', 'pms'])
