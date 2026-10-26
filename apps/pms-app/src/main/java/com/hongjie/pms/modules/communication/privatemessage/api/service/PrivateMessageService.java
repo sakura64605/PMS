@@ -3,6 +3,7 @@ package com.hongjie.pms.modules.communication.privatemessage.api.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.hongjie.pms.modules.communication.privatemessage.api.dto.ConversationDto;
 import com.hongjie.pms.modules.communication.privatemessage.api.dto.MessageDto;
+import com.hongjie.pms.modules.communication.privatemessage.api.dto.MessageCursorPage;
 import com.hongjie.pms.modules.communication.privatemessage.api.dto.SendMessageRequest;
 
 public interface PrivateMessageService {
@@ -21,6 +22,8 @@ public interface PrivateMessageService {
      * 获取聊天记录
      */
     IPage<MessageDto> getMessageList(Long userId, Long conversationId, Integer pageNum, Integer pageSize);
+
+    MessageCursorPage getMessageHistory(Long userId, Long conversationId, Long beforeId, Long afterId, Integer pageSize);
 
     /**
      * 获取未读消息总数

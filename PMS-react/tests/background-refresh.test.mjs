@@ -13,6 +13,7 @@ const server=await createServer({configFile:false,root:fileURLToPath(new URL('..
 const {useData,DataState,AppContext,Button}=await server.ssrLoadModule('/src/core.tsx');
 const {AtomicRoutes,useRouteLocation}=await server.ssrLoadModule('/src/routeTransition.tsx');
 const {PrivateChat,AIChat}=await server.ssrLoadModule('/src/chat.tsx');
+const {usePrivateHistory}=await server.ssrLoadModule('/src/privateHistory.ts');
 dom.window.HTMLElement.prototype.scrollIntoView=()=>{};
 const {DiaryCard,Messages}=await server.ssrLoadModule('/src/social.tsx');
 const {default:Admin}=await server.ssrLoadModule('/src/admin.tsx');
@@ -258,6 +259,62 @@ test('private reference layout renders avatars and bubbles without changing hist
  await replyWhere(p=>p.includes('/private/messages?'),{total:2,records:[{id:1,fromUserId:2,content:'their message',createTime:'2026-10-24T12:01:00'},{id:2,fromUserId:1,content:'my message',createTime:'2026-10-24T12:02:00'}]});
  assert.ok(host.querySelector('.private-window'));assert.ok(host.textContent.includes('宠友私信会话'));assert.equal(host.querySelectorAll('.bubble-wrap').length,2);assert.equal(host.querySelectorAll('.bubble-wrap.me').length,1);assert.equal(host.querySelector('.bubble-wrap .avatar').style.width,'28px');
  assert.ok(host.querySelector('.chat-compose input'));assert.ok(host.querySelector('.private-options'));assert.equal(calls.length,2);
+});
+
+async function cursorChat(conversations=[{conversationId:42,otherUser:{userId:2,nickName:'friend'}}]){
+ window.history.replaceState({},'', '/private-message?conversation=42');
+ await act(async()=>root.render(React.createElement(AppContext.Provider,{value:context(0)},React.createElement(PrivateChat))));
+ await replyWhere(p=>p.includes('/private/conversations?'),{total:conversations.length,records:conversations});
+ const viewport=host.querySelector('[aria-label="聊天记录"]');
+ Object.defineProperty(viewport,'clientHeight',{get:()=>100,configurable:true});
+ Object.defineProperty(viewport,'scrollHeight',{get:()=>host.querySelectorAll('.bubble-wrap').length*100,configurable:true});
+ await replyWhere(p=>p.includes('/private/messages?'),{records:[5,4,3].map(id=>({id,fromUserId:2,content:`message ${id}`})),nextCursor:3,hasMore:true});
+ return viewport;
+}
+test('private history loads older ID batches on upward scroll and preserves reading position',async()=>{
+ const viewport=await cursorChat();
+ assert.equal(viewport.querySelector('.pagination'),null);
+ const request=calls.find(c=>c.path.includes('/private/messages?'));
+ assert.equal(new URL(request.path,'http://localhost').searchParams.has('pageNum'),false);
+ await act(async()=>{viewport.scrollTop=12;viewport.dispatchEvent(new Event('scroll'));viewport.dispatchEvent(new Event('scroll'));});
+ const older=calls.filter(c=>c.path.includes('beforeId=3'));assert.equal(older.length,1);
+ await replyWhere(p=>p.includes('beforeId=3'),{records:[{id:2,content:'message 2'},{id:1,content:'message 1'},{id:3,content:'message 3'}],nextCursor:1,hasMore:false});
+ assert.equal(host.querySelectorAll('.bubble-wrap').length,5);
+ assert.equal(viewport.scrollTop,212);
+ assert.deepEqual([...viewport.querySelectorAll('.bubble p')].map(p=>p.textContent),[1,2,3,4,5].map(id=>`message ${id}`));
+ const count=calls.length;await act(async()=>{viewport.scrollTop=0;viewport.dispatchEvent(new Event('scroll'));});assert.equal(calls.length,count);
+});
+test('incoming messages append without removing loaded history or scrolling a reader to the bottom',async()=>{
+ const viewport=await cursorChat();viewport.scrollTop=10;
+ await act(async()=>window.dispatchEvent(new Event('server-message')));
+ await replyWhere(p=>p.includes('afterId=5'),{records:[{id:6,fromUserId:2,content:'new message'}],nextCursor:6,hasMore:false});
+ assert.equal(host.querySelectorAll('.bubble-wrap').length,4);assert.equal(viewport.scrollTop,10);
+ assert.ok(host.textContent.includes('message 3'));assert.ok(host.textContent.includes('new message'));
+});
+test('failed older batch retains bubbles and allows an explicit retry',async()=>{
+ const viewport=await cursorChat();await act(async()=>{viewport.scrollTop=0;viewport.dispatchEvent(new Event('scroll'));});
+ const index=calls.findIndex(c=>c.path.includes('beforeId=3'));calls[index].replied=true;await reply(index,{},500);
+ assert.equal(host.querySelectorAll('.bubble-wrap').length,3);
+ const retry=viewport.querySelector('.private-history-status button');assert.ok(retry);
+ await act(async()=>retry.click());assert.equal(calls.filter(c=>c.path.includes('beforeId=3')).length,2);
+});
+test('switching contacts discards an older request from the previous conversation',async()=>{
+ const viewport=await cursorChat([{conversationId:42,otherUser:{userId:2,nickName:'friend'}},{conversationId:43,otherUser:{userId:3,nickName:'other'}}]);
+ await act(async()=>{viewport.scrollTop=0;viewport.dispatchEvent(new Event('scroll'));});
+ const old=calls.findIndex(c=>c.path.includes('beforeId=3'));
+ await act(async()=>host.querySelectorAll('.chat-session')[1].click());
+ await replyWhere(p=>p.includes('conversationId=43'),{records:[{id:100,content:'other conversation'}],nextCursor:100,hasMore:false});
+ await reply(old,{records:[{id:1,content:'stale conversation'}],nextCursor:1,hasMore:false});
+ assert.ok(host.textContent.includes('other conversation'));assert.equal(host.textContent.includes('stale conversation'),false);
+});
+test('appending a sent message does not skip incoming messages with an intermediate ID',async()=>{
+ function History(){current=usePrivateHistory(42,true);return React.createElement('div',{ref:current.viewport},current.data.records.map(m=>React.createElement('p',{key:m.id},m.content)));}
+ await act(async()=>root.render(React.createElement(History)));
+ await replyWhere(p=>p.includes('conversationId=42'),{records:[{id:5,content:'initial'}],nextCursor:5,hasMore:false});
+ await act(async()=>current.append({id:7,content:'sent'}));
+ await act(async()=>window.dispatchEvent(new Event('server-message')));
+ await replyWhere(p=>p.includes('afterId=5'),{records:[{id:6,content:'incoming'},{id:7,content:'sent'}],nextCursor:7,hasMore:false});
+ assert.deepEqual([...host.querySelectorAll('p')].map(p=>p.textContent),['initial','incoming','sent']);
 });
 
 test('private chat is a native modal with Escape close and body scroll locking',async()=>{

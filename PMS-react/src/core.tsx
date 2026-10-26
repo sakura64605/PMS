@@ -180,7 +180,7 @@ export function Empty({
   );
 }
 export function DataState({request, children, empty = false}: {
-  request: ReturnType<typeof useData>;
+  request: Pick<ReturnType<typeof useData>, "data" | "error" | "loading" | "reload">;
   children: React.ReactNode;
   empty?: boolean;
 }) {

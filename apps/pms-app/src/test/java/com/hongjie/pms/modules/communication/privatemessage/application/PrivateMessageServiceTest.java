@@ -33,4 +33,16 @@ class PrivateMessageServiceTest {
     @Test void contentOverDatabaseLimitRejected(){var r=request();r.setContent("x".repeat(1001));assertThatThrownBy(()->service.sendMessage(1L,r)).isInstanceOf(BusinessException.class);verifyNoInteractions(writes,messages);}
     @Test void deletingOnlyHidesCurrentSideAndPreservesSharedConversation(){service.deleteConversation(1L,10L);verify(writes).hide(1L,10L);verify(writes).clearUnread(1L,10L);verifyNoInteractions(conversations,messages,events);}
     @Test void failedMessageInsertNeverPublishes(){doThrow(new IllegalStateException("insert failure")).when(messages).insert(any(PrivateMessage.class));assertThatThrownBy(()->service.sendMessage(1L,request())).isInstanceOf(IllegalStateException.class);verifyNoInteractions(events);verify(writes,never()).sent(anyLong(),anyLong(),anyString(),any());}
+    @Test void cursorReadRejectsOutsiderBeforeReadingOrMarkingMessages(){
+        UserContext.setUser(new UserInfo(3L,"other",0,null,null));
+        assertThatThrownBy(()->service.getMessageHistory(3L,10L,null,null,30)).isInstanceOf(BusinessException.class);
+        verify(writes,never()).olderMessages(anyLong(),anyLong(),any(),anyInt());
+        verify(writes,never()).markRead(anyLong(),anyLong());
+    }
+    @Test void invalidCursorOrUnboundedBatchIsRejectedBeforeDatabaseAccess(){
+        assertThatThrownBy(()->service.getMessageHistory(1L,10L,0L,null,30)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(()->service.getMessageHistory(1L,10L,1L,2L,30)).isInstanceOf(BusinessException.class);
+        for(int size:new int[]{0,-1,101})assertThatThrownBy(()->service.getMessageHistory(1L,10L,null,null,size)).isInstanceOf(BusinessException.class);
+        verifyNoInteractions(writes);
+    }
 }

@@ -112,9 +112,39 @@ class PrivateMessageMySqlTest {
     }
     @Test void pushFailureDoesNotRollBackPersistedMessage(){doThrow(new IllegalStateException("offline socket")).when(push).send(anyLong(),any());send(a,b,"saved");assertThat(messages()).isEqualTo(1);as(b);assertThat(service.getTotalUnreadCount(b)).isEqualTo(1);}
     @Test void longContentIsPreservedWhilePreviewFitsExistingColumn(){String content="猫".repeat(800);send(a,b,content);long id=conversation();assertThat(jdbc.queryForObject("SELECT CHAR_LENGTH(last_message) FROM private_conversation WHERE id=?",Integer.class,id)).isEqualTo(500);as(b);assertThat(service.getMessageList(b,id,1,20).getRecords().get(0).getContent()).isEqualTo(content);}
-    @Test void controllerUsesNewServiceAndMessagePaginationPreservesTotals(){
-        var first=send(a,b,"one");send(a,b,"two");long id=conversation();as(b);
+    @Test void controllerUsesCursorWhileLegacyJavaPaginationStillPreservesTotals(){
+        var first=send(a,b,"one");var second=send(a,b,"two");long id=conversation();as(b);
         var page=service.getMessageList(b,id,1,1);assertThat(page.getTotal()).isEqualTo(2);assertThat(page.getRecords().get(0).getId()).isEqualTo(first.getId());
-        context.getBean(PrivateMessageController.class).getMessages(id,2,1);verifyNoInteractions(context.getBean("legacyPrivateMessageService",PrivateMessageService.class));
+        var cursor=context.getBean(PrivateMessageController.class).getMessages(id,null,null,1).getData();
+        assertThat(cursor.records()).extracting(MessageDto::getId).containsExactly(second.getId());assertThat(cursor.hasMore()).isTrue();verifyNoInteractions(context.getBean("legacyPrivateMessageService",PrivateMessageService.class));
+    }
+    @Test void idCursorStartsAtLatestAndWalksWithoutDuplicatesWhenNewMessagesArrive(){
+        List<Long> ids=new ArrayList<>();for(int i=0;i<8;i++)ids.add(send(a,b,"history-"+i).getId());
+        long id=conversation();
+        jdbc.update("UPDATE private_message SET create_time='2026-01-01 00:00:00' WHERE conversation_id=?",id);
+        as(b);var first=service.getMessageHistory(b,id,null,null,3);
+        assertThat(first.records()).extracting(MessageDto::getId).containsExactly(ids.get(7),ids.get(6),ids.get(5));
+        assertThat(first.hasMore()).isTrue();assertThat(first.nextCursor()).isEqualTo(ids.get(5));
+        var incoming=send(a,b,"arrived while reading");
+        as(b);var second=service.getMessageHistory(b,id,first.nextCursor(),null,3);
+        var third=service.getMessageHistory(b,id,second.nextCursor(),null,3);
+        assertThat(second.records()).extracting(MessageDto::getId).containsExactly(ids.get(4),ids.get(3),ids.get(2));
+        assertThat(third.records()).extracting(MessageDto::getId).containsExactly(ids.get(1),ids.get(0));
+        assertThat(third.hasMore()).isFalse();
+        var newer=service.getMessageHistory(b,id,null,ids.get(7),3);
+        assertThat(newer.records()).extracting(MessageDto::getId).containsExactly(incoming.getId());
+        assertThat(newer.hasMore()).isFalse();
+        assertThat(service.getMessageHistory(b,id,ids.get(0),null,3).records()).isEmpty();
+        assertThat(service.getTotalUnreadCount(b)).isZero();
+    }
+    @Test void deletedCursorIsStillUsableAndVisibilityRemainsPerParticipant(){
+        var one=send(a,b,"one");var two=send(a,b,"two");send(a,b,"three");long id=conversation();
+        as(b);var first=service.getMessageHistory(b,id,null,null,2);
+        assertThat(first.nextCursor()).isEqualTo(two.getId());
+        jdbc.update("DELETE FROM private_message WHERE id=? AND conversation_id=?",two.getId(),id);
+        assertThat(service.getMessageHistory(b,id,first.nextCursor(),null,2).records()).extracting(MessageDto::getId).containsExactly(one.getId());
+        service.clearMessages(b,id);
+        assertThat(service.getMessageHistory(b,id,null,null,30).records()).isEmpty();
+        as(a);assertThat(service.getMessageHistory(a,id,null,null,30).records()).hasSize(2);
     }
 }

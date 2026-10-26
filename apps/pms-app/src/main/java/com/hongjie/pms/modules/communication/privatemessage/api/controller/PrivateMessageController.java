@@ -6,6 +6,7 @@ import com.hongjie.pms.platform.pojo.CommonResult;
 
 import com.hongjie.pms.modules.communication.privatemessage.api.dto.ConversationDto;
 import com.hongjie.pms.modules.communication.privatemessage.api.dto.MessageDto;
+import com.hongjie.pms.modules.communication.privatemessage.api.dto.MessageCursorPage;
 import com.hongjie.pms.modules.communication.privatemessage.api.dto.SendMessageRequest;
 import com.hongjie.pms.modules.communication.privatemessage.api.service.PrivateMessageService;
 import jakarta.validation.Valid;
@@ -49,12 +50,13 @@ public class PrivateMessageController {
      * 获取聊天记录
      */
     @GetMapping("/messages")
-    public CommonResult<IPage<MessageDto>> getMessages(
+    public CommonResult<MessageCursorPage> getMessages(
             @RequestParam Long conversationId,
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "20") Integer pageSize) {
-        Long userId = UserContext.getUserId();
-        return CommonResult.success(privateMessageService.getMessageList(userId, conversationId, pageNum, pageSize));
+            @RequestParam(required = false) Long beforeId,
+            @RequestParam(required = false) Long afterId,
+            @RequestParam(defaultValue = "30") Integer pageSize) {
+        return CommonResult.success(privateMessageService.getMessageHistory(
+                UserContext.getUserId(), conversationId, beforeId, afterId, pageSize));
     }
 
     /**

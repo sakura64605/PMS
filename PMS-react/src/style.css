@@ -1984,3 +1984,7 @@ textarea {
 .private-workspace .private-mobile-close{display:inline-flex;position:absolute;right:12px;top:17px;z-index:6;padding:4px;border:0;background:transparent;color:#8a827b}
 .private-dialog .private-sidebar-head{padding-right:48px}
 }
+
+.private-workspace .chat-messages{overflow-anchor:none}
+.private-history-status{flex:none;min-height:22px;text-align:center;font-size:12px;color:var(--muted,#8a8a8a)}
+.private-history-status button{border:0;background:none;color:inherit;cursor:pointer}

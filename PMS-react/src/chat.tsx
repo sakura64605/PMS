@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import {usePrivateHistory} from "./privateHistory";
 import { useRouteLocation, useRouteVisible } from "./routeTransition";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
@@ -55,7 +56,6 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
   const { user, notify, refresh } = useApp();
   const [page, setPage] = useState(1),
     [selected, setSelected] = useState<Row | null>(null),
-    [messagePage, setMessagePage] = useState(1),
     [text, setText] = useState(""),
     [find, setFind] = useState(false),
     [keyword, setKeyword] = useState(""),
@@ -63,25 +63,13 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
   const list = useData(
     url("/message/private/conversations", { pageNum: page, pageSize: 20 }),
   );
-  const history = useData(
-    selected || routeConversation
-      ? url("/message/private/messages", {
-          conversationId: selected?.conversationId || routeConversation,
-          pageNum: messagePage,
-          pageSize: 20,
-        })
-      : null,
-  );
+  const history = usePrivateHistory(selected?.conversationId || routeConversation, visible);
   const search = useData(keyword ? url("/user/search", { keyword }) : null);
-  const end = useRef<HTMLDivElement>(null);
   const sendLock = useRef(false);
   const matchedRoute = useRef<string | null>(null);
   const [sending, setSending] = useState(false);
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
-  useEffect(() => {
-    if (messagePage === 1) end.current?.scrollIntoView({ block: "nearest" });
-  }, [history.data, messagePage]);
   useEffect(() => {
     const id = new URLSearchParams(route.split('?')[1]).get("conversation");
     if (id && matchedRoute.current !== id) {
@@ -97,7 +85,6 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
   }, [list.data, route]);
   async function choose(c: Row) {
     setSelected(c);
-    setMessagePage(1);
     setShowList(false);
     await api(`/message/private/read/${c.conversationId}`, "PUT");
     list.reload();
@@ -110,14 +97,13 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
     sendLock.current = true;
     setSending(true);
     try {
-      await api("/message/private/send", "POST", {
+      const sent = await api("/message/private/send", "POST", {
         toUserId: conversation.otherUser?.userId || conversation.otherUser?.id,
         content: draft.trim(), messageType: 1,
       });
       if (String(selectedRef.current?.conversationId) === String(conversation.conversationId)) {
         setText(current => current === draft ? "" : current);
-        setMessagePage(1);
-        history.reload();
+        history.append(sent);
       }
       list.reload();
       refresh();
@@ -191,9 +177,15 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
             </div>
           </header>
           {selected ? <>
-            <div className="chat-messages" aria-label="聊天记录">
+            <div className="chat-messages" aria-label="聊天记录" ref={history.viewport}
+              onScroll={event => { if (event.currentTarget.scrollTop <= 48) void history.loadOlder(); }}>
+              <div className="private-history-status" aria-live="polite">
+                {history.loadingOlder ? "正在加载更早消息…" : history.moreError
+                  ? <button type="button" onClick={() => void history.loadOlder()}>加载失败，重试</button>
+                  : !history.loading && !history.hasMore && rows(history.data).length > 0 ? "已到最早的消息" : history.hasMore ? "上滑查看更早消息" : null}
+              </div>
               <DataState request={history} empty={!rows(history.data).length}>
-                {[...rows(history.data)].sort((a, b) => String(a.createTime).localeCompare(String(b.createTime))).map(m => {
+                {rows(history.data).map(m => {
                   const mine = String(m.fromUserId) === uid(user);
                   return <div className={`bubble-wrap ${mine ? "me" : ""}`} key={m.id}>
                     <Avatar user={mine ? user : selected.otherUser} size={28} />
@@ -201,8 +193,6 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
                   </div>;
                 })}
               </DataState>
-              <Pagination page={messagePage} size={20} total={history.data?.total || 0} onChange={setMessagePage} />
-              <div ref={end} />
             </div>
             <form className="chat-compose" onSubmit={e => {e.preventDefault(); if (!sending && text.trim()) void send().catch(error => notify(error.message, true));}}>
               <input value={text} onChange={e => setText(e.target.value)} maxLength={5000} aria-label="私信内容" placeholder="输入私信内容，回车发送..."

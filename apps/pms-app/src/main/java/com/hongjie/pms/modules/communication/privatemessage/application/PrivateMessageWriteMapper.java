@@ -21,6 +21,11 @@ public interface PrivateMessageWriteMapper {
     long messageCount(@Param("actor") Long actor,@Param("id") Long id);
     @Select("SELECT m.* FROM private_message m WHERE m.conversation_id=#{id} AND "+PrivateMessageSql.VISIBLE+" ORDER BY m.create_time ASC,m.id ASC LIMIT #{size} OFFSET #{offset}")
     List<PrivateMessage> messages(@Param("actor") Long actor,@Param("id") Long id,@Param("offset") long offset,@Param("size") long size);
+    @Select("<script>SELECT m.* FROM private_message m WHERE m.conversation_id=#{id} AND "+PrivateMessageSql.VISIBLE+
+            "<if test='before != null'> AND m.id &lt; #{before}</if> ORDER BY m.id DESC LIMIT #{size}</script>")
+    List<PrivateMessage> olderMessages(@Param("actor") Long actor, @Param("id") Long id, @Param("before") Long before, @Param("size") int size);
+    @Select("SELECT m.* FROM private_message m WHERE m.conversation_id=#{id} AND "+PrivateMessageSql.VISIBLE+" AND m.id > #{after} ORDER BY m.id ASC LIMIT #{size}")
+    List<PrivateMessage> newerMessages(@Param("actor") Long actor, @Param("id") Long id, @Param("after") Long after, @Param("size") int size);
     @Select("SELECT COUNT(*) FROM private_message m JOIN private_conversation c ON c.id=m.conversation_id WHERE m.to_user_id=#{actor} AND m.is_read=0 AND m.is_deleted_by_to=0 AND (c.user_a=#{actor} OR c.user_b=#{actor})")
     long unread(@Param("actor") Long actor);
     @Update("UPDATE private_message SET is_read=1 WHERE conversation_id=#{id} AND to_user_id=#{actor} AND is_read=0 AND is_deleted_by_to=0")

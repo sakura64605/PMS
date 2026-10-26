@@ -78,6 +78,25 @@ public class PmsPrivateMessageServiceImpl implements PrivateMessageService {
         Set<Long> ids=rows.stream().map(PrivateMessage::getFromUserId).collect(Collectors.toSet());Map<Long,User> people=ids.isEmpty()?Map.of():index(users.selectBatchIds(ids));
         result.setRecords(rows.stream().map(row->messageDto(row,people.get(row.getFromUserId()))).toList());return result;
     }
+    @Override @Transactional(rollbackFor=Exception.class)
+    public MessageCursorPage getMessageHistory(Long actor, Long id, Long beforeId, Long afterId, Integer pageSize) {
+        actor(actor);
+        if (beforeId != null) validId(beforeId);
+        if (afterId != null) validId(afterId);
+        if ((beforeId != null && afterId != null) || pageSize == null || pageSize < 1 || pageSize > 100)
+            throw new BusinessException(ErrorCode.PARAM_ERROR);
+        owned(actor, id);
+        read(actor, id);
+        var found = afterId == null ? writes.olderMessages(actor, id, beforeId, pageSize + 1)
+                : writes.newerMessages(actor, id, afterId, pageSize + 1);
+        boolean more = found.size() > pageSize;
+        var selected = found.subList(0, Math.min(found.size(), pageSize));
+        Set<Long> authors = selected.stream().map(PrivateMessage::getFromUserId).collect(Collectors.toSet());
+        Map<Long, User> people = authors.isEmpty() ? Map.of() : index(users.selectBatchIds(authors));
+        var records = selected.stream().map(row -> messageDto(row, people.get(row.getFromUserId()))).toList();
+        Long cursor = selected.isEmpty() ? null : selected.get(selected.size() - 1).getId();
+        return new MessageCursorPage(records, cursor, more);
+    }
     @Override public int getTotalUnreadCount(Long actor){actor(actor);return (int)Math.min(Integer.MAX_VALUE,writes.unread(actor));}
     @Override @Transactional(rollbackFor=Exception.class)
     public void markConversationRead(Long actor,Long id){actor(actor);owned(actor,id);read(actor,id);}
