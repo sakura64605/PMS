@@ -1,0 +1,8 @@
+**/node_modules/**
+**/target/**
+**/dist/**
+backups/**
+**/package-lock.json
+PMS.swagger.json
+docs/architecture/module-internal-dependencies.json
+apps/pms-app/src/main/resources/application.yaml

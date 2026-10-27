@@ -13,3 +13,17 @@ src/api/** linguist-generated=true
 target/** linguist-generated=true
 node_modules/** linguist-generated=true
 dist/** linguist-generated=true
+
+# Keep source and formatter output consistent across Windows and Linux.
+*.java text eol=lf
+*.py text eol=lf
+*.xml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.css text eol=lf
+*.json text eol=lf
+*.html text eol=lf
