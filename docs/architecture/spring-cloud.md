@@ -13,7 +13,7 @@
 | pms-search-service | 独立 Elasticsearch 检索，通过版本化协议返回候选 ID | 8181、8182 |
 | pms-ai-service | Agent、模型、会话记忆、转人工、知识库与 AI WebSocket | 8281 |
 
-代码已形成三个业务应用和三个治理应用；AI 抽取已完成本地相关验证，尚未部署。详见 [AI 服务抽取](ai-service-extraction.md)。两个搜索实例属于同一服务。核心业务尚未全部分离，搜索索引写入仍由核心应用负责。
+已部署三个业务应用和三个治理应用，搜索有两个实例，合计七个服务进程；AI于2026-10-27完成独立部署与真实接口验证。详见 [AI 服务抽取](ai-service-extraction.md)。两个搜索实例属于同一服务。核心业务尚未全部分离，搜索索引写入仍由核心应用负责。
 
 调用链：React → Gateway → Core → OpenFeign → LoadBalancer → Search → Elasticsearch。Eureka 发现实例，Config 提供策略，Resilience4j 保护搜索调用；Micrometer / OpenTelemetry 传播 traceId。网关保留原 `/pet-system/...` 路径，核心应用继续校验账户状态、角色和资源归属。
 
