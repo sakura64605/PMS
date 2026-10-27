@@ -25,14 +25,14 @@
 
 ## 你需要填写的内容
 
-工作区已准备 Git 忽略文件：`target/location-secrets/amap.env`。仓库模板为 [amap.env.example](../../ops/systemd/amap.env.example)。仅替换两项：
+工作区已准备 Git 忽略文件：`.local/location/amap.env`。仓库模板为 [amap.env.example](../../ops/systemd/amap.env.example)。仅替换两项：
 
 ```dotenv
 PMS_AMAP_JS_API_KEY=你的Web端JS_API_Key
 PMS_AMAP_JS_SECURITY_CODE=对应的安全密钥
 ```
 
-不要在 Git 跟踪文件、聊天截图、前端 `.env` 或构建变量中放安全密钥。该私有文件不应提交；生成文件也留在 target 内。生成器接受安全字符，拒绝占位符、重复项和控制字符，不执行输入内容。
+不要在 Git 跟踪文件、聊天截图、前端 `.env` 或构建变量中放安全密钥。该私有文件不应提交；生成文件也留在 `.local/location/` 内。不要放进 `target` 或 `dist`：构建清理会删除它们。生成器接受安全字符，拒绝占位符、重复项和控制字符，不执行输入内容。
 
 高德控制台需要确认该 Key 的服务平台是 Web端（JS API），并按控制台提供的有效域名设置配置 `www.petcircle.tech`；是否开放开发机域名应独立决定。以控制台当前权限、认证和配额为准，不假设创建 Key 就自动拥有所有服务权限。
 
@@ -41,7 +41,7 @@ PMS_AMAP_JS_SECURITY_CODE=对应的安全密钥
 ## 配置生成与部署位置
 
 ```powershell
-python scripts/deploy/prepare_amap.py --env-file target/location-secrets/amap.env --output-dir target/location-secrets/generated
+python scripts/deploy/prepare_amap.py --env-file .local/location/amap.env --output-dir .local/location/generated
 ```
 
 该命令只在本机生成文件，不联网、不部署、不打印凭据：

@@ -11,6 +11,16 @@ spec.loader.exec_module(module)
 
 
 class PrepareAmapTest(unittest.TestCase):
+    def test_build_cleanup_directories_are_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for build in ["target", "dist", "node_modules"]:
+                with self.subTest(build=build):
+                    with self.assertRaisesRegex(ValueError, "构建清理目录"):
+                        module.prepare(root / build / "amap.env", root / "safe")
+                    with self.assertRaisesRegex(ValueError, "构建清理目录"):
+                        module.prepare(root / "amap.env", root / build)
+
     def test_security_code_only_enters_private_proxy_file(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

@@ -11,6 +11,8 @@ from pathlib import Path
 
 
 def prepare(source: Path, output: Path):
+    if any(part in {"target", "dist", "node_modules"} for part in source.resolve().parts + output.resolve().parts):
+        raise ValueError("私有凭据和生成文件不能放在构建清理目录，请使用 .local/location")
     values = {}
     for line in source.read_text(encoding="utf-8-sig").splitlines():
         line = line.strip()

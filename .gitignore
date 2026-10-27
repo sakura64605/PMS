@@ -56,6 +56,7 @@ tokens.csv
 **/amap.env
 **/core-amap.env
 **/pms-amap.enabled.conf
+/.local/location/
 
 # Claude
 .claude/
