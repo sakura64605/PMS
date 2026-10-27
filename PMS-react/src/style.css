@@ -18,6 +18,15 @@
 * {
   box-sizing: border-box;
 }
+/* Keep the viewport's content width stable across short pages, long pages and dialogs. */
+html {
+  scrollbar-gutter: stable;
+}
+@supports not (scrollbar-gutter: stable) {
+  html {
+    overflow-y: scroll;
+  }
+}
 body {
   margin: 0;
   font-size: 14px;
@@ -162,13 +171,13 @@ small {
   white-space: nowrap;
   font-size: 13px;
   border-radius: 11px;
-  font-weight: 550;
+  font-weight: 600;
   color: #615b54;
 }
 .nav a.active {
   background: var(--sage);
   color: var(--green);
-  font-weight: 750;
+  font-weight: 600;
 }
 .nav .admin-link {
   border: 1px solid #dfe8ec;
