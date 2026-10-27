@@ -41,7 +41,7 @@ import {
   useData,
 } from "./core";
 import { Comments, Card, Report } from "./content";
-import {notificationTarget} from "./notifications";
+import { notificationTarget } from "./notifications";
 
 export function Auth({ register = false }: { register?: boolean }) {
   const [form, set] = useState<Row>({
@@ -76,9 +76,7 @@ export function Auth({ register = false }: { register?: boolean }) {
         localStorage.setItem("token", data.token.replace(/^Bearer\s+/i, ""));
         await refreshUser();
         const next = new URLSearchParams(location.search).get("next");
-        navigate(
-          next?.startsWith("/") && !next.startsWith("//") ? next : "/dashboard",
-        );
+        navigate(next?.startsWith("/") && !next.startsWith("//") ? next : "/dashboard");
       } else navigate("/login");
     } catch (e: any) {
       setError(e.message);
@@ -115,9 +113,7 @@ export function Auth({ register = false }: { register?: boolean }) {
           <p className="eyebrow">WELCOME TO PETCIRCLE</p>
           <h2>{register ? "开启你的宠友生活" : "很高兴，再次遇见你"}</h2>
           <p className="muted">
-            {register
-              ? "加入社区，让每一份陪伴都有回应。"
-              : "登录宠友社，继续分享与陪伴。"}
+            {register ? "加入社区，让每一份陪伴都有回应。" : "登录宠友社，继续分享与陪伴。"}
           </p>
           {error && (
             <p className="inline-error" role="alert">
@@ -134,11 +130,7 @@ export function Auth({ register = false }: { register?: boolean }) {
           ).map(([key, label, type]) => (
             <Field key={key} label={label} required={key !== "nickName"}>
               <input
-                autoComplete={
-                  key === "account" || key === "userName"
-                    ? "username"
-                    : undefined
-                }
+                autoComplete={key === "account" || key === "userName" ? "username" : undefined}
                 required={key !== "nickName"}
                 type={type}
                 value={form[key]}
@@ -162,9 +154,7 @@ export function Auth({ register = false }: { register?: boolean }) {
           </button>
           <p className="auth-bottom">
             {register ? "已经有账号？" : "还没有账号？"}{" "}
-            <Link to={register ? "/login" : "/register"}>
-              {register ? "去登录" : "立即注册"}
-            </Link>
+            <Link to={register ? "/login" : "/register"}>{register ? "去登录" : "立即注册"}</Link>
           </p>
           <p className="auth-bottom">
             <Link to="/pets">先去社区逛逛 →</Link>
@@ -174,15 +164,10 @@ export function Auth({ register = false }: { register?: boolean }) {
     </div>
   );
 }
-export function DiaryCard({
-  post,
-  detail = false,
-}: {
-  post: Row;
-  detail?: boolean;
-}) {
+export function DiaryCard({ post, detail = false }: { post: Row; detail?: boolean }) {
   const { notify } = useApp();
-  const [commentsOpen, setCommentsOpen] = useState(detail), [commentsStarted, setCommentsStarted] = useState(detail);
+  const [commentsOpen, setCommentsOpen] = useState(detail),
+    [commentsStarted, setCommentsStarted] = useState(detail);
   const [commentCount, setCommentCount] = useState(post.commentCount || 0);
   useEffect(() => setCommentCount(post.commentCount || 0), [post.commentCount]);
   const [liked, setLiked] = useState(!!post.isLiked),
@@ -195,7 +180,9 @@ export function DiaryCard({
     <article className="panel diary-card">
       <Author user={post.user} date={post.createTime} />
       <Link to={`/daily/${post.id}`}>
-        <p className="prose"><Value block>{post.content}</Value></p>
+        <p className="prose">
+          <Value block>{post.content}</Value>
+        </p>
       </Link>
       <Gallery value={images(post.images)} />
       {post.location && (
@@ -216,14 +203,16 @@ export function DiaryCard({
             aria-label={liked ? "取消点赞" : "点赞"}
             aria-pressed={liked}
             action={async () => {
-              const previous = {liked, count};
+              const previous = { liked, count };
               setLiked(!liked);
               setCount(Math.max(0, count + (liked ? -1 : 1)));
               try {
                 const result = await api(`/daily/${post.id}/like`, "POST");
                 const next = typeof result === "boolean" ? result : !previous.liked;
                 setLiked(next);
-                setCount(Math.max(0, previous.count + (next === previous.liked ? 0 : next ? 1 : -1)));
+                setCount(
+                  Math.max(0, previous.count + (next === previous.liked ? 0 : next ? 1 : -1)),
+                );
               } catch (error) {
                 setLiked(previous.liked);
                 setCount(previous.count);
@@ -234,7 +223,14 @@ export function DiaryCard({
             <Heart size={16} fill={liked ? "currentColor" : "none"} />
             {count} 赞
           </Button>
-          <Button tone={`reaction-button ${commentsOpen ? 'is-open' : ''}`} aria-expanded={commentsOpen} action={() => {setCommentsStarted(true);setCommentsOpen(value => !value);}}>
+          <Button
+            tone={`reaction-button ${commentsOpen ? "is-open" : ""}`}
+            aria-expanded={commentsOpen}
+            action={() => {
+              setCommentsStarted(true);
+              setCommentsOpen((value) => !value);
+            }}
+          >
             <MessageCircle size={16} />
             {commentCount} 条评论
           </Button>
@@ -242,9 +238,7 @@ export function DiaryCard({
         <Button
           tone="ghost small"
           action={async () => {
-            await copyText(
-              location.origin + `/daily/${post.id}`,
-            );
+            await copyText(location.origin + `/daily/${post.id}`);
             notify("分享链接已复制");
           }}
         >
@@ -252,7 +246,11 @@ export function DiaryCard({
           分享
         </Button>
       </div>
-      {commentsStarted && post.id && <div hidden={!commentsOpen}><Comments id={String(post.id)} type="daily" embedded onCountChange={setCommentCount} /></div>}
+      {commentsStarted && post.id && (
+        <div hidden={!commentsOpen}>
+          <Comments id={String(post.id)} type="daily" embedded onCountChange={setCommentCount} />
+        </div>
+      )}
     </article>
   );
 }
@@ -275,17 +273,13 @@ export function Diaries({ id }: { id?: string }) {
       <div className="diary-list">
         {id && <Back to="/daily" />}
         <DataState request={request} empty={!id && !rows(request.data).length}>
-          {id
-            ? <DiaryCard post={request.data || {}} detail />
-            : rows(request.data).map((p) => <DiaryCard post={p} key={p.id} />)}
+          {id ? (
+            <DiaryCard post={request.data || {}} detail />
+          ) : (
+            rows(request.data).map((p) => <DiaryCard post={p} key={p.id} />)
+          )}
         </DataState>
-        {!id && (
-          <Pagination
-            page={page}
-            total={request.data?.total || 0}
-            onChange={setPage}
-          />
-        )}
+        {!id && <Pagination page={page} total={request.data?.total || 0} onChange={setPage} />}
       </div>
     </>
   );
@@ -297,18 +291,13 @@ export function PublishDiary() {
     [topicIds, setTopicIds] = useState<number[]>([]),
     [keyword, setKeyword] = useState("");
   const topics = useData(
-    keyword
-      ? url("/daily/topics/search", { keyword })
-      : "/daily/topics/hot?limit=20",
+    keyword ? url("/daily/topics/search", { keyword }) : "/daily/topics/hot?limit=20",
   );
   const { notify, user } = useApp();
   return (
     <div className="form-narrow">
       <Back to="/daily" />
-      <Intro
-        title="记录今天的小可爱"
-        description="一张照片，一点碎碎念，都是珍贵的陪伴。"
-      />
+      <Intro title="记录今天的小可爱" description="一张照片，一点碎碎念，都是珍贵的陪伴。" />
       <section className="panel">
         <Field label="想分享的日常" required>
           <textarea
@@ -345,9 +334,7 @@ export function PublishDiary() {
                   checked={topicIds.includes(t.id)}
                   onChange={() =>
                     setTopicIds((v) =>
-                      v.includes(t.id)
-                        ? v.filter((n) => n !== t.id)
-                        : [...v, t.id],
+                      v.includes(t.id) ? v.filter((n) => n !== t.id) : [...v, t.id],
                     )
                   }
                 />
@@ -403,12 +390,24 @@ export function Feed() {
   const [page, setPage] = useState(1);
   const request = useData(url("/feed/home", { pageNum: page, pageSize: 12 }));
   async function like(p: Row) {
-    const previous = {isLiked: !!p.isLiked, likeCount: p.likeCount || 0};
-    const update = (patch: Row) => request.update((old: Row) => ({...old, records: rows(old).map(item => item.id === p.id && item.postType === p.postType ? {...item, ...patch} : item)}));
-    update({isLiked: !previous.isLiked, likeCount: Math.max(0, previous.likeCount + (previous.isLiked ? -1 : 1))});
+    const previous = { isLiked: !!p.isLiked, likeCount: p.likeCount || 0 };
+    const update = (patch: Row) =>
+      request.update((old: Row) => ({
+        ...old,
+        records: rows(old).map((item) =>
+          item.id === p.id && item.postType === p.postType ? { ...item, ...patch } : item,
+        ),
+      }));
+    update({
+      isLiked: !previous.isLiked,
+      likeCount: Math.max(0, previous.likeCount + (previous.isLiked ? -1 : 1)),
+    });
     try {
-      const result = await api("/like", "POST", { targetType: p.postType === "activity" ? "pet_activity" : "pet_post", targetId: p.postId });
-      update({isLiked: result.isLiked, likeCount: result.likeCount});
+      const result = await api("/like", "POST", {
+        targetType: p.postType === "activity" ? "pet_activity" : "pet_post",
+        targetId: p.postId,
+      });
+      update({ isLiked: result.isLiked, likeCount: result.likeCount });
     } catch (error) {
       update(previous);
       throw error;
@@ -416,10 +415,7 @@ export function Feed() {
   }
   return (
     <>
-      <Intro
-        title="关注动态"
-        description="你关心的宠友，他们的每一份新分享。"
-      />
+      <Intro title="关注动态" description="你关心的宠友，他们的每一份新分享。" />
       <DataState request={request} empty={!rows(request.data).length}>
         <div className="card-grid">
           {rows(request.data).map((p) => (
@@ -436,15 +432,20 @@ export function Feed() {
                 },
                 images: p.coverImage ? [p.coverImage] : [],
               }}
-            ><Button tone={`reaction-button ${p.isLiked ? "is-liked" : ""}`} aria-pressed={!!p.isLiked} action={() => like(p)}><Heart size={15} fill={p.isLiked ? "currentColor" : "none"}/>{p.likeCount || 0} 赞</Button></Card>
+            >
+              <Button
+                tone={`reaction-button ${p.isLiked ? "is-liked" : ""}`}
+                aria-pressed={!!p.isLiked}
+                action={() => like(p)}
+              >
+                <Heart size={15} fill={p.isLiked ? "currentColor" : "none"} />
+                {p.likeCount || 0} 赞
+              </Button>
+            </Card>
           ))}
         </div>
       </DataState>
-      <Pagination
-        page={page}
-        total={request.data?.total || 0}
-        onChange={setPage}
-      />
+      <Pagination page={page} total={request.data?.total || 0} onChange={setPage} />
     </>
   );
 }
@@ -469,8 +470,7 @@ export function Profile() {
         <div>
           <h1>{nick(user)}</h1>
           <p className="muted">
-            @{user.userName || user.username} · 加入于{" "}
-            {time(user.createTime).slice(0, 10)}
+            @{user.userName || user.username} · 加入于 {time(user.createTime).slice(0, 10)}
           </p>
           <div className="profile-stats">
             <button className="btn ghost" onClick={() => setModal("follower")}>
@@ -569,9 +569,7 @@ export function Profile() {
           </section>
           <section className="panel">
             <h2>账号安全</h2>
-            <p className="muted">
-              账号状态：{user.status === 1 ? "正常" : "禁用"}
-            </p>
+            <p className="muted">账号状态：{user.status === 1 ? "正常" : "禁用"}</p>
             <Button action={() => setModal("password")}>修改密码</Button>
           </section>
         </div>
@@ -623,7 +621,9 @@ export function Profile() {
           </section>
           <section className="panel">
             <h2>我的小天地</h2>
-            <Link className="btn" to="/my-signups">我的报名</Link>
+            <Link className="btn" to="/my-signups">
+              我的报名
+            </Link>
             <div className="row-actions">
               <Link className="btn" to="/pets/my-posts">
                 我的发布
@@ -663,9 +663,7 @@ function Password({ onClose }: { onClose: () => void }) {
         <Field key={k} label={l} required>
           <input
             type="password"
-            autoComplete={
-              k === "oldPassword" ? "current-password" : "new-password"
-            }
+            autoComplete={k === "oldPassword" ? "current-password" : "new-password"}
             value={f[k]}
             onChange={(e) => set((v) => ({ ...v, [k]: e.target.value }))}
           />
@@ -676,11 +674,7 @@ function Password({ onClose }: { onClose: () => void }) {
         <Button
           tone="primary"
           action={async () => {
-            if (
-              !f.oldPassword ||
-              f.newPassword.length < 6 ||
-              f.newPassword !== f.confirmPassword
-            )
+            if (!f.oldPassword || f.newPassword.length < 6 || f.newPassword !== f.confirmPassword)
               throw new Error("新密码至少 6 位，且两次输入一致");
             await api("/user/changePassword", "POST", f);
             notify("密码已修改");
@@ -719,22 +713,12 @@ function AvatarHistory({ onClose }: { onClose: () => void }) {
 }
 function People({ kind, onClose }: { kind: string; onClose: () => void }) {
   const [page, setPage] = useState(1);
-  const request = useData(
-    url(`/${kind}/list`, { pageNum: page, pageSize: 20 }),
-  );
+  const request = useData(url(`/${kind}/list`, { pageNum: page, pageSize: 20 }));
   return (
-    <Modal
-      title={kind === "following" ? "我的关注" : "我的粉丝"}
-      onClose={onClose}
-    >
+    <Modal title={kind === "following" ? "我的关注" : "我的粉丝"} onClose={onClose}>
       <DataState request={request} empty={!rows(request.data).length}>
         {rows(request.data).map((p) => (
-          <Link
-            className="notice-row"
-            to={`/user/${p.id}`}
-            key={p.id}
-            onClick={onClose}
-          >
+          <Link className="notice-row" to={`/user/${p.id}`} key={p.id} onClick={onClose}>
             <Avatar user={p} />
             <span>
               {nick(p)}
@@ -743,20 +727,13 @@ function People({ kind, onClose }: { kind: string; onClose: () => void }) {
           </Link>
         ))}
       </DataState>
-      <Pagination
-        page={page}
-        size={20}
-        total={request.data?.total || 0}
-        onChange={setPage}
-      />
+      <Pagination page={page} size={20} total={request.data?.total || 0} onChange={setPage} />
     </Modal>
   );
 }
 export function UserPage({ id }: { id: string }) {
   const request = useData(url("/user/profileInfo", { userId: id }));
-  const posts = useData(
-    url("/pet/list", { userId: id, pageNum: 1, pageSize: 12 }),
-  );
+  const posts = useData(url("/pet/list", { userId: id, pageNum: 1, pageSize: 12 }));
   const { user, notify } = useApp();
   const [report, setReport] = useState(false);
   const p = request.data || {},
@@ -768,10 +745,13 @@ export function UserPage({ id }: { id: string }) {
         <section className="profile-banner">
           <Avatar user={u} size={85} />
           <div>
-            <h1><Value>{nick(u)}</Value></h1>
+            <h1>
+              <Value>{nick(u)}</Value>
+            </h1>
             <p className="muted">
-              <Value>@{u.username || u.userName} ·{" "}
-              {p.signature || "很高兴在这里遇见你"}</Value>
+              <Value>
+                @{u.username || u.userName} · {p.signature || "很高兴在这里遇见你"}
+              </Value>
             </p>
             <div className="profile-stats">
               {[
@@ -780,7 +760,9 @@ export function UserPage({ id }: { id: string }) {
                 [p.likeCount, "获赞"],
               ].map(([v, n]) => (
                 <span key={n}>
-                  <strong><Value>{v || 0}</Value></strong>
+                  <strong>
+                    <Value>{v || 0}</Value>
+                  </strong>
                   <small>{n}</small>
                 </span>
               ))}
@@ -789,9 +771,7 @@ export function UserPage({ id }: { id: string }) {
         </section>
         <section className="panel">
           <div className="row-actions">
-            <Badge>
-              加入于 {time(p.joinTime || u.createTime).slice(0, 10)}
-            </Badge>
+            <Badge>加入于 {time(p.joinTime || u.createTime).slice(0, 10)}</Badge>
             <Badge tone="neutral">最近活跃 {time(p.lastActiveTime)}</Badge>
             <Badge tone="neutral">{["未知", "男", "女"][p.gender || 0]}</Badge>
           </div>
@@ -810,15 +790,11 @@ export function UserPage({ id }: { id: string }) {
                   notify("关注状态已更新");
                 }}
               >
-                {p.user?.isFollow || p.isFollow || p.isFollowing
-                  ? "已关注"
-                  : "关注"}
+                {p.user?.isFollow || p.isFollow || p.isFollowing ? "已关注" : "关注"}
               </Button>
               <Button
                 action={async () => {
-                  const c = await api(
-                    url("/message/private/conversation", { otherUserId: id }),
-                  );
+                  const c = await api(url("/message/private/conversation", { otherUserId: id }));
                   navigate(`/private-message?conversation=${c.conversationId}`);
                 }}
               >
@@ -839,9 +815,7 @@ export function UserPage({ id }: { id: string }) {
           </div>
         </DataState>
       </DataState>
-      {report && (
-        <Report id={id} type="user" onClose={() => setReport(false)} />
-      )}
+      {report && <Report id={id} type="user" onClose={() => setReport(false)} />}
     </>
   );
 }
@@ -864,61 +838,108 @@ const messageTypes = [
   ["SYSTEM", "系统消息"],
 ];
 
-function NotificationSymbol({type}: {type: string}) {
+function NotificationSymbol({ type }: { type: string }) {
   if (type === "LIKE") return <Heart size={16} fill="currentColor" />;
   if (type === "COMMENT") return <MessageSquare size={16} />;
   if (type === "FOLLOW") return <UserPlus size={16} />;
   if (["SIGN_UP", "SIGN_IN"].includes(type)) return <Calendar size={16} />;
   if (type === "AUDIT_PASS") return <CheckCircle size={16} />;
-  if (["AUDIT_REJECT", "PUNISHMENT_START", "PUNISHMENT_END", "NO_SHOW_WARNING"].includes(type)) return <AlertCircle size={16} />;
+  if (["AUDIT_REJECT", "PUNISHMENT_START", "PUNISHMENT_END", "NO_SHOW_WARNING"].includes(type))
+    return <AlertCircle size={16} />;
   return <Megaphone size={16} />;
 }
 export function Messages() {
-  const [page, setPage] = useState(1), [type, setType] = useState("");
-  const request = useData(url("/message/list", {pageNum: page, pageSize: 20, type}));
-  const {refresh, notify} = useApp();
+  const [page, setPage] = useState(1),
+    [type, setType] = useState("");
+  const request = useData(url("/message/list", { pageNum: page, pageSize: 20, type }));
+  const { refresh, notify } = useApp();
   async function openMessage(message: Row) {
     if (!message.isRead) {
       await api(`/message/read/${message.id}`, "PUT");
-      request.update((old: Row) => ({...old, records: rows(old).map(item => item.id === message.id ? {...item, isRead: 1} : item)}));
+      request.update((old: Row) => ({
+        ...old,
+        records: rows(old).map((item) => (item.id === message.id ? { ...item, isRead: 1 } : item)),
+      }));
       refresh();
     }
     const target = notificationTarget(message);
     if (target) navigate(target);
   }
-  return <div className="notification-workspace">
-    <header className="notification-header">
-      <div><h1>消息中心 · 社区通知</h1><p>第一时间获取点赞评论、领养审核反馈与同城活动提醒</p></div>
-      <Button tone="notification-read-all" action={async () => {
-        await api("/message/read-all", "PUT");
-        request.update((old: Row) => ({...old, records: rows(old).map(item => ({...item, isRead: 1}))}));
-        refresh(); notify("已标记为已读");
-      }}><CheckCheck size={16} />全部标记已读</Button>
-    </header>
-    <nav className="notification-categories" aria-label="消息分类">
-      {messageTypes.map(([value, label]) => <button key={value} type="button" aria-pressed={type === value}
-        className={type === value ? "active" : ""} onClick={() => {setType(value); setPage(1);}}>{label}</button>)}
-    </nav>
-    <section className="notification-list" aria-label="社区通知列表">
-      <DataState request={request}>
-        {rows(request.data).map(message => {
-          const target = notificationTarget(message);
-          return <Button key={message.id} tone={`notification-row ${message.isRead ? "" : "is-unread"} type-${String(message.type).toLowerCase()}`}
-            action={() => openMessage(message)}>
-            <span className="notification-icon"><NotificationSymbol type={message.type} /></span>
-            <span className="notification-body">
-              <span className="notification-heading">
-                <span className="notification-title"><strong>{message.title}</strong>{!message.isRead && <span className="notification-dot" aria-label="未读" />}</span>
-                <time>{time(message.createTime)}</time>
-              </span>
-              <span className="notification-description">{message.content}</span>
-              {target && <span className="notification-target">查看相关内容 →</span>}
-            </span>
-          </Button>;
-        })}
-        {!request.loading && !request.error && !rows(request.data).length && <div className="notification-empty"><Inbox size={32} /><p>暂无此类通知消息</p></div>}
-      </DataState>
-    </section>
-    <Pagination page={page} size={20} total={request.data?.total || 0} onChange={setPage} />
-  </div>;
+  return (
+    <div className="notification-workspace">
+      <header className="notification-header">
+        <div>
+          <h1>消息中心 · 社区通知</h1>
+          <p>第一时间获取点赞评论、领养审核反馈与同城活动提醒</p>
+        </div>
+        <Button
+          tone="notification-read-all"
+          action={async () => {
+            await api("/message/read-all", "PUT");
+            request.update((old: Row) => ({
+              ...old,
+              records: rows(old).map((item) => ({ ...item, isRead: 1 })),
+            }));
+            refresh();
+            notify("已标记为已读");
+          }}
+        >
+          <CheckCheck size={16} />
+          全部标记已读
+        </Button>
+      </header>
+      <nav className="notification-categories" aria-label="消息分类">
+        {messageTypes.map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={type === value}
+            className={type === value ? "active" : ""}
+            onClick={() => {
+              setType(value);
+              setPage(1);
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+      <section className="notification-list" aria-label="社区通知列表">
+        <DataState request={request}>
+          {rows(request.data).map((message) => {
+            const target = notificationTarget(message);
+            return (
+              <Button
+                key={message.id}
+                tone={`notification-row ${message.isRead ? "" : "is-unread"} type-${String(message.type).toLowerCase()}`}
+                action={() => openMessage(message)}
+              >
+                <span className="notification-icon">
+                  <NotificationSymbol type={message.type} />
+                </span>
+                <span className="notification-body">
+                  <span className="notification-heading">
+                    <span className="notification-title">
+                      <strong>{message.title}</strong>
+                      {!message.isRead && <span className="notification-dot" aria-label="未读" />}
+                    </span>
+                    <time>{time(message.createTime)}</time>
+                  </span>
+                  <span className="notification-description">{message.content}</span>
+                  {target && <span className="notification-target">查看相关内容 →</span>}
+                </span>
+              </Button>
+            );
+          })}
+          {!request.loading && !request.error && !rows(request.data).length && (
+            <div className="notification-empty">
+              <Inbox size={32} />
+              <p>暂无此类通知消息</p>
+            </div>
+          )}
+        </DataState>
+      </section>
+      <Pagination page={page} size={20} total={request.data?.total || 0} onChange={setPage} />
+    </div>
+  );
 }

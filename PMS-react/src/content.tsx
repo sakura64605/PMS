@@ -113,8 +113,7 @@ export function Card({
             </div>
             <div className="card-line">
               <Users size={13} />
-              {item.currentPeople ?? 0} /{" "}
-              {item.maxPeople ?? item.maxParticipants ?? 0} 人{" "}
+              {item.currentPeople ?? 0} / {item.maxPeople ?? item.maxParticipants ?? 0} 人{" "}
               <Badge tone="blue">{activityName(item.status)}</Badge>
             </div>
             <div className="progress">
@@ -127,9 +126,7 @@ export function Card({
           </>
         ) : (
           <p className="summary">
-            {[item.petName, item.petType, item.petAge]
-              .filter(Boolean)
-              .join(" · ") ||
+            {[item.petName, item.petType, item.petAge].filter(Boolean).join(" · ") ||
               item.content ||
               "每一个小生命，都值得被温柔以待。"}
           </p>
@@ -137,10 +134,8 @@ export function Card({
         <div className="card-footer">
           <Author user={author} date={item.createTime} />
           <small>
-            <Eye size={12} style={{ verticalAlign: "middle" }} />{" "}
-            {item.viewCount || 0}　
-            <Heart size={12} style={{ verticalAlign: "middle" }} />{" "}
-            {item.likeCount || 0}
+            <Eye size={12} style={{ verticalAlign: "middle" }} /> {item.viewCount || 0}　
+            <Heart size={12} style={{ verticalAlign: "middle" }} /> {item.likeCount || 0}
           </small>
         </div>
         {children && <div className="card-actions">{children}</div>}
@@ -151,7 +146,7 @@ export function Card({
 export { Home } from "./dashboard";
 export function Pets() {
   const route = useRouteLocation();
-  const initial = new URLSearchParams(route.split('?')[1]).get("type") || "all";
+  const initial = new URLSearchParams(route.split("?")[1]).get("type") || "all";
   const [type, setType] = useState(initial),
     [page, setPage] = useState(1),
     [keyword, setKeyword] = useState(""),
@@ -172,9 +167,7 @@ export function Pets() {
         pageSize: 12,
       });
   const request = useData(path);
-  const items = search
-    ? request.data?.items || request.data?.results || []
-    : rows(request.data);
+  const items = search ? request.data?.items || request.data?.results || [] : rows(request.data);
   function filter(key: string, value: string) {
     setFilters((v) => ({ ...v, [key]: value }));
     setPage(1);
@@ -185,10 +178,7 @@ export function Pets() {
         title="宠友圈 · 领养救助与同城活动"
         description="为毛孩子找到温暖港湾，也为彼此找到同行的伙伴。"
       >
-        <Link
-          to={activity ? "/pets/create?type=2" : "/pets/create"}
-          className="btn primary"
-        >
+        <Link to={activity ? "/pets/create?type=2" : "/pets/create"} className="btn primary">
           <Plus size={15} /> {activity ? "发布活动" : "发布信息"}
         </Link>
       </Intro>
@@ -247,16 +237,7 @@ export function Pets() {
                 onChange={(e) => filter("petCategory", e.target.value)}
               >
                 <option value="">全部宠物</option>
-                {[
-                  "猫",
-                  "狗",
-                  "兔子",
-                  "啮齿类",
-                  "鸟",
-                  "鱼",
-                  "爬行动物",
-                  "其他",
-                ].map((n, i) => (
+                {["猫", "狗", "兔子", "啮齿类", "鸟", "鱼", "爬行动物", "其他"].map((n, i) => (
                   <option value={i} key={i}>
                     {n}
                   </option>
@@ -316,23 +297,11 @@ export function Pets() {
           })}
         </div>
       </DataState>
-      <Pagination
-        page={page}
-        total={request.data?.total || 0}
-        onChange={setPage}
-      />
+      <Pagination page={page} total={request.data?.total || 0} onChange={setPage} />
     </>
   );
 }
-export function Report({
-  type,
-  id,
-  onClose,
-}: {
-  type: string;
-  id: string;
-  onClose: () => void;
-}) {
+export function Report({ type, id, onClose }: { type: string; id: string; onClose: () => void }) {
   const [chosen, setChosen] = useState<string[]>([]),
     [other, setOther] = useState("");
   const { notify } = useApp();
@@ -355,9 +324,7 @@ export function Report({
               type="checkbox"
               checked={chosen.includes(r)}
               onChange={() =>
-                setChosen((c) =>
-                  c.includes(r) ? c.filter((v) => v !== r) : [...c, r],
-                )
+                setChosen((c) => (c.includes(r) ? c.filter((v) => v !== r) : [...c, r]))
               }
             />
             {r}
@@ -365,11 +332,7 @@ export function Report({
         ))}
       </div>
       <Field label="补充说明">
-        <textarea
-          value={other}
-          onChange={(e) => setOther(e.target.value)}
-          maxLength={500}
-        />
+        <textarea value={other} onChange={(e) => setOther(e.target.value)} maxLength={500} />
       </Field>
       <div className="form-actions">
         <Button action={onClose}>取消</Button>
@@ -392,7 +355,17 @@ export function Report({
     </Modal>
   );
 }
-export function Comments({ id, type, embedded = false, onCountChange }: { id: string; type: string; embedded?: boolean; onCountChange?: (count: number) => void }) {
+export function Comments({
+  id,
+  type,
+  embedded = false,
+  onCountChange,
+}: {
+  id: string;
+  type: string;
+  embedded?: boolean;
+  onCountChange?: (count: number) => void;
+}) {
   const [page, setPage] = useState(1),
     [text, setText] = useState(""),
     [reply, setReply] = useState<Row | null>(null),
@@ -441,10 +414,7 @@ export function Comments({ id, type, embedded = false, onCountChange }: { id: st
           </div>
           <p className="prose">{c.content}</p>
           <div className="row-actions">
-            <Button
-              tone="ghost small"
-              action={() => setReply({ ...c, rootId: root })}
-            >
+            <Button tone="ghost small" action={() => setReply({ ...c, rootId: root })}>
               回复
             </Button>
             <Button
@@ -452,15 +422,27 @@ export function Comments({ id, type, embedded = false, onCountChange }: { id: st
               aria-label={c.isLiked ? "取消评论点赞" : "点赞评论"}
               aria-pressed={!!c.isLiked}
               action={async () => {
-                const previous = {isLiked: !!c.isLiked, likeCount: c.likeCount || 0};
-                const updateComment = (patch: Row) => request.update((old: Row) => {
-                  const visit = (items: Row[]): Row[] => items.map(item => ({...item, ...(item.id === c.id ? patch : {}), ...(item.replies ? {replies: visit(item.replies)} : {})}));
-                  return Array.isArray(old) ? visit(old) : {...old, records: visit(rows(old))};
+                const previous = { isLiked: !!c.isLiked, likeCount: c.likeCount || 0 };
+                const updateComment = (patch: Row) =>
+                  request.update((old: Row) => {
+                    const visit = (items: Row[]): Row[] =>
+                      items.map((item) => ({
+                        ...item,
+                        ...(item.id === c.id ? patch : {}),
+                        ...(item.replies ? { replies: visit(item.replies) } : {}),
+                      }));
+                    return Array.isArray(old) ? visit(old) : { ...old, records: visit(rows(old)) };
+                  });
+                updateComment({
+                  isLiked: !previous.isLiked,
+                  likeCount: Math.max(0, previous.likeCount + (previous.isLiked ? -1 : 1)),
                 });
-                updateComment({isLiked: !previous.isLiked, likeCount: Math.max(0, previous.likeCount + (previous.isLiked ? -1 : 1))});
                 try {
-                  const result = await api("/like", "POST", {targetType: "pet_comment", targetId: c.id});
-                  updateComment({isLiked: result.isLiked, likeCount: result.likeCount});
+                  const result = await api("/like", "POST", {
+                    targetType: "pet_comment",
+                    targetId: c.id,
+                  });
+                  updateComment({ isLiked: result.isLiked, likeCount: result.likeCount });
                 } catch (error) {
                   updateComment(previous);
                   throw error;
@@ -475,20 +457,19 @@ export function Comments({ id, type, embedded = false, onCountChange }: { id: st
             </Button>
           </div>
           {c.replies?.length > 0 && (
-            <div className="replies">
-              {c.replies.map((r: Row) => comment(r, String(c.id)))}
-            </div>
+            <div className="replies">{c.replies.map((r: Row) => comment(r, String(c.id)))}</div>
           )}
         </div>
       </article>
     );
   }
   return (
-    <section className={`comment-section ${embedded ? "embedded-comments" : "panel"}`} id={embedded ? undefined : "comments"}>
+    <section
+      className={`comment-section ${embedded ? "embedded-comments" : "panel"}`}
+      id={embedded ? undefined : "comments"}
+    >
       <div className="panel-title">
-        <h2>
-          留言与回应 · {request.data?.total || rows(request.data).length} 条评论
-        </h2>
+        <h2>留言与回应 · {request.data?.total || rows(request.data).length} 条评论</h2>
         {reply && (
           <Button tone="ghost small" action={() => setReply(null)}>
             取消回复 {nick(reply.user)}
@@ -506,13 +487,12 @@ export function Comments({ id, type, embedded = false, onCountChange }: { id: st
           value={text}
           maxLength={2000}
           onChange={(e) => setText(e.target.value)}
-          placeholder={
-            reply ? `回复 ${nick(reply.user)}…` : "说点暖心的话，和宠友聊聊吧…"
-          }
+          placeholder={reply ? `回复 ${nick(reply.user)}…` : "说点暖心的话，和宠友聊聊吧…"}
           aria-label="评论内容"
         />
         <Button tone="primary" disabled={!text.trim()} action={submit}>
-          <Send size={14} />发送
+          <Send size={14} />
+          发送
         </Button>
       </form>
       <DataState request={request}>
@@ -523,26 +503,13 @@ export function Comments({ id, type, embedded = false, onCountChange }: { id: st
         )}
       </DataState>
       {request.data?.total > 20 && (
-        <Pagination
-          page={page}
-          size={20}
-          total={request.data.total}
-          onChange={setPage}
-        />
+        <Pagination page={page} size={20} total={request.data.total} onChange={setPage} />
       )}
-      {report && (
-        <Report id={report} type="comment" onClose={() => setReport(null)} />
-      )}
+      {report && <Report id={report} type="comment" onClose={() => setReport(null)} />}
     </section>
   );
 }
-export function Detail({
-  id,
-  activity = false,
-}: {
-  id: string;
-  activity?: boolean;
-}) {
+export function Detail({ id, activity = false }: { id: string; activity?: boolean }) {
   const request = useData(activity ? `/activity/detail/${id}` : `/pet/${id}`);
   const { user, notify } = useApp();
   const [report, setReport] = useState(false),
@@ -553,13 +520,21 @@ export function Detail({
     ended = p.status === 2;
   const target = activity ? "pet_activity" : "pet_post";
   async function like() {
-    const previous = {isLiked: !!p.isLiked, likeCount: p.likeCount || 0};
-    request.update((old: Row) => ({...old, isLiked: !previous.isLiked, likeCount: Math.max(0, previous.likeCount + (previous.isLiked ? -1 : 1))}));
+    const previous = { isLiked: !!p.isLiked, likeCount: p.likeCount || 0 };
+    request.update((old: Row) => ({
+      ...old,
+      isLiked: !previous.isLiked,
+      likeCount: Math.max(0, previous.likeCount + (previous.isLiked ? -1 : 1)),
+    }));
     try {
       const result = await api("/like", "POST", { targetId: id, targetType: target });
-      request.update((old: Row) => ({...old, isLiked: result.isLiked, likeCount: result.likeCount}));
+      request.update((old: Row) => ({
+        ...old,
+        isLiked: result.isLiked,
+        likeCount: result.likeCount,
+      }));
     } catch (error) {
-      request.update((old: Row) => ({...old, ...previous}));
+      request.update((old: Row) => ({ ...old, ...previous }));
       throw error;
     }
   }
@@ -571,15 +546,14 @@ export function Detail({
   return (
     <>
       <Back />
-      <DataState
-        request={request}
-        empty={!request.data || p.title === "宠物信息暂时不可用"}
-      >
+      <DataState request={request} empty={!request.data || p.title === "宠物信息暂时不可用"}>
         <div className="detail-layout">
           <div>
             <article className="panel">
               <Author user={p.user} date={p.createTime} />
-              <h1 className="detail-title"><Value>{p.title}</Value></h1>
+              <h1 className="detail-title">
+                <Value>{p.title}</Value>
+              </h1>
               <div className="row-actions">
                 <Badge tone={activity ? "blue" : ""}>
                   {activity ? activityName(p.status) : petName(p.status)}
@@ -588,8 +562,9 @@ export function Detail({
                   <Badge tone="neutral">{auditName(p.auditStatus)}</Badge>
                 )}
                 <small>
-                  <Value>发布于 {time(p.createTime)}{" "}
-                  {p.updateTime && `· 更新于 ${time(p.updateTime)}`}</Value>
+                  <Value>
+                    发布于 {time(p.createTime)} {p.updateTime && `· 更新于 ${time(p.updateTime)}`}
+                  </Value>
                 </small>
               </div>
               <Gallery value={images(p.images)} />
@@ -598,44 +573,58 @@ export function Detail({
                   <>
                     <div>
                       <small>活动地点</small>
-                      <strong><Value>{p.location || p.address}</Value></strong>
+                      <strong>
+                        <Value>{p.location || p.address}</Value>
+                      </strong>
                     </div>
                     <div>
                       <small>参与人数</small>
-                      <strong><Value>
-                        {p.currentPeople || 0} / {p.maxPeople || 0}
-                      </Value></strong>
+                      <strong>
+                        <Value>
+                          {p.currentPeople || 0} / {p.maxPeople || 0}
+                        </Value>
+                      </strong>
                     </div>
                     <div>
                       <small>活动时间</small>
-                      <strong><Value>
-                        {time(p.startTime)}
-                        <br />
-                        {time(p.endTime)}
-                      </Value></strong>
+                      <strong>
+                        <Value>
+                          {time(p.startTime)}
+                          <br />
+                          {time(p.endTime)}
+                        </Value>
+                      </strong>
                     </div>
                   </>
                 ) : (
                   <>
                     <div>
                       <small>宠物名字</small>
-                      <strong><Value>{p.petName || "未填写"}</Value></strong>
+                      <strong>
+                        <Value>{p.petName || "未填写"}</Value>
+                      </strong>
                     </div>
                     <div>
                       <small>品种 / 年龄</small>
-                      <strong><Value>
-                        {p.petType || "未知"} · {p.petAge || "未知"}
-                      </Value></strong>
+                      <strong>
+                        <Value>
+                          {p.petType || "未知"} · {p.petAge || "未知"}
+                        </Value>
+                      </strong>
                     </div>
                     <div>
                       <small>性别</small>
-                      <strong><Value>{["未知", "公", "母"][p.petGender || 0]}</Value></strong>
+                      <strong>
+                        <Value>{["未知", "公", "母"][p.petGender || 0]}</Value>
+                      </strong>
                     </div>
                   </>
                 )}
               </div>
               <h2>关于{activity ? "这次相聚" : "这位小伙伴"}</h2>
-              <p className="prose"><Value block>{p.content}</Value></p>
+              <p className="prose">
+                <Value block>{p.content}</Value>
+              </p>
               <small>
                 <Eye size={13} style={{ verticalAlign: "middle" }} />{" "}
                 <Value>{p.viewCount || 0}</Value> 次浏览
@@ -675,7 +664,12 @@ export function Detail({
                   ),
               )}
               <div className="row-actions">
-                <Button tone={`reaction-button ${p.isLiked ? "is-liked" : ""}`} aria-label={p.isLiked ? "取消点赞" : "点赞"} aria-pressed={!!p.isLiked} action={like}>
+                <Button
+                  tone={`reaction-button ${p.isLiked ? "is-liked" : ""}`}
+                  aria-label={p.isLiked ? "取消点赞" : "点赞"}
+                  aria-pressed={!!p.isLiked}
+                  action={like}
+                >
                   <Heart size={15} fill={p.isLiked ? "currentColor" : "none"} />
                   {p.likeCount || 0} 赞
                 </Button>
@@ -692,41 +686,25 @@ export function Detail({
                 )}
               </div>
               {activity && !owner && (
-                <Button
-                  tone="primary"
-                  disabled={ended}
-                  action={() => setSignup(true)}
-                >
-                  {ended
-                    ? "活动已结束"
-                    : p.isSignUp === 1
-                      ? "查看报名信息"
-                      : "报名参加"}
+                <Button tone="primary" disabled={ended} action={() => setSignup(true)}>
+                  {ended ? "活动已结束" : p.isSignUp === 1 ? "查看报名信息" : "报名参加"}
                 </Button>
               )}
               {activity && p.isSignUp === 1 && !ended && (
-                <Button action={() => mutate(`/activity/cancelSignUp/${id}`)}>
-                  取消报名
-                </Button>
+                <Button action={() => mutate(`/activity/cancelSignUp/${id}`)}>取消报名</Button>
               )}
               {owner && (
                 <div className="row-actions">
                   {canEdit(p) && (
                     <Link
                       className="btn"
-                      to={
-                        activity
-                          ? `/pets/create?type=2&id=${id}`
-                          : `/pets/${id}/edit`
-                      }
+                      to={activity ? `/pets/create?type=2&id=${id}` : `/pets/${id}/edit`}
                     >
                       编辑
                     </Link>
                   )}
                   {!activity && p.status === 1 && (
-                    <Button action={() => mutate(url("/pet/complete", { id }))}>
-                      标记完成
-                    </Button>
+                    <Button action={() => mutate(url("/pet/complete", { id }))}>标记完成</Button>
                   )}
                   {!ended && (
                     <Button
@@ -734,9 +712,7 @@ export function Detail({
                       action={async () => {
                         if (confirm("确定下架或删除这条内容吗？")) {
                           await mutate(
-                            activity
-                              ? `/activity/delete/${id}`
-                              : url("/pet/delete", { id }),
+                            activity ? `/activity/delete/${id}` : url("/pet/delete", { id }),
                           );
                         }
                       }}
@@ -744,9 +720,7 @@ export function Detail({
                       下架 / 删除
                     </Button>
                   )}
-                  {activity && (
-                    <Button action={() => setSignups(true)}>查看报名人</Button>
-                  )}
+                  {activity && <Button action={() => setSignups(true)}>查看报名人</Button>}
                 </div>
               )}
               {user && !owner && (
@@ -777,19 +751,9 @@ export function Detail({
         </div>
       </DataState>
       {report && (
-        <Report
-          type={activity ? "activity" : "pet"}
-          id={id}
-          onClose={() => setReport(false)}
-        />
+        <Report type={activity ? "activity" : "pet"} id={id} onClose={() => setReport(false)} />
       )}
-      {signup && (
-        <Signup
-          id={id}
-          onClose={() => setSignup(false)}
-          reload={request.reload}
-        />
-      )}
+      {signup && <Signup id={id} onClose={() => setSignup(false)} reload={request.reload} />}
       {signups && <Signups id={id} onClose={() => setSignups(false)} />}
     </>
   );
@@ -832,12 +796,28 @@ export function AuditActions({
       </div>
       {reason !== null && (
         <Modal title={compact ? "驳回/拒绝审核理由" : "拒绝审核"} onClose={() => setReason(null)}>
-          {compact && <><p className="governance-info-text">请选择或输入具体的拒绝理由，该理由将同步通知到原作者。</p><div className="tag-list">{['存在疑似变相买卖、收取非合理押金或运费','发布信息不全，缺少详细的疫苗及健康检疫证明','图片带有外部非合规联系方式或水印广告','内容与流浪动物救助/伴侣动物领养主题无关','重复多次发布相同求领养信息'].map(value=><Button key={value} tone="small" action={()=>setReason(value)}>{value}</Button>)}</div></>}
+          {compact && (
+            <>
+              <p className="governance-info-text">
+                请选择或输入具体的拒绝理由，该理由将同步通知到原作者。
+              </p>
+              <div className="tag-list">
+                {[
+                  "存在疑似变相买卖、收取非合理押金或运费",
+                  "发布信息不全，缺少详细的疫苗及健康检疫证明",
+                  "图片带有外部非合规联系方式或水印广告",
+                  "内容与流浪动物救助/伴侣动物领养主题无关",
+                  "重复多次发布相同求领养信息",
+                ].map((value) => (
+                  <Button key={value} tone="small" action={() => setReason(value)}>
+                    {value}
+                  </Button>
+                ))}
+              </div>
+            </>
+          )}
           <Field label="拒绝理由" required>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
+            <textarea value={reason} onChange={(e) => setReason(e.target.value)} />
           </Field>
           <div className="form-actions">
             <Button action={() => setReason(null)}>取消</Button>
@@ -904,10 +884,7 @@ export function Signups({ id, onClose }: { id: string; onClose: () => void }) {
     [revision, setRevision] = useState(0);
   useEffect(() => {
     let alive = true;
-    api(
-      url(`/activity/signUpList/${id}`, { pageNum: page, pageSize: 20 }),
-      "POST",
-    )
+    api(url(`/activity/signUpList/${id}`, { pageNum: page, pageSize: 20 }), "POST")
       .then((v) => {
         if (alive) setData(v);
       })
@@ -925,11 +902,9 @@ export function Signups({ id, onClose }: { id: string; onClose: () => void }) {
         <table className="data-table">
           <thead>
             <tr>
-              {["昵称", "真实姓名", "电话", "备注", "报名时间", "状态"].map(
-                (t) => (
-                  <th key={t}>{t}</th>
-                ),
-              )}
+              {["昵称", "真实姓名", "电话", "备注", "报名时间", "状态"].map((t) => (
+                <th key={t}>{t}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -963,26 +938,13 @@ export function Signups({ id, onClose }: { id: string; onClose: () => void }) {
         </table>
       </div>
       {data && !rows(data).length && <Empty text="暂无报名记录" />}
-      <Pagination
-        page={page}
-        size={20}
-        total={data?.total || 0}
-        onChange={setPage}
-      />
+      <Pagination page={page} size={20} total={data?.total || 0} onChange={setPage} />
     </Modal>
   );
 }
-export function Editor({
-  id,
-  activity = false,
-}: {
-  id?: string;
-  activity?: boolean;
-}) {
+export function Editor({ id, activity = false }: { id?: string; activity?: boolean }) {
   const { notify } = useApp();
-  const request = useData(
-    id ? (activity ? `/activity/detail/${id}` : `/pet/${id}`) : null,
-  );
+  const request = useData(id ? (activity ? `/activity/detail/${id}` : `/pet/${id}`) : null);
   const [form, set] = useState<Row>({
     type: 0,
     title: "",
@@ -1013,8 +975,7 @@ export function Editor({
   }, [request.data]);
   const update = (key: string, v: any) => set((p) => ({ ...p, [key]: v }));
   async function save() {
-    if (!form.title.trim() || !form.content.trim())
-      throw new Error("请填写标题与详细描述");
+    if (!form.title.trim() || !form.content.trim()) throw new Error("请填写标题与详细描述");
     if (activity) {
       if (!form.location || !form.startTime || !form.endTime)
         throw new Error("请填写地点和活动时间");
@@ -1025,8 +986,7 @@ export function Editor({
         throw new Error("请检查活动起止时间");
     } else if (!form.address || !/^1[3-9]\d{9}$/.test(form.contactPhone))
       throw new Error("请填写地址和有效联系电话");
-    if (id && !canEdit(request.data || {}))
-      throw new Error("已完成或已结束内容不能修改");
+    if (id && !canEdit(request.data || {})) throw new Error("已完成或已结束内容不能修改");
     const payload = activity
       ? {
           id,
@@ -1035,12 +995,8 @@ export function Editor({
           images: form.images,
           location: form.location,
           maxPeople: Number(form.maxPeople),
-          startTime:
-            form.startTime.length === 16
-              ? form.startTime + ":00"
-              : form.startTime,
-          endTime:
-            form.endTime.length === 16 ? form.endTime + ":00" : form.endTime,
+          startTime: form.startTime.length === 16 ? form.startTime + ":00" : form.startTime,
+          endTime: form.endTime.length === 16 ? form.endTime + ":00" : form.endTime,
         }
       : {
           id,
@@ -1070,12 +1026,7 @@ export function Editor({
     notify("已保存，请等待审核");
     navigate("/pets/my-posts");
   }
-  const input = (
-    key: string,
-    label: string,
-    type = "text",
-    required = false,
-  ) => (
+  const input = (key: string, label: string, type = "text", required = false) => (
     <Field label={label} required={required}>
       <input
         type={type}
@@ -1101,93 +1052,88 @@ export function Editor({
         title={`${id ? "编辑" : "发布"}${activity ? "同城活动" : "领养 / 救助信息"}`}
         description="把信息填写完整，让每一次沟通都更安心。"
       />
-      <DataState request={request}><form className="panel" onSubmit={(e) => e.preventDefault()}>
-        {!activity && (
-          <Field label="发布类型">
-            <select
-              value={form.type}
-              onChange={(e) => update("type", e.target.value)}
-            >
-              <option value="0">领养寻家</option>
-              <option value="1">爱心救助</option>
-            </select>
+      <DataState request={request}>
+        <form className="panel" onSubmit={(e) => e.preventDefault()}>
+          {!activity && (
+            <Field label="发布类型">
+              <select value={form.type} onChange={(e) => update("type", e.target.value)}>
+                <option value="0">领养寻家</option>
+                <option value="1">爱心救助</option>
+              </select>
+            </Field>
+          )}
+          {input("title", "标题", "text", true)}
+          <div className="form-grid">
+            {activity ? (
+              <>
+                {input("startTime", "开始时间", "datetime-local", true)}
+                {input("endTime", "结束时间", "datetime-local", true)}
+                {input("location", "活动地点", "text", true)}
+                {input("maxPeople", "最大参与人数", "number", true)}
+              </>
+            ) : (
+              <>
+                {input("petName", "宠物名字")}
+                <Field label="宠物品种">
+                  <input
+                    value={form.petType}
+                    onChange={(e) => update("petType", e.target.value)}
+                    list="pet-breeds"
+                  />
+                  <datalist id="pet-breeds">
+                    {["猫", "狗", "兔子", "仓鼠", "其他"].map((v) => (
+                      <option key={v}>{v}</option>
+                    ))}
+                  </datalist>
+                </Field>
+                {input("petAge", "年龄")}
+                <Field label="性别">
+                  <select
+                    value={form.petGender}
+                    onChange={(e) => update("petGender", e.target.value)}
+                  >
+                    <option value="0">未知</option>
+                    <option value="1">公</option>
+                    <option value="2">母</option>
+                  </select>
+                </Field>
+              </>
+            )}
+          </div>
+          <Field label="图片">
+            <Upload value={form.images} onChange={(v) => update("images", v)} />
           </Field>
-        )}
-        {input("title", "标题", "text", true)}
-        <div className="form-grid">
-          {activity ? (
+          <Field label="详细描述" required>
+            <textarea
+              value={form.content}
+              onChange={(e) => update("content", e.target.value)}
+              rows={6}
+              maxLength={20000}
+            />
+          </Field>
+          {!activity && (
             <>
-              {input("startTime", "开始时间", "datetime-local", true)}
-              {input("endTime", "结束时间", "datetime-local", true)}
-              {input("location", "活动地点", "text", true)}
-              {input("maxPeople", "最大参与人数", "number", true)}
-            </>
-          ) : (
-            <>
-              {input("petName", "宠物名字")}
-              <Field label="宠物品种">
-                <input
-                  value={form.petType}
-                  onChange={(e) => update("petType", e.target.value)}
-                  list="pet-breeds"
-                />
-                <datalist id="pet-breeds">
-                  {["猫", "狗", "兔子", "仓鼠", "其他"].map((v) => (
-                    <option key={v}>{v}</option>
-                  ))}
-                </datalist>
-              </Field>
-              {input("petAge", "年龄")}
-              <Field label="性别">
-                <select
-                  value={form.petGender}
-                  onChange={(e) => update("petGender", e.target.value)}
-                >
-                  <option value="0">未知</option>
-                  <option value="1">公</option>
-                  <option value="2">母</option>
-                </select>
-              </Field>
+              {input("address", "所在地址", "text", true)}
+              <div className="form-grid">
+                {input("contactPhone", "联系电话", "tel", true)}
+                {input("contactWechat", "微信号")}
+              </div>
             </>
           )}
-        </div>
-        <Field label="图片">
-          <Upload value={form.images} onChange={(v) => update("images", v)} />
-        </Field>
-        <Field label="详细描述" required>
-          <textarea
-            value={form.content}
-            onChange={(e) => update("content", e.target.value)}
-            rows={6}
-            maxLength={20000}
-          />
-        </Field>
-        {!activity && (
-          <>
-            {input("address", "所在地址", "text", true)}
-            <div className="form-grid">
-              {input("contactPhone", "联系电话", "tel", true)}
-              {input("contactWechat", "微信号")}
-            </div>
-          </>
-        )}
-        <div className="form-actions">
-          <Link to="/pets/my-posts" className="btn">
-            取消
-          </Link>
-          <Button tone="primary" action={save}>
-            {id ? "保存修改" : "提交发布"}
-          </Button>
-        </div>
-      </form></DataState>
+          <div className="form-actions">
+            <Link to="/pets/my-posts" className="btn">
+              取消
+            </Link>
+            <Button tone="primary" action={save}>
+              {id ? "保存修改" : "提交发布"}
+            </Button>
+          </div>
+        </form>
+      </DataState>
     </div>
   );
 }
-export function MyContent({
-  mode = "posts",
-}: {
-  mode?: "posts" | "collections" | "recycle";
-}) {
+export function MyContent({ mode = "posts" }: { mode?: "posts" | "collections" | "recycle" }) {
   const [activity, setActivity] = useState(false),
     [page, setPage] = useState(1),
     [signups, setSignups] = useState<string | null>(null);
@@ -1211,23 +1157,14 @@ export function MyContent({
   return (
     <>
       <Intro
-        title={
-          mode === "posts"
-            ? "我的发布"
-            : mode === "collections"
-              ? "珍藏的小伙伴"
-              : "回收站"
-        }
+        title={mode === "posts" ? "我的发布" : mode === "collections" ? "珍藏的小伙伴" : "回收站"}
         description={
           mode === "recycle"
             ? "找回曾经的分享，或与它认真告别。"
             : "记录每一次分享，也记录每一份关心。"
         }
       >
-        <Link
-          to={activity ? "/pets/create?type=2" : "/pets/create"}
-          className="btn primary"
-        >
+        <Link to={activity ? "/pets/create?type=2" : "/pets/create"} className="btn primary">
           <Plus size={14} />
           发布
         </Link>
@@ -1263,10 +1200,7 @@ export function MyContent({
                 查看
               </Link>
               {mode === "collections" ? (
-                <Button
-                  tone="small"
-                  action={() => mutate(`/pet/${p.id}/collect`)}
-                >
+                <Button tone="small" action={() => mutate(`/pet/${p.id}/collect`)}>
                   取消收藏
                 </Button>
               ) : mode === "recycle" ? (
@@ -1275,9 +1209,7 @@ export function MyContent({
                     tone="small"
                     action={() =>
                       mutate(
-                        activity
-                          ? `/activity/recover/${p.id}`
-                          : url("/pet/recover", { id: p.id }),
+                        activity ? `/activity/recover/${p.id}` : url("/pet/recover", { id: p.id }),
                       )
                     }
                   >
@@ -1303,36 +1235,23 @@ export function MyContent({
                   {canEdit(p) && (
                     <Link
                       className="btn small"
-                      to={
-                        activity
-                          ? `/pets/create?type=2&id=${p.id}`
-                          : `/pets/${p.id}/edit`
-                      }
+                      to={activity ? `/pets/create?type=2&id=${p.id}` : `/pets/${p.id}/edit`}
                     >
                       编辑
                     </Link>
                   )}
                   {!activity && p.status === 1 && (
-                    <Button
-                      tone="small"
-                      action={() => mutate(url("/pet/complete", { id: p.id }))}
-                    >
+                    <Button tone="small" action={() => mutate(url("/pet/complete", { id: p.id }))}>
                       完成
                     </Button>
                   )}
                   {activity && (
-                    <Button
-                      tone="small"
-                      action={() => setSignups(String(p.id))}
-                    >
+                    <Button tone="small" action={() => setSignups(String(p.id))}>
                       查看报名人
                     </Button>
                   )}
                   {!activity && p.status === 1 && (
-                    <Button
-                      tone="small"
-                      action={() => mutate(url("/pet/offline", { id: p.id }))}
-                    >
+                    <Button tone="small" action={() => mutate(url("/pet/offline", { id: p.id }))}>
                       下架
                     </Button>
                   )}
@@ -1354,9 +1273,7 @@ export function MyContent({
                     action={async () => {
                       if (confirm("确定删除这条内容吗？"))
                         await mutate(
-                          activity
-                            ? `/activity/delete/${p.id}`
-                            : url("/pet/delete", { id: p.id }),
+                          activity ? `/activity/delete/${p.id}` : url("/pet/delete", { id: p.id }),
                         );
                     }}
                   >
@@ -1368,11 +1285,7 @@ export function MyContent({
           ))}
         </div>
       </DataState>
-      <Pagination
-        page={page}
-        total={request.data?.total || 0}
-        onChange={setPage}
-      />
+      <Pagination page={page} total={request.data?.total || 0} onChange={setPage} />
       {signups && <Signups id={signups} onClose={() => setSignups(null)} />}
     </>
   );
@@ -1391,14 +1304,14 @@ export function Notice({ id }: { id: string }) {
           <div className="row-actions">
             {n?.isTop === 1 && <Badge tone="orange">置顶</Badge>}
             <Badge>{["", "系统公告", "活动通知", "重要提醒"][n?.type]}</Badge>
-            {n?.priority > 0 && (
-              <Badge tone="orange">
-                {["普通", "重要", "紧急"][n.priority]}
-              </Badge>
-            )}
+            {n?.priority > 0 && <Badge tone="orange">{["普通", "重要", "紧急"][n.priority]}</Badge>}
           </div>
-          <h1 className="detail-title"><Value>{n?.title}</Value></h1>
-          <p className="muted"><Value>发布于 {time(n?.publishTime)}</Value></p>
+          <h1 className="detail-title">
+            <Value>{n?.title}</Value>
+          </h1>
+          <p className="muted">
+            <Value>发布于 {time(n?.publishTime)}</Value>
+          </p>
           <hr
             style={{
               border: 0,
@@ -1406,7 +1319,9 @@ export function Notice({ id }: { id: string }) {
               margin: "24px 0",
             }}
           />
-          <div className="prose"><Value block>{n?.content}</Value></div>
+          <div className="prose">
+            <Value block>{n?.content}</Value>
+          </div>
         </article>
       </DataState>
     </div>

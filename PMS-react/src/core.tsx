@@ -1,11 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useId, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -50,17 +43,17 @@ export function Link({
     <a
       href={to}
       {...props}
-      onPointerEnter={e => { props.onPointerEnter?.(e); preloadRoute(to); }}
-      onFocus={e => { props.onFocus?.(e); preloadRoute(to); }}
+      onPointerEnter={(e) => {
+        props.onPointerEnter?.(e);
+        preloadRoute(to);
+      }}
+      onFocus={(e) => {
+        props.onFocus?.(e);
+        preloadRoute(to);
+      }}
       onClick={(e) => {
         props.onClick?.(e);
-        if (
-          !e.defaultPrevented &&
-          !e.metaKey &&
-          !e.ctrlKey &&
-          !e.shiftKey &&
-          e.button === 0
-        ) {
+        if (!e.defaultPrevented && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) {
           e.preventDefault();
           navigate(to);
         }
@@ -81,38 +74,58 @@ export function usePath() {
 }
 export function useData<T = any>(path: string | null, key = 0) {
   const { revision } = useApp();
-  const session = localStorage.getItem('token') || 'guest';
-  const cacheKey = path ? JSON.stringify([session, path]) : '';
-  const [state, setState] = useState<{key: string; session: string; data: T | null; error: string; pending: boolean}>(() => ({key: cacheKey, session, data: null, error: '', pending: !!path}));
+  const session = localStorage.getItem("token") || "guest";
+  const cacheKey = path ? JSON.stringify([session, path]) : "";
+  const [state, setState] = useState<{
+    key: string;
+    session: string;
+    data: T | null;
+    error: string;
+    pending: boolean;
+  }>(() => ({ key: cacheKey, session, data: null, error: "", pending: !!path }));
   const [local, reload] = useState(0);
   // Unread-count/read actions must not invalidate unrelated forms and details.
-  const revisionKey = path?.startsWith('/message/') || path?.startsWith('/feed/') ? revision : 0;
+  const revisionKey = path?.startsWith("/message/") || path?.startsWith("/feed/") ? revision : 0;
   const data = state.session === session ? state.data : null;
   useEffect(() => {
-    if (!path) { setState({key: cacheKey, session, data: null, error: '', pending: false}); return; }
+    if (!path) {
+      setState({ key: cacheKey, session, data: null, error: "", pending: false });
+      return;
+    }
     const controller = new AbortController();
-    setState(prev => ({key: cacheKey, session, data: prev.session === session ? prev.data : null, error: '', pending: true}));
-    api<T>(path, 'GET', undefined, controller.signal).then(value => {
-      if (controller.signal.aborted) return;
-      setState({key: cacheKey, session, data: value, error: '', pending: false});
-    }).catch(error => {
-      if (!controller.signal.aborted) setState(prev => prev.key === cacheKey ? {...prev, error: error.message, pending: false} : prev);
-    });
+    setState((prev) => ({
+      key: cacheKey,
+      session,
+      data: prev.session === session ? prev.data : null,
+      error: "",
+      pending: true,
+    }));
+    api<T>(path, "GET", undefined, controller.signal)
+      .then((value) => {
+        if (controller.signal.aborted) return;
+        setState({ key: cacheKey, session, data: value, error: "", pending: false });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted)
+          setState((prev) =>
+            prev.key === cacheKey ? { ...prev, error: error.message, pending: false } : prev,
+          );
+      });
     return () => controller.abort();
   }, [cacheKey, path, key, local, revisionKey]);
   const loading = !!path && data == null && (state.key !== cacheKey || state.pending);
   useRouteRequest(loading);
   return {
     data: data as T | null,
-    error: state.key === cacheKey ? state.error : '',
+    error: state.key === cacheKey ? state.error : "",
     loading,
     refreshing: state.key === cacheKey && state.pending,
-    reload: () => reload(v => v + 1),
+    reload: () => reload((v) => v + 1),
     update: (updater: (old: T) => T) => {
-      setState(prev => {
+      setState((prev) => {
         if (prev.key !== cacheKey || prev.data == null || !path) return prev;
         const next = updater(prev.data);
-        return {...prev, data: next, error: ''};
+        return { ...prev, data: next, error: "" };
       });
     },
   };
@@ -156,12 +169,24 @@ export function Button({
   );
 }
 const PendingContext = createContext(false);
-export function Value({children, block = false}: {children: React.ReactNode; block?: boolean}) {
+export function Value({ children, block = false }: { children: React.ReactNode; block?: boolean }) {
   const pending = useContext(PendingContext);
-  return <span className={`data-value${block ? ' data-value-block' : ''}`} data-pending={pending || undefined} aria-hidden={pending || undefined}>{pending ? '\u00a0' : children}</span>;
+  return (
+    <span
+      className={`data-value${block ? " data-value-block" : ""}`}
+      data-pending={pending || undefined}
+      aria-hidden={pending || undefined}
+    >
+      {pending ? "\u00a0" : children}
+    </span>
+  );
 }
 export function Busy() {
-  return <div className="route-pending" role="status">正在打开页面…</div>;
+  return (
+    <div className="route-pending" role="status">
+      正在打开页面…
+    </div>
+  );
 }
 export function Empty({
   text = "这里还没有内容",
@@ -179,21 +204,44 @@ export function Empty({
     </div>
   );
 }
-export function DataState({request, children, empty = false}: {
+export function DataState({
+  request,
+  children,
+  empty = false,
+}: {
   request: Pick<ReturnType<typeof useData>, "data" | "error" | "loading" | "reload">;
   children: React.ReactNode;
   empty?: boolean;
 }) {
   const pending = request.loading;
   const failed = !!request.error && request.data == null;
-  return <div className="data-region" aria-busy={pending}>
-    <div className="region-status" role="status">{pending ? '正在获取内容…' : ''}</div>
-    {request.error && <div className="background-error" role={failed ? 'alert' : 'status'}>{failed ? request.error : '更新失败，暂时保留当前内容。'}<Button tone="ghost small" action={request.reload}><RotateCcw size={15} />重试</Button></div>}
-    <PendingContext.Provider value={pending}>
-      <div className="data-content" data-pending={pending || undefined} hidden={failed || (!pending && empty)} inert={pending || undefined}>{children}</div>
-    </PendingContext.Provider>
-    {!pending && !failed && empty && <Empty />}
-  </div>;
+  return (
+    <div className="data-region" aria-busy={pending}>
+      <div className="region-status" role="status">
+        {pending ? "正在获取内容…" : ""}
+      </div>
+      {request.error && (
+        <div className="background-error" role={failed ? "alert" : "status"}>
+          {failed ? request.error : "更新失败，暂时保留当前内容。"}
+          <Button tone="ghost small" action={request.reload}>
+            <RotateCcw size={15} />
+            重试
+          </Button>
+        </div>
+      )}
+      <PendingContext.Provider value={pending}>
+        <div
+          className="data-content"
+          data-pending={pending || undefined}
+          hidden={failed || (!pending && empty)}
+          inert={pending || undefined}
+        >
+          {children}
+        </div>
+      </PendingContext.Provider>
+      {!pending && !failed && empty && <Empty />}
+    </div>
+  );
 }
 export function Intro({
   title,
@@ -217,17 +265,15 @@ export function Intro({
     </section>
   );
 }
-export function Avatar({
-  user,
-  size = 38,
-}: {
-  user?: Row | null;
-  size?: number;
-}) {
+export function Avatar({ user, size = 38 }: { user?: Row | null; size?: number }) {
   const [failed, setFailed] = useState(false);
   const pending = useContext(PendingContext);
   return (
-    <span className="avatar" data-pending={pending || undefined} style={{ width: size, height: size }}>
+    <span
+      className="avatar"
+      data-pending={pending || undefined}
+      style={{ width: size, height: size }}
+    >
       {user?.avatar && !failed ? (
         <RouteImage src={user.avatar} alt="" onError={() => setFailed(true)} />
       ) : (
@@ -243,25 +289,22 @@ export function Author({ user, date }: { user?: Row | null; date?: any }) {
         <Avatar user={user} />
       </Link>
       <div>
-        <Link
-          to={`/user/${user?.id || user?.userId || ""}`}
-          className="author-name"
-        >
+        <Link to={`/user/${user?.id || user?.userId || ""}`} className="author-name">
           <Value>{nick(user)}</Value>
         </Link>
-        <small><Value>{time(date)}</Value></small>
+        <small>
+          <Value>{time(date)}</Value>
+        </small>
       </div>
     </div>
   );
 }
-export function Badge({
-  children,
-  tone = "",
-}: {
-  children: React.ReactNode;
-  tone?: string;
-}) {
-  return <span className={`badge ${tone}`}><Value>{children}</Value></span>;
+export function Badge({ children, tone = "" }: { children: React.ReactNode; tone?: string }) {
+  return (
+    <span className={`badge ${tone}`}>
+      <Value>{children}</Value>
+    </span>
+  );
 }
 export function Field({
   label,
@@ -300,21 +343,13 @@ export function Pagination({
   return (
     <nav className="pagination" aria-label="分页">
       <span>共 {total} 条</span>
-      <Button
-        disabled={page <= 1}
-        action={() => onChange(page - 1)}
-        aria-label="上一页"
-      >
+      <Button disabled={page <= 1} action={() => onChange(page - 1)} aria-label="上一页">
         <ChevronLeft size={16} />
       </Button>
       <span>
         {page} / {pages}
       </span>
-      <Button
-        disabled={page >= pages}
-        action={() => onChange(page + 1)}
-        aria-label="下一页"
-      >
+      <Button disabled={page >= pages} action={() => onChange(page + 1)} aria-label="下一页">
         <ChevronRight size={16} />
       </Button>
     </nav>
@@ -494,8 +529,7 @@ export function Upload({
             const uploaded = [...value];
             try {
               for (const file of files) {
-                if (file.size > 2 * 1024 * 1024)
-                  throw new Error("图片不能超过 2MB");
+                if (file.size > 2 * 1024 * 1024) throw new Error("图片不能超过 2MB");
                 const form = new FormData();
                 form.append("file", file);
                 const result = await api(endpoint, "POST", form);

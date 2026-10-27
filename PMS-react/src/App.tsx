@@ -1,12 +1,6 @@
 import { MySignups } from "./mySignups";
-import {maintainNotificationConnection} from "./notificationConnection";
-import {
-  lazy,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { maintainNotificationConnection } from "./notificationConnection";
+import { lazy, useCallback, useEffect, useRef, useState } from "react";
 import {
   Bell,
   Check,
@@ -36,25 +30,11 @@ import {
   useApp,
 } from "./core";
 import { Detail, Editor, Home, MyContent, Notice, Pets } from "./content";
-import {
-  Auth,
-  Diaries,
-  Feed,
-  Messages,
-  Profile,
-  PublishDiary,
-  UserPage,
-} from "./social";
+import { Auth, Diaries, Feed, Messages, Profile, PublishDiary, UserPage } from "./social";
 const Admin = lazy(loadAdmin);
-const AuditDetail = lazy(() =>
-  loadAdmin().then((m) => ({ default: m.AuditDetail })),
-);
-const AIChat = lazy(() =>
-  loadChat().then((m) => ({ default: m.AIChat })),
-);
-const PrivateChat = lazy(() =>
-  loadChat().then((m) => ({ default: m.PrivateChat })),
-);
+const AuditDetail = lazy(() => loadAdmin().then((m) => ({ default: m.AuditDetail })));
+const AIChat = lazy(() => loadChat().then((m) => ({ default: m.AIChat })));
+const PrivateChat = lazy(() => loadChat().then((m) => ({ default: m.PrivateChat })));
 
 function Header({ path }: { path: string }) {
   const { user, refresh } = useApp();
@@ -118,12 +98,8 @@ function Header({ path }: { path: string }) {
             </Link>
           ))}
           {user?.role === 1 && (
-            <Link
-              to="/audit"
-              className={`admin-link ${path.startsWith("/audit") ? "active" : ""}`}
-            >
-              <ShieldCheck size={13} style={{ verticalAlign: "middle" }} />{" "}
-              管理后台
+            <Link to="/audit" className={`admin-link ${path.startsWith("/audit") ? "active" : ""}`}>
+              <ShieldCheck size={13} style={{ verticalAlign: "middle" }} /> 管理后台
             </Link>
           )}
         </nav>
@@ -149,9 +125,7 @@ function Header({ path }: { path: string }) {
               >
                 <MessageCircle size={20} />
                 {privateCounts.data > 0 && (
-                  <span className="counter">
-                    {Math.min(99, privateCounts.data)}
-                  </span>
+                  <span className="counter">{Math.min(99, privateCounts.data)}</span>
                 )}
               </Link>
               <Link
@@ -162,9 +136,7 @@ function Header({ path }: { path: string }) {
               >
                 <Bell size={20} />
                 {counts.data > 0 && (
-                  <span className="counter">
-                    {counts.data > 99 ? "99+" : counts.data}
-                  </span>
+                  <span className="counter">{counts.data > 99 ? "99+" : counts.data}</span>
                 )}
               </Link>
               <details className="menu" ref={menu}>
@@ -205,9 +177,7 @@ function Header({ path }: { path: string }) {
   );
 }
 const publicRoute = (path: string) =>
-  ["/", "/pets", "/dashboard", "/daily", "/login", "/register"].includes(
-    path,
-  ) ||
+  ["/", "/pets", "/dashboard", "/daily", "/login", "/register"].includes(path) ||
   /^\/pets\/(?:activity\/)?\d+$/.test(path) ||
   /^\/daily\/\d+$/.test(path) ||
   /^\/notice\/\d+$/.test(path);
@@ -219,10 +189,7 @@ function Router({ path }: { path: string }) {
       <>
         <Intro title="登录后，和宠友一起分享" />
         <Empty text="这个页面需要先登录">
-          <Link
-            className="btn primary"
-            to={`/login?next=${encodeURIComponent(path)}`}
-          >
+          <Link className="btn primary" to={`/login?next=${encodeURIComponent(path)}`}>
             去登录
           </Link>
         </Empty>
@@ -233,8 +200,8 @@ function Router({ path }: { path: string }) {
   if (p === "/pets/create")
     return (
       <Editor
-        id={new URLSearchParams(path.split('?')[1]).get("id") || undefined}
-        activity={new URLSearchParams(path.split('?')[1]).get("type") === "2"}
+        id={new URLSearchParams(path.split("?")[1]).get("id") || undefined}
+        activity={new URLSearchParams(path.split("?")[1]).get("type") === "2"}
       />
     );
   if (p === "/my-signups") return <MySignups />;
@@ -269,11 +236,7 @@ function Router({ path }: { path: string }) {
     return (
       <>
         <Intro title="系统设置" />
-        <Empty
-          text={
-            user?.role === 1 ? "当前暂无可配置项目" : "仅管理员可访问此页面"
-          }
-        />
+        <Empty text={user?.role === 1 ? "当前暂无可配置项目" : "仅管理员可访问此页面"} />
       </>
     );
   return (
@@ -291,9 +254,7 @@ export default function App() {
     [boot, setBoot] = useState(!!localStorage.getItem("token")),
     [toast, setToast] = useState<{ text: string; error: boolean } | null>(null),
     [revision, setRevision] = useState(0);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
-  );
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const notify = useCallback((text: string, error = false) => {
     setToast({ text, error });
     clearTimeout(toastTimer.current);
@@ -332,34 +293,40 @@ export default function App() {
     if (!user) return;
     const token = localStorage.getItem("token");
     return maintainNotificationConnection(async () => {
-      const {default: SockJS} = await import("sockjs-client");
+      const { default: SockJS } = await import("sockjs-client");
       return new SockJS(`/pet-system/ws?token=${encodeURIComponent(token || "")}`);
     }, refresh);
   }, [uid(user)]);
   useEffect(() => {
     document.title = `${displayedPath.startsWith("/audit") ? "管理工作台" : displayedPath.startsWith("/ai-chat") ? "AI养宠顾问" : displayedPath.startsWith("/private-message") ? "私信" : "宠友社区"} · PetCircle 宠友社`;
   }, [displayedPath]);
-  const auth =
-    path.split("?")[0] === "/login" || path.split("?")[0] === "/register";
+  const auth = path.split("?")[0] === "/login" || path.split("?")[0] === "/register";
   return (
-    <AppContext.Provider
-      value={{ user, refreshUser, notify, revision, refresh }}
-    >
+    <AppContext.Provider value={{ user, refreshUser, notify, revision, refresh }}>
       {auth ? (
         <Auth register={path.startsWith("/register")} />
       ) : (
         <div className="shell">
           <Header path={displayedPath} />
           <main className="page">
-            {boot && !publicRoute(path.split('?')[0]) ? <Busy /> : <PrivateMessageRoutes path={path} enabled={!!user && !boot} onCommit={setDisplayedPath} renderPrivate={close => <PrivateChat onClose={close} />}>{readyPath => <Router key={readyPath} path={readyPath} />}</PrivateMessageRoutes>}
+            {boot && !publicRoute(path.split("?")[0]) ? (
+              <Busy />
+            ) : (
+              <PrivateMessageRoutes
+                path={path}
+                enabled={!!user && !boot}
+                onCommit={setDisplayedPath}
+                renderPrivate={(close) => <PrivateChat onClose={close} />}
+              >
+                {(readyPath) => <Router key={readyPath} path={readyPath} />}
+              </PrivateMessageRoutes>
+            )}
           </main>
           <footer className="site-footer">
             <span>
               <strong>PetCircle · 宠友社</strong>　用心陪伴，以爱相聚
             </span>
-            <span>
-              领养 · 互助 · 分享　© {new Date().getFullYear()} PetCircle
-            </span>
+            <span>领养 · 互助 · 分享　© {new Date().getFullYear()} PetCircle</span>
           </footer>
         </div>
       )}

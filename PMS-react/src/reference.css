@@ -1,8 +1,8 @@
 @layer base {
   :root {
     --font-sans:
-      "Plus Jakarta Sans", "Noto Sans SC", -apple-system, BlinkMacSystemFont,
-      "Segoe UI", Roboto, sans-serif;
+      "Plus Jakarta Sans", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      sans-serif;
   }
 
   body {

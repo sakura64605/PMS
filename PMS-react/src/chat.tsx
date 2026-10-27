@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import {usePrivateHistory} from "./privateHistory";
-import {usePrivateComposer} from "./privateComposer";
-import {privateMessageTimeline} from "./privateMessageTime";
+import { usePrivateHistory } from "./privateHistory";
+import { usePrivateComposer } from "./privateComposer";
+import { privateMessageTimeline } from "./privateMessageTime";
 import { useRouteLocation, useRouteVisible } from "./routeTransition";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
@@ -42,7 +42,7 @@ import {
   useData,
 } from "./core";
 
-export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
+export function PrivateChat({ onClose }: { onClose?: () => void } = {}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const visible = useRouteVisible();
   const close = onClose || (() => navigate("/pets"));
@@ -52,37 +52,48 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     current?.showModal();
-    return () => { current?.close(); document.body.style.overflow = overflow; };
+    return () => {
+      current?.close();
+      document.body.style.overflow = overflow;
+    };
   }, [visible]);
   const route = useRouteLocation();
-  const routeConversation = new URLSearchParams(route.split('?')[1]).get('conversation');
+  const routeConversation = new URLSearchParams(route.split("?")[1]).get("conversation");
   const { user, notify, refresh } = useApp();
   const [page, setPage] = useState(1),
     [selected, setSelected] = useState<Row | null>(null),
     [find, setFind] = useState(false),
     [keyword, setKeyword] = useState(""),
     [showList, setShowList] = useState(true);
-  const list = useData(
-    url("/message/private/conversations", { pageNum: page, pageSize: 20 }),
+  const list = useData(url("/message/private/conversations", { pageNum: page, pageSize: 20 }));
+  const history = usePrivateHistory(
+    selected?.conversationId || routeConversation,
+    visible,
+    uid(user),
   );
-  const history = usePrivateHistory(selected?.conversationId || routeConversation, visible, uid(user));
   const search = useData(keyword ? url("/user/search", { keyword }) : null);
   const matchedRoute = useRef<string | null>(null);
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
-  const composer = usePrivateComposer(uid(user), selected?.conversationId || routeConversation,
-    selected?.otherUser?.userId || selected?.otherUser?.id, (message, conversationId, fromHistory) => {
-      if (!fromHistory && String(selectedRef.current?.conversationId) === conversationId) history.append(message);
-      list.reload(); refresh();
-    });
-  const {draft: text, setDraft: setText, sending, send} = composer;
-  useEffect(() => { composer.reconcile(rows(history.data)); }, [history.data.records]);
+  const composer = usePrivateComposer(
+    uid(user),
+    selected?.conversationId || routeConversation,
+    selected?.otherUser?.userId || selected?.otherUser?.id,
+    (message, conversationId, fromHistory) => {
+      if (!fromHistory && String(selectedRef.current?.conversationId) === conversationId)
+        history.append(message);
+      list.reload();
+      refresh();
+    },
+  );
+  const { draft: text, setDraft: setText, sending, send } = composer;
   useEffect(() => {
-    const id = new URLSearchParams(route.split('?')[1]).get("conversation");
+    composer.reconcile(rows(history.data));
+  }, [history.data.records]);
+  useEffect(() => {
+    const id = new URLSearchParams(route.split("?")[1]).get("conversation");
     if (id && matchedRoute.current !== id) {
-      const found = rows(list.data).find(
-        (c) => String(c.conversationId) === id,
-      );
+      const found = rows(list.data).find((c) => String(c.conversationId) === id);
       if (found) {
         matchedRoute.current = id;
         setSelected(found);
@@ -98,32 +109,70 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
     refresh();
   }
   return (
-
-    <dialog ref={dialog} className="private-workspace private-dialog" aria-label="宠友私信会话"
-      onCancel={event => {if (event.target !== event.currentTarget) return; event.preventDefault(); close();}}
-      onClick={event => {
+    <dialog
+      ref={dialog}
+      className="private-workspace private-dialog"
+      aria-label="宠友私信会话"
+      onCancel={(event) => {
+        if (event.target !== event.currentTarget) return;
+        event.preventDefault();
+        close();
+      }}
+      onClick={(event) => {
         if (event.target !== dialog.current) return;
         const rect = dialog.current.getBoundingClientRect();
-        if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) close();
-      }}>
-      {showList && <Button tone="ghost small private-mobile-close" aria-label="关闭私信" action={close}><X size={20} /></Button>}
+        if (
+          event.clientX < rect.left ||
+          event.clientX > rect.right ||
+          event.clientY < rect.top ||
+          event.clientY > rect.bottom
+        )
+          close();
+      }}
+    >
+      {showList && (
+        <Button tone="ghost small private-mobile-close" aria-label="关闭私信" action={close}>
+          <X size={20} />
+        </Button>
+      )}
       <div className="chat-layout private-window">
         <aside className={`chat-sidebar ${!showList ? "hidden-mobile" : ""}`}>
           <header className="private-sidebar-head">
             <h2>宠友私信会话</h2>
-            <Button tone="ghost small" aria-label="新私信" title="新私信" action={() => setFind(true)}><Plus size={16} /></Button>
+            <Button
+              tone="ghost small"
+              aria-label="新私信"
+              title="新私信"
+              action={() => setFind(true)}
+            >
+              <Plus size={16} />
+            </Button>
           </header>
           <div className="private-conversations">
             <DataState request={list} empty={!rows(list.data).length}>
-              {rows(list.data).map(c => (
-                <button className={`chat-session ${String(selected?.conversationId) === String(c.conversationId) ? "active" : ""}`} key={c.conversationId}
-                  onClick={() => { void choose(c).catch(e => notify(e.message, true)); }}>
+              {rows(list.data).map((c) => (
+                <button
+                  className={`chat-session ${String(selected?.conversationId) === String(c.conversationId) ? "active" : ""}`}
+                  key={c.conversationId}
+                  onClick={() => {
+                    void choose(c).catch((e) => notify(e.message, true));
+                  }}
+                >
                   <Avatar user={c.otherUser} size={36} />
                   <span className="private-conversation-copy">
-                    <span className="private-conversation-heading"><strong>{nick(c.otherUser)}</strong><time>{time(c.lastMessageTime)}</time></span>
-                    <span className="private-conversation-preview">{c.lastMessage || "开始聊聊吧"}</span>
+                    <span className="private-conversation-heading">
+                      <strong>{nick(c.otherUser)}</strong>
+                      <time>{time(c.lastMessageTime)}</time>
+                    </span>
+                    <span className="private-conversation-preview">
+                      {c.lastMessage || "开始聊聊吧"}
+                    </span>
                   </span>
-                  {c.unreadCount > 0 && <span className="private-unread">{c.unreadCount > 99 ? "99+" : c.unreadCount}</span>}
+                  {c.unreadCount > 0 && (
+                    <span className="private-unread">
+                      {c.unreadCount > 99 ? "99+" : c.unreadCount}
+                    </span>
+                  )}
                 </button>
               ))}
             </DataState>
@@ -136,78 +185,207 @@ export function PrivateChat({onClose}: {onClose?: () => void} = {}) {
         <section className="chat-main">
           <header className="chat-head">
             <div className="author">
-              <Button tone="ghost small private-back" aria-label="返回会话列表" action={() => setShowList(true)}><ArrowLeft size={17} /></Button>
-              {selected ? <><Avatar user={selected.otherUser} size={28} /><h2>{nick(selected.otherUser)}</h2></> : <span className="private-contact-placeholder">请选择联系人</span>}
+              <Button
+                tone="ghost small private-back"
+                aria-label="返回会话列表"
+                action={() => setShowList(true)}
+              >
+                <ArrowLeft size={17} />
+              </Button>
+              {selected ? (
+                <>
+                  <Avatar user={selected.otherUser} size={28} />
+                  <h2>{nick(selected.otherUser)}</h2>
+                </>
+              ) : (
+                <span className="private-contact-placeholder">请选择联系人</span>
+              )}
             </div>
             <div className="row-actions">
-              {selected && <details className="private-options">
-                <summary aria-label="会话操作" title="会话操作"><MoreHorizontal size={18} /></summary>
-                <div className="private-options-menu">
-                  <Button tone="ghost small" action={() => choose(selected)}><CheckCheck size={14} />标记已读</Button>
-                  <Button tone="ghost small" action={async () => {
-                    if (confirm("确定清空聊天记录吗？")) {
-                      await api(`/message/private/messages/${selected.conversationId}`, "DELETE");
-                      history.reload(); list.reload();
-                    }
-                  }}><Trash2 size={14} />清空聊天记录</Button>
-                  <Button tone="danger small" action={async () => {
-                    if (confirm("确定删除会话吗？")) {
-                      await api(`/message/private/conversation/${selected.conversationId}`, "DELETE");
-                      setSelected(null); list.reload(); setShowList(true); refresh();
-                    }
-                  }}><Trash2 size={14} />删除会话</Button>
-                </div>
-              </details>}
-              <Button tone="ghost small" aria-label="关闭私信" action={close}><X size={20} /></Button>
+              {selected && (
+                <details className="private-options">
+                  <summary aria-label="会话操作" title="会话操作">
+                    <MoreHorizontal size={18} />
+                  </summary>
+                  <div className="private-options-menu">
+                    <Button tone="ghost small" action={() => choose(selected)}>
+                      <CheckCheck size={14} />
+                      标记已读
+                    </Button>
+                    <Button
+                      tone="ghost small"
+                      action={async () => {
+                        if (confirm("确定清空聊天记录吗？")) {
+                          await api(
+                            `/message/private/messages/${selected.conversationId}`,
+                            "DELETE",
+                          );
+                          history.reload();
+                          list.reload();
+                        }
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      清空聊天记录
+                    </Button>
+                    <Button
+                      tone="danger small"
+                      action={async () => {
+                        if (confirm("确定删除会话吗？")) {
+                          await api(
+                            `/message/private/conversation/${selected.conversationId}`,
+                            "DELETE",
+                          );
+                          setSelected(null);
+                          list.reload();
+                          setShowList(true);
+                          refresh();
+                        }
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      删除会话
+                    </Button>
+                  </div>
+                </details>
+              )}
+              <Button tone="ghost small" aria-label="关闭私信" action={close}>
+                <X size={20} />
+              </Button>
             </div>
           </header>
-          {selected ? <>
-            <div className="private-history-pane">
-            {history.syncError && <div className="private-sync-error" role="status">消息同步暂时失败，已保留当前记录。
-              <Button tone="ghost small" action={history.retrySync}>重试同步</Button>
-            </div>}
-            <div className="chat-messages" aria-label="聊天记录" ref={history.viewport}
-              onScroll={history.onScroll}>
-              <div className="private-history-status" aria-live="polite">
-                {history.loadingOlder ? "正在加载更早消息…" : history.moreError
-                  ? <button type="button" onClick={() => void history.loadOlder()}>加载失败，重试</button>
-                  : !history.loading && !history.hasMore && rows(history.data).length > 0 ? "已到最早的消息" : history.hasMore ? "上滑查看更早消息" : null}
-              </div>
-              <DataState request={history} empty={!rows(history.data).length}>
-                {privateMessageTimeline(rows(history.data)).map(({message: m, separator, fullTime, dateTime}) => {
-                  const mine = String(m.fromUserId) === uid(user);
-                  return <Fragment key={m.id}>
-                    {separator && <div className="private-time-separator"><time dateTime={dateTime}>{separator}</time></div>}
-                    <div className={`bubble-wrap ${mine ? "me" : ""}`} data-message-id={m.id}>
-                    <Avatar user={mine ? user : selected.otherUser} size={28} />
-                    <div className="bubble" title={fullTime || undefined}><p>{m.content}</p></div>
-                    </div>
-                  </Fragment>;
-                })}
-              </DataState>
-            </div>
-            {history.newMessageCount > 0 && <button type="button" className="private-new-messages"
-              aria-label={`查看 ${history.newMessageCount} 条新消息`} onClick={history.jumpToLatest}>
-              <ArrowDown size={14} /><span aria-live="polite">{history.newMessageCount} 条新消息</span>
-            </button>}
-            </div>
-            {composer.pending.length > 0 && <div className="private-send-status" aria-live="polite">
-              {composer.pending.map(job => <div className="private-send-entry" key={job.clientMessageId}>
-                <div><span className="private-send-preview" title={job.content}>{job.content}</span>
-                  <span className="private-send-description" role={job.status === "failed" ? "alert" : undefined}>
-                    {job.status === "sending" ? "正在发送，内容暂时保留…" : `发送未确认，内容已保留。${job.error ? `（${job.error}）` : ""}`}
-                  </span>
+          {selected ? (
+            <>
+              <div className="private-history-pane">
+                {history.syncError && (
+                  <div className="private-sync-error" role="status">
+                    消息同步暂时失败，已保留当前记录。
+                    <Button tone="ghost small" action={history.retrySync}>
+                      重试同步
+                    </Button>
+                  </div>
+                )}
+                <div
+                  className="chat-messages"
+                  aria-label="聊天记录"
+                  ref={history.viewport}
+                  onScroll={history.onScroll}
+                >
+                  <div className="private-history-status" aria-live="polite">
+                    {history.loadingOlder ? (
+                      "正在加载更早消息…"
+                    ) : history.moreError ? (
+                      <button type="button" onClick={() => void history.loadOlder()}>
+                        加载失败，重试
+                      </button>
+                    ) : !history.loading && !history.hasMore && rows(history.data).length > 0 ? (
+                      "已到最早的消息"
+                    ) : history.hasMore ? (
+                      "上滑查看更早消息"
+                    ) : null}
+                  </div>
+                  <DataState request={history} empty={!rows(history.data).length}>
+                    {privateMessageTimeline(rows(history.data)).map(
+                      ({ message: m, separator, fullTime, dateTime }) => {
+                        const mine = String(m.fromUserId) === uid(user);
+                        return (
+                          <Fragment key={m.id}>
+                            {separator && (
+                              <div className="private-time-separator">
+                                <time dateTime={dateTime}>{separator}</time>
+                              </div>
+                            )}
+                            <div
+                              className={`bubble-wrap ${mine ? "me" : ""}`}
+                              data-message-id={m.id}
+                            >
+                              <Avatar user={mine ? user : selected.otherUser} size={28} />
+                              <div className="bubble" title={fullTime || undefined}>
+                                <p>{m.content}</p>
+                              </div>
+                            </div>
+                          </Fragment>
+                        );
+                      },
+                    )}
+                  </DataState>
                 </div>
-                {job.status === "failed" && <Button tone="ghost small" disabled={sending}
-                  action={() => composer.retry(job)}>重试发送</Button>}
-              </div>)}
-            </div>}
-            <form className="chat-compose" onSubmit={e => {e.preventDefault(); if (!sending && text.trim()) void send().catch(error => notify(error.message, true));}}>
-              <input value={text} onChange={e => setText(e.target.value)} maxLength={1000} aria-label="私信内容" placeholder="输入私信内容，回车发送..."
-                onKeyDown={e => {if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault();}} />
-              <Button tone="primary" disabled={sending || !text.trim()} action={send}><Send size={14} />发送</Button>
-            </form>
-          </> : <div className="chat-empty"><div><MessageCircle size={32} /><h2>从一句你好开始</h2><p>选择会话，或找一位宠友聊聊。</p><Button action={() => setFind(true)}>寻找宠友</Button></div></div>}
+                {history.newMessageCount > 0 && (
+                  <button
+                    type="button"
+                    className="private-new-messages"
+                    aria-label={`查看 ${history.newMessageCount} 条新消息`}
+                    onClick={history.jumpToLatest}
+                  >
+                    <ArrowDown size={14} />
+                    <span aria-live="polite">{history.newMessageCount} 条新消息</span>
+                  </button>
+                )}
+              </div>
+              {composer.pending.length > 0 && (
+                <div className="private-send-status" aria-live="polite">
+                  {composer.pending.map((job) => (
+                    <div className="private-send-entry" key={job.clientMessageId}>
+                      <div>
+                        <span className="private-send-preview" title={job.content}>
+                          {job.content}
+                        </span>
+                        <span
+                          className="private-send-description"
+                          role={job.status === "failed" ? "alert" : undefined}
+                        >
+                          {job.status === "sending"
+                            ? "正在发送，内容暂时保留…"
+                            : `发送未确认，内容已保留。${job.error ? `（${job.error}）` : ""}`}
+                        </span>
+                      </div>
+                      {job.status === "failed" && (
+                        <Button
+                          tone="ghost small"
+                          disabled={sending}
+                          action={() => composer.retry(job)}
+                        >
+                          重试发送
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <form
+                className="chat-compose"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!sending && text.trim())
+                    void send().catch((error) => notify(error.message, true));
+                }}
+              >
+                <input
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  maxLength={1000}
+                  aria-label="私信内容"
+                  placeholder="输入私信内容，回车发送..."
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault();
+                  }}
+                />
+                <Button tone="primary" disabled={sending || !text.trim()} action={send}>
+                  <Send size={14} />
+                  发送
+                </Button>
+              </form>
+            </>
+          ) : (
+            <div className="chat-empty">
+              <div>
+                <MessageCircle size={32} />
+                <h2>从一句你好开始</h2>
+                <p>选择会话，或找一位宠友聊聊。</p>
+                <Button action={() => setFind(true)}>寻找宠友</Button>
+              </div>
+            </div>
+          )}
         </section>
       </div>
       {find && (
@@ -253,9 +431,7 @@ function Memory({ onClose }: { onClose: () => void }) {
     [editText, setEditText] = useState("");
   return (
     <Modal title="我的长期记忆" onClose={onClose}>
-      <p className="muted">
-        AI 会记住你分享的重要信息，你也可以在这里查看、修改或删除。
-      </p>
+      <p className="muted">AI 会记住你分享的重要信息，你也可以在这里查看、修改或删除。</p>
       <Field label="添加记忆">
         <input
           value={text}
@@ -357,9 +533,7 @@ export function AIChat() {
     const message = text.trim();
     setSending(true);
     setLastError("");
-    setOptimistic([
-      { role: "user", content: message, createdAt: new Date().toISOString() },
-    ]);
+    setOptimistic([{ role: "user", content: message, createdAt: new Date().toISOString() }]);
     try {
       const result = await api("/ai/chat", "POST", {
         sessionId: session || undefined,
@@ -384,7 +558,13 @@ export function AIChat() {
         <aside className={`chat-sidebar ${!showList ? "hidden-mobile" : ""}`}>
           <div className="ai-sidebar-heading">
             <span className="ai-eyebrow">PETCIRCLE ASSISTANT</span>
-            <Button tone="ghost small ai-mobile-close" aria-label="收起历史会话" action={() => setShowList(false)}><PanelLeftClose size={17}/></Button>
+            <Button
+              tone="ghost small ai-mobile-close"
+              aria-label="收起历史会话"
+              action={() => setShowList(false)}
+            >
+              <PanelLeftClose size={17} />
+            </Button>
             <Button
               tone="primary ai-new-chat"
               disabled={sending}
@@ -393,7 +573,8 @@ export function AIChat() {
                 setOptimistic([]);
               }}
             >
-              <Plus size={16} />开启新咨询
+              <Plus size={16} />
+              开启新咨询
             </Button>
             <h2>历史会话</h2>
           </div>
@@ -438,7 +619,12 @@ export function AIChat() {
               </div>
             ))}
           </DataState>
-          <div className="ai-sidebar-note"><Sparkles size={18}/><span>用心倾听，温暖陪伴<small>记录你和毛孩子的每一次交流</small></span></div>
+          <div className="ai-sidebar-note">
+            <Sparkles size={18} />
+            <span>
+              用心倾听，温暖陪伴<small>记录你和毛孩子的每一次交流</small>
+            </span>
+          </div>
         </aside>
         <section className="chat-main">
           <header className="chat-head">
@@ -450,10 +636,16 @@ export function AIChat() {
               >
                 <PanelLeftClose size={17} />
               </Button>
-              <span className="ai-brand-icon"><Bot size={19} /></span>
+              <span className="ai-brand-icon">
+                <Bot size={19} />
+              </span>
               <div>
-                <h2>PetCircle AI 养宠顾问 <span className="ai-service-badge">AI 助手</span></h2>
-                <small>{sending ? "正在认真思考…" : "营养、日常护理与行为习惯，陪你一起了解毛孩子"}</small>
+                <h2>
+                  PetCircle AI 养宠顾问 <span className="ai-service-badge">AI 助手</span>
+                </h2>
+                <small>
+                  {sending ? "正在认真思考…" : "营养、日常护理与行为习惯，陪你一起了解毛孩子"}
+                </small>
               </div>
             </div>
             <div className="row-actions ai-tools" aria-label="AI 会话工具">
@@ -495,13 +687,21 @@ export function AIChat() {
             {!session && !displayed.length && !sending ? (
               <div className="chat-empty">
                 <div>
-                  <span className="ai-welcome-icon"><Sparkles size={34} /></span>
-                  <span className="ai-eyebrow">YOUR PET COMPANION</span><h2>你好呀，我是你的养宠小伙伴</h2>
-                  <p>从一日三餐到生活里的小习惯，<br/>一起聊聊你和毛孩子的故事。</p>
+                  <span className="ai-welcome-icon">
+                    <Sparkles size={34} />
+                  </span>
+                  <span className="ai-eyebrow">YOUR PET COMPANION</span>
+                  <h2>你好呀，我是你的养宠小伙伴</h2>
+                  <p>
+                    从一日三餐到生活里的小习惯，
+                    <br />
+                    一起聊聊你和毛孩子的故事。
+                  </p>
                   <div className="suggestions">
                     {(suggestions.data || []).map((s: string) => (
                       <Button key={s} tone="small" action={() => setText(s)}>
-                        <MessageCircle size={15} />{s}
+                        <MessageCircle size={15} />
+                        {s}
                       </Button>
                     ))}
                   </div>
@@ -510,66 +710,85 @@ export function AIChat() {
             ) : (
               <DataState request={history}>
                 {displayed.map((m, i) => (
-                  <div
-                    className={`bubble-wrap ${m.role === "user" ? "me" : ""}`}
-                    key={m.id || i}
-                  >
-                    <span className="ai-message-avatar" aria-hidden="true">{m.role === "user" ? "我" : "AI"}</span>
-                    <div className="ai-message-body"><div
-                      className="bubble markdown"
-                      dangerouslySetInnerHTML={{
-                        __html: DOMPurify.sanitize(
-                          marked.parse(String(m.content || ""), {
-                            async: false,
-                          }) as string,
-                        ),
-                      }}
-                    />
-                    <small>{time(m.createdAt)}</small>
-                    {m.role !== "user" && m.id && (
-                      <div className="row-actions ai-message-actions">
-                        <Button tone="ghost small" aria-label="复制回答" action={async () => {await copyText(String(m.content || ''));notify('回答已复制');}}><Copy size={13}/></Button>
-                        <Button
-                          tone="ghost small"
-                          aria-label="有帮助"
-                          action={async () => {
-                            await api(
-                              url("/ai/feedback", {
-                                messageId: m.messageId || m.id,
-                                score: 1,
-                              }),
-                              "POST",
-                            );
-                            notify("感谢反馈");
-                          }}
-                        >
-                          <ThumbsUp size={13} />
-                        </Button>
-                        <Button
-                          tone="ghost small"
-                          aria-label="无帮助"
-                          action={async () => {
-                            await api(
-                              url("/ai/feedback", {
-                                messageId: m.messageId || m.id,
-                                score: 0,
-                              }),
-                              "POST",
-                            );
-                            notify("感谢反馈");
-                          }}
-                        >
-                          <ThumbsDown size={13} />
-                        </Button>
-                      </div>
-                    )}
+                  <div className={`bubble-wrap ${m.role === "user" ? "me" : ""}`} key={m.id || i}>
+                    <span className="ai-message-avatar" aria-hidden="true">
+                      {m.role === "user" ? "我" : "AI"}
+                    </span>
+                    <div className="ai-message-body">
+                      <div
+                        className="bubble markdown"
+                        dangerouslySetInnerHTML={{
+                          __html: DOMPurify.sanitize(
+                            marked.parse(String(m.content || ""), {
+                              async: false,
+                            }) as string,
+                          ),
+                        }}
+                      />
+                      <small>{time(m.createdAt)}</small>
+                      {m.role !== "user" && m.id && (
+                        <div className="row-actions ai-message-actions">
+                          <Button
+                            tone="ghost small"
+                            aria-label="复制回答"
+                            action={async () => {
+                              await copyText(String(m.content || ""));
+                              notify("回答已复制");
+                            }}
+                          >
+                            <Copy size={13} />
+                          </Button>
+                          <Button
+                            tone="ghost small"
+                            aria-label="有帮助"
+                            action={async () => {
+                              await api(
+                                url("/ai/feedback", {
+                                  messageId: m.messageId || m.id,
+                                  score: 1,
+                                }),
+                                "POST",
+                              );
+                              notify("感谢反馈");
+                            }}
+                          >
+                            <ThumbsUp size={13} />
+                          </Button>
+                          <Button
+                            tone="ghost small"
+                            aria-label="无帮助"
+                            action={async () => {
+                              await api(
+                                url("/ai/feedback", {
+                                  messageId: m.messageId || m.id,
+                                  score: 0,
+                                }),
+                                "POST",
+                              );
+                              notify("感谢反馈");
+                            }}
+                          >
+                            <ThumbsDown size={13} />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
               </DataState>
             )}
             {sending && (
-              <div className="bubble-wrap"><span className="ai-message-avatar" aria-hidden="true">AI</span><div className="bubble ai-thinking" role="status"><span/><span/><span/><small>正在整理思路…</small></div></div>
+              <div className="bubble-wrap">
+                <span className="ai-message-avatar" aria-hidden="true">
+                  AI
+                </span>
+                <div className="bubble ai-thinking" role="status">
+                  <span />
+                  <span />
+                  <span />
+                  <small>正在整理思路…</small>
+                </div>
+              </div>
             )}
             {lastError && (
               <p className="inline-error" role="alert">
@@ -586,13 +805,15 @@ export function AIChat() {
               disabled={sending}
               placeholder="想了解毛孩子的什么呢？"
               aria-label="给 AI 的问题"
-              onKeyDown={e => {if(e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing){e.preventDefault();if(!sending && text.trim()) void send().catch(error => notify(error.message,true));}}}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  if (!sending && text.trim())
+                    void send().catch((error) => notify(error.message, true));
+                }
+              }}
             />
-            <Button
-              tone="primary"
-              disabled={sending || !text.trim()}
-              action={send}
-            >
+            <Button tone="primary" disabled={sending || !text.trim()} action={send}>
               <Send size={16} />
               发送
             </Button>

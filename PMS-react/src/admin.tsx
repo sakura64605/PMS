@@ -16,18 +16,7 @@ import {
   Users,
   PawPrint,
 } from "lucide-react";
-import {
-  api,
-  url,
-  rows,
-  uid,
-  nick,
-  time,
-  images,
-  typeName,
-  auditName,
-  type Row,
-} from "./api";
+import { api, url, rows, uid, nick, time, images, typeName, auditName, type Row } from "./api";
 import {
   Author,
   Avatar,
@@ -64,12 +53,8 @@ export default function Admin() {
   const { user } = useApp();
   const [tab, setTab] = useState("pending");
   const [displayedTab, setDisplayedTab] = useState("pending");
-  const pending = useData(
-    user?.role === 1 ? "/admin/audit/pending?pageNum=1&pageSize=1" : null,
-  );
-  const reports = useData(
-    user?.role === 1 ? "/report/list?pageNum=1&pageSize=1&status=0" : null,
-  );
+  const pending = useData(user?.role === 1 ? "/admin/audit/pending?pageNum=1&pageSize=1" : null);
+  const reports = useData(user?.role === 1 ? "/report/list?pageNum=1&pageSize=1&status=0" : null);
   const governance = {
     pending: pending.data?.total ?? null,
     reports: reports.data?.total ?? null,
@@ -114,13 +99,9 @@ export default function Admin() {
                 {(key === "pending" || key === "reports") && (
                   <span
                     className="governance-count"
-                    aria-label={
-                      key === "pending" ? "待审核总数" : "待处理举报总数"
-                    }
+                    aria-label={key === "pending" ? "待审核总数" : "待处理举报总数"}
                   >
-                    {(key === "pending"
-                      ? governance.pending
-                      : governance.reports) ?? "—"}
+                    {(key === "pending" ? governance.pending : governance.reports) ?? "—"}
                   </span>
                 )}
               </button>
@@ -191,9 +172,7 @@ function AuditList({ history = false }: { history?: boolean }) {
   return (
     <>
       <section className="module-toolbar audit-toolbar">
-        <h2 className="visually-hidden">
-          {history ? "已审核历史记录" : "待审核内容"}
-        </h2>
+        <h2 className="visually-hidden">{history ? "已审核历史记录" : "待审核内容"}</h2>
         <SearchForm
           onSearch={(s) => {
             setKeyword(s);
@@ -237,27 +216,16 @@ function AuditList({ history = false }: { history?: boolean }) {
               <input
                 type="checkbox"
                 checked={
-                  !!rows(request.data).length &&
-                  selected.length === rows(request.data).length
+                  !!rows(request.data).length && selected.length === rows(request.data).length
                 }
-                onChange={(e) =>
-                  setSelected(e.target.checked ? rows(request.data) : [])
-                }
+                onChange={(e) => setSelected(e.target.checked ? rows(request.data) : [])}
               />
               全选本页
             </label>
-            <Button
-              tone="primary small"
-              disabled={!selected.length}
-              action={() => batch()}
-            >
+            <Button tone="primary small" disabled={!selected.length} action={() => batch()}>
               批量通过（{selected.length}）
             </Button>
-            <Button
-              tone="danger small"
-              disabled={!selected.length}
-              action={() => setReason("")}
-            >
+            <Button tone="danger small" disabled={!selected.length} action={() => setReason("")}>
               批量拒绝
             </Button>
           </div>
@@ -276,25 +244,17 @@ function AuditList({ history = false }: { history?: boolean }) {
           {rows(request.data).map((p: Row) => {
             const id = history ? p.targetId : p.id;
             return (
-              <article
-                className="governance-row"
-                key={`${p.targetType}-${p.id}`}
-              >
+              <article className="governance-row" key={`${p.targetType}-${p.id}`}>
                 {!history && (
                   <input
                     type="checkbox"
                     aria-label={`选择 ${p.title}`}
-                    checked={selected.some(
-                      (v) => v.id === p.id && v.targetType === p.targetType,
-                    )}
+                    checked={selected.some((v) => v.id === p.id && v.targetType === p.targetType)}
                     onChange={(e) =>
                       setSelected((previous) =>
                         e.target.checked
                           ? [...previous, p]
-                          : previous.filter(
-                              (v) =>
-                                v.id !== p.id || v.targetType !== p.targetType,
-                            ),
+                          : previous.filter((v) => v.id !== p.id || v.targetType !== p.targetType),
                       )
                     }
                   />
@@ -310,39 +270,26 @@ function AuditList({ history = false }: { history?: boolean }) {
                 )}
                 <div className="governance-row-body">
                   <div className="governance-row-title">
-                    <Badge
-                      tone={
-                        history ? (p.auditStatus === 2 ? "orange" : "") : "blue"
-                      }
-                    >
-                      {history
-                        ? auditName(p.auditStatus)
-                        : typeName(p.targetType)}
+                    <Badge tone={history ? (p.auditStatus === 2 ? "orange" : "") : "blue"}>
+                      {history ? auditName(p.auditStatus) : typeName(p.targetType)}
                     </Badge>
                     <h3>{p.title || p.targetTitle}</h3>
                   </div>
                   {!history && (p.content || p.targetContent) && (
-                    <p className="governance-summary">
-                      {p.content || p.targetContent}
-                    </p>
+                    <p className="governance-summary">{p.content || p.targetContent}</p>
                   )}
                   <p className="governance-row-meta">
                     发布者：
-                    {p.user ? nick(p.user) : p.userName || p.authorName || "—"}{" "}
-                    · {history ? `审核人：${p.auditorName || "—"} · ` : ""}
+                    {p.user ? nick(p.user) : p.userName || p.authorName || "—"} ·{" "}
+                    {history ? `审核人：${p.auditorName || "—"} · ` : ""}
                     {time(history ? p.auditTime : p.createTime)}
                     {p.rejectReason && (
-                      <span className="governance-reason">
-                        （理由：{p.rejectReason}）
-                      </span>
+                      <span className="governance-reason">（理由：{p.rejectReason}）</span>
                     )}
                   </p>
                 </div>
                 <div className="governance-row-actions">
-                  <Link
-                    className="btn ghost small"
-                    to={`/audit/${id}?targetType=${p.targetType}`}
-                  >
+                  <Link className="btn ghost small" to={`/audit/${id}?targetType=${p.targetType}`}>
                     查看详情
                   </Link>
                   {!history && (
@@ -362,35 +309,19 @@ function AuditList({ history = false }: { history?: boolean }) {
           })}
           {!request.loading && !rows(request.data).length && (
             <div className="governance-empty">
-              {history
-                ? "当前筛选条件下暂无审核历史"
-                : "🎉 暂无待审核内容，社区内容秩序良好！"}
+              {history ? "当前筛选条件下暂无审核历史" : "🎉 暂无待审核内容，社区内容秩序良好！"}
             </div>
           )}
         </DataState>
       </section>
-      <Pagination
-        page={page}
-        total={request.data?.total || 0}
-        onChange={setPage}
-      />
+      <Pagination page={page} total={request.data?.total || 0} onChange={setPage} />
       {reason !== null && (
-        <Modal
-          title={`拒绝 ${selected.length} 条内容`}
-          onClose={() => setReason(null)}
-        >
+        <Modal title={`拒绝 ${selected.length} 条内容`} onClose={() => setReason(null)}>
           <Field label="拒绝理由" required>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
+            <textarea value={reason} onChange={(e) => setReason(e.target.value)} />
           </Field>
           <div className="tag-list">
-            {[
-              "信息不完整，请补充",
-              "内容不符合社区规范",
-              "图片不清晰，请重新上传",
-            ].map((r) => (
+            {["信息不完整，请补充", "内容不符合社区规范", "图片不清晰，请重新上传"].map((r) => (
               <Button tone="small" key={r} action={() => setReason(r)}>
                 {r}
               </Button>
@@ -408,9 +339,7 @@ function AuditList({ history = false }: { history?: boolean }) {
   );
 }
 export function AuditDetail({ id }: { id: string }) {
-  const type =
-    new URLSearchParams(useRouteLocation().split("?")[1]).get("targetType") ||
-    "adopt";
+  const type = new URLSearchParams(useRouteLocation().split("?")[1]).get("targetType") || "adopt";
   const request = useData(url("/admin/audit/detail", { targetType: type, id }));
   const p = request.data;
   return (
@@ -418,8 +347,7 @@ export function AuditDetail({ id }: { id: string }) {
       <Back to="/audit" />
       <DataState request={request}>
         <article className="panel">
-          <Badge tone="blue">{typeName(type)}</Badge>{" "}
-          <Badge>{auditName(p?.auditStatus)}</Badge>
+          <Badge tone="blue">{typeName(type)}</Badge> <Badge>{auditName(p?.auditStatus)}</Badge>
           <h1 className="detail-title">{p?.title}</h1>
           <Author user={p?.user} date={p?.createTime} />
           <Gallery value={images(p?.images)} />
@@ -437,14 +365,12 @@ export function AuditDetail({ id }: { id: string }) {
           </div>
           {type === "activity" && (
             <p className="muted">
-              {time(p?.startTime)} — {time(p?.endTime)} ·{" "}
-              {p?.currentPeople || 0} / {p?.maxPeople || 0} 人
+              {time(p?.startTime)} — {time(p?.endTime)} · {p?.currentPeople || 0} /{" "}
+              {p?.maxPeople || 0} 人
             </p>
           )}
           <p className="prose">{p?.content}</p>
-          {p?.auditStatus === 0 && (
-            <AuditActions id={id} type={type} reload={request.reload} />
-          )}
+          {p?.auditStatus === 0 && <AuditActions id={id} type={type} reload={request.reload} />}
         </article>
       </DataState>
     </div>
@@ -455,9 +381,7 @@ function UsersAdmin() {
     [keyword, setKeyword] = useState(""),
     [status, setStatus] = useState(""),
     [selected, setSelected] = useState<string[]>([]);
-  const request = useData(
-    url("/admin/users", { pageNum: page, pageSize: 20, keyword, status }),
-  );
+  const request = useData(url("/admin/users", { pageNum: page, pageSize: 20, keyword, status }));
   const { notify } = useApp();
   useEffect(() => setSelected([]), [page, keyword, status]);
   async function batch(action: string, ids = selected) {
@@ -498,18 +422,10 @@ function UsersAdmin() {
           </select>
         </SearchForm>
         <div className="row-actions" style={{ margin: "18px 0" }}>
-          <Button
-            disabled={!selected.length}
-            tone="small"
-            action={() => batch("enable")}
-          >
+          <Button disabled={!selected.length} tone="small" action={() => batch("enable")}>
             批量启用
           </Button>
-          <Button
-            disabled={!selected.length}
-            tone="danger small"
-            action={() => batch("disable")}
-          >
+          <Button disabled={!selected.length} tone="danger small" action={() => batch("disable")}>
             批量禁用
           </Button>
           <Button
@@ -529,12 +445,9 @@ function UsersAdmin() {
               type="checkbox"
               aria-label="全选本页用户"
               checked={
-                rows(request.data).length > 0 &&
-                selected.length === rows(request.data).length
+                rows(request.data).length > 0 && selected.length === rows(request.data).length
               }
-              onChange={(e) =>
-                setSelected(e.target.checked ? rows(request.data).map(uid) : [])
-              }
+              onChange={(e) => setSelected(e.target.checked ? rows(request.data).map(uid) : [])}
             />
             全选本页 · 已选 {selected.length} 位用户
           </label>
@@ -557,18 +470,11 @@ function UsersAdmin() {
                 <Avatar user={u} size={40} />
                 <div className="governance-row-body">
                   <div className="governance-row-title">
-                    <Link
-                      to={`/user/${uid(u)}`}
-                      className="governance-user-name"
-                    >
+                    <Link to={`/user/${uid(u)}`} className="governance-user-name">
                       {nick(u)}
                     </Link>
-                    <span className="governance-user-handle">
-                      @{u.username || u.userName}
-                    </span>
-                    <Badge tone={disabled ? "orange" : ""}>
-                      {disabled ? "已封禁" : "正常"}
-                    </Badge>
+                    <span className="governance-user-handle">@{u.username || u.userName}</span>
+                    <Badge tone={disabled ? "orange" : ""}>{disabled ? "已封禁" : "正常"}</Badge>
                   </div>
                   <p className="governance-row-meta">
                     ID: {uid(u)}
@@ -580,9 +486,7 @@ function UsersAdmin() {
                 <div className="governance-row-actions">
                   <Button
                     tone={disabled ? "governance-approve" : "governance-reject"}
-                    action={() =>
-                      batch(disabled ? "enable" : "disable", [uid(u)])
-                    }
+                    action={() => batch(disabled ? "enable" : "disable", [uid(u)])}
                   >
                     {disabled ? "解封恢复" : "封禁账号"}
                   </Button>
@@ -592,12 +496,7 @@ function UsersAdmin() {
           })}
         </div>
       </DataState>
-      <Pagination
-        page={page}
-        size={20}
-        total={request.data?.total || 0}
-        onChange={setPage}
-      />
+      <Pagination page={page} size={20} total={request.data?.total || 0} onChange={setPage} />
     </section>
   );
 }
@@ -665,21 +564,14 @@ function Reports() {
                   <Badge tone={p.status === 0 ? "orange" : ""}>
                     {["待处理", "已处理完成", "已驳回"][p.status]}
                   </Badge>
-                  <h3>
-                    {p.targetTitle ||
-                      `${typeName(p.targetType)} #${p.targetId}`}
-                  </h3>
+                  <h3>{p.targetTitle || `${typeName(p.targetType)} #${p.targetId}`}</h3>
                 </div>
                 <p className="governance-row-meta">
                   举报原因：
-                  <strong className="governance-reason">{p.reason}</strong> ·
-                  举报人：{p.reporterName || "—"} · {time(p.createTime)}
+                  <strong className="governance-reason">{p.reason}</strong> · 举报人：
+                  {p.reporterName || "—"} · {time(p.createTime)}
                 </p>
-                {p.handleResult && (
-                  <p className="governance-summary">
-                    处理说明：{p.handleResult}
-                  </p>
-                )}
+                {p.handleResult && <p className="governance-summary">处理说明：{p.handleResult}</p>}
               </div>
               <div className="governance-row-actions">
                 {p.status === 0 ? (
@@ -712,12 +604,7 @@ function Reports() {
           ))}
         </div>
       </DataState>
-      <Pagination
-        page={page}
-        size={20}
-        total={request.data?.total || 0}
-        onChange={setPage}
-      />
+      <Pagination page={page} size={20} total={request.data?.total || 0} onChange={setPage} />
       {active && (
         <ReportDetail
           id={active}
@@ -775,19 +662,13 @@ function ReportDetail({
         {p?.status === 0 ? (
           <>
             <Field label="处理结果">
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
+              <select value={status} onChange={(e) => setStatus(e.target.value)}>
                 <option value="1">已处理（下架）</option>
                 <option value="2">已驳回</option>
               </select>
             </Field>
             <Field label="处理说明" required>
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-              />
+              <textarea value={text} onChange={(e) => setText(e.target.value)} />
             </Field>
             <div className="form-actions">
               <Button action={onClose}>取消</Button>
@@ -795,10 +676,7 @@ function ReportDetail({
                 tone="primary"
                 action={async () => {
                   if (!text.trim()) throw new Error("请填写处理说明");
-                  await api(
-                    url(`/report/handle/${id}`, { status, handleResult: text }),
-                    "POST",
-                  );
+                  await api(url(`/report/handle/${id}`, { status, handleResult: text }), "POST");
                   reload();
                   onClose();
                 }}
@@ -832,9 +710,7 @@ function NoticesAdmin() {
     <section className="admin-module notices-module">
       <div className="module-toolbar">
         <div className="panel-title">
-          <span className="governance-info-text">
-            管理系统公告、活动通知与重要提醒
-          </span>
+          <span className="governance-info-text">管理系统公告、活动通知与重要提醒</span>
           <Button
             tone="primary"
             action={() =>
@@ -883,18 +759,14 @@ function NoticesAdmin() {
                 <div className="governance-row-title">
                   {p.isTop === 1 && <Badge tone="orange">置顶</Badge>}
                   <h3>
-                    {p.status === 1 ? (
-                      <Link to={`/notice/${p.id}`}>{p.title}</Link>
-                    ) : (
-                      p.title
-                    )}
+                    {p.status === 1 ? <Link to={`/notice/${p.id}`}>{p.title}</Link> : p.title}
                   </h3>
                   <Badge>{["草稿", "已发布", "已下线"][p.status]}</Badge>
                 </div>
                 {p.content && <p className="governance-summary">{p.content}</p>}
                 <p className="governance-row-meta">
-                  {["", "系统公告", "活动通知", "重要提醒"][p.type]} · 发布于{" "}
-                  {time(p.publishTime)} · 优先级：
+                  {["", "系统公告", "活动通知", "重要提醒"][p.type]} · 发布于 {time(p.publishTime)}{" "}
+                  · 优先级：
                   {["普通", "重要", "紧急"][p.priority]}
                 </p>
               </div>
@@ -912,10 +784,7 @@ function NoticesAdmin() {
                 <Button
                   tone="small"
                   action={() =>
-                    act(
-                      `/notice/admin/${p.id}/${p.status === 1 ? "unpublish" : "publish"}`,
-                      "PUT",
-                    )
+                    act(`/notice/admin/${p.id}/${p.status === 1 ? "unpublish" : "publish"}`, "PUT")
                   }
                 >
                   {p.status === 1 ? "下架" : "发布"}
@@ -925,8 +794,7 @@ function NoticesAdmin() {
                   aria-label={`删除公告：${p.title}`}
                   title="删除公告"
                   action={async () => {
-                    if (confirm("确认删除公告？"))
-                      await act(`/notice/admin/${p.id}`, "DELETE");
+                    if (confirm("确认删除公告？")) await act(`/notice/admin/${p.id}`, "DELETE");
                   }}
                 >
                   <Trash2 size={14} />
@@ -936,18 +804,9 @@ function NoticesAdmin() {
           ))}
         </div>
       </DataState>
-      <Pagination
-        page={page}
-        size={20}
-        total={request.data?.total || 0}
-        onChange={setPage}
-      />
+      <Pagination page={page} size={20} total={request.data?.total || 0} onChange={setPage} />
       {editing && (
-        <NoticeForm
-          value={editing}
-          onClose={() => setEditing(null)}
-          reload={request.reload}
-        />
+        <NoticeForm value={editing} onClose={() => setEditing(null)} reload={request.reload} />
       )}
     </section>
   );
@@ -966,11 +825,7 @@ function NoticeForm({
   return (
     <Modal title={form.id ? "编辑公告" : "新增公告"} onClose={onClose}>
       <Field label="标题" required>
-        <input
-          value={form.title}
-          maxLength={100}
-          onChange={(e) => f("title", e.target.value)}
-        />
+        <input value={form.title} maxLength={100} onChange={(e) => f("title", e.target.value)} />
       </Field>
       <Field label="正文" required>
         <textarea
@@ -981,10 +836,7 @@ function NoticeForm({
       </Field>
       <div className="form-grid">
         <Field label="类型">
-          <select
-            value={form.type}
-            onChange={(e) => f("type", Number(e.target.value))}
-          >
+          <select value={form.type} onChange={(e) => f("type", Number(e.target.value))}>
             {["系统公告", "活动通知", "重要提醒"].map((v, i) => (
               <option key={i} value={i + 1}>
                 {v}
@@ -993,10 +845,7 @@ function NoticeForm({
           </select>
         </Field>
         <Field label="优先级">
-          <select
-            value={form.priority}
-            onChange={(e) => f("priority", Number(e.target.value))}
-          >
+          <select value={form.priority} onChange={(e) => f("priority", Number(e.target.value))}>
             {["普通", "重要", "紧急"].map((v, i) => (
               <option key={i} value={i}>
                 {v}
@@ -1027,8 +876,7 @@ function NoticeForm({
         <Button
           tone="primary"
           action={async () => {
-            if (!form.title.trim() || !form.content?.trim())
-              throw new Error("请填写标题和内容");
+            if (!form.title.trim() || !form.content?.trim()) throw new Error("请填写标题和内容");
             const body = {
               id: form.id,
               title: form.title,
@@ -1121,11 +969,7 @@ function Trend({ data }: { data: Row }) {
     <div className="governance-chart">
       <div className="governance-chart-heading">
         <span>新增趋势</span>
-        <select
-          aria-label="趋势指标"
-          value={metric}
-          onChange={(e) => setMetric(e.target.value)}
-        >
+        <select aria-label="趋势指标" value={metric} onChange={(e) => setMetric(e.target.value)}>
           {metrics.map(([key, name]) => (
             <option key={key} value={key}>
               {name}
@@ -1163,18 +1007,12 @@ function Statistics() {
     ["新增用户", d.newUserCount ?? d.totalNewUsers],
     [
       "活跃用户",
-      d.activeUserCount ??
-        d.dau ??
-        d.totalActiveUsers ??
-        d.avgDailyActiveUsers ??
-        d.avgActiveUsers,
+      d.activeUserCount ?? d.dau ?? d.totalActiveUsers ?? d.avgDailyActiveUsers ?? d.avgActiveUsers,
     ],
     [
       "新增帖子",
       d.totalNewPosts ??
-        (d.newPetPostCount || 0) +
-          (d.newActivityCount || 0) +
-          (d.newDailyPostCount || 0),
+        (d.newPetPostCount || 0) + (d.newActivityCount || 0) + (d.newDailyPostCount || 0),
     ],
     ["新增评论", d.newCommentCount ?? d.totalNewComments],
   ];
@@ -1193,9 +1031,7 @@ function Statistics() {
               ["今日新增用户", r.newUserCount],
               [
                 "今日发布帖子",
-                (r.newPetPostCount || 0) +
-                  (r.newActivityCount || 0) +
-                  (r.newDailyPostCount || 0),
+                (r.newPetPostCount || 0) + (r.newActivityCount || 0) + (r.newDailyPostCount || 0),
               ],
               ["今日互动评论", r.newCommentCount],
               ["今日收获点赞", r.newLikeCount],
@@ -1261,13 +1097,7 @@ function Statistics() {
           </div>
           <input
             aria-label="统计日期"
-            type={
-              type === "monthly"
-                ? "month"
-                : type === "yearly"
-                  ? "number"
-                  : "date"
-            }
+            type={type === "monthly" ? "month" : type === "yearly" ? "number" : "date"}
             value={date}
             style={{ width: 160 }}
             onChange={(e) => setDate(e.target.value)}
@@ -1331,27 +1161,15 @@ function Statistics() {
         >
           <p className="muted">重新计算所选日期，可能覆盖原有统计信息。</p>
           <label className="inline-check">
-            <input
-              type="checkbox"
-              checked={range}
-              onChange={(e) => setRange(e.target.checked)}
-            />
+            <input type="checkbox" checked={range} onChange={(e) => setRange(e.target.checked)} />
             区间补录
           </label>
           <Field label={range ? "开始日期" : "补录日期"}>
-            <input
-              type="date"
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-            />
+            <input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
           </Field>
           {range && (
             <Field label="结束日期">
-              <input
-                type="date"
-                value={finish}
-                onChange={(e) => setFinish(e.target.value)}
-              />
+              <input type="date" value={finish} onChange={(e) => setFinish(e.target.value)} />
             </Field>
           )}
           {progress && <p role="status">{progress}</p>}
