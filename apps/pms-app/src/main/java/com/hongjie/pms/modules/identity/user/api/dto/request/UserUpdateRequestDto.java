@@ -50,5 +50,4 @@ public class UserUpdateRequestDto {
      * 是否可搜索
      */
     private Integer searchable;
-
 }

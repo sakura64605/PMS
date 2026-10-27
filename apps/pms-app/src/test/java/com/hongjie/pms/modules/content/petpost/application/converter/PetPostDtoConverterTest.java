@@ -30,12 +30,13 @@ class PetPostDtoConverterTest {
 
     private final PetPostDtoConverter converter = new PetPostDtoConverter();
 
-    private static final UserSimpleDto AUTHOR = UserSimpleDto.builder()
-            .userId(7L)
-            .username("zhangsan")
-            .nickname("张三")
-            .avatar("https://cdn/avatar.png")
-            .build();
+    private static final UserSimpleDto AUTHOR =
+            UserSimpleDto.builder()
+                    .userId(7L)
+                    .username("zhangsan")
+                    .nickname("张三")
+                    .avatar("https://cdn/avatar.png")
+                    .build();
 
     private static PmsPetPost samplePost() {
         PmsPetPost post = new PmsPetPost();
@@ -66,12 +67,14 @@ class PetPostDtoConverterTest {
 
     @Test
     void publicCardPreviewHasLocationAndBoundedDescription() {
-        var post=samplePost();post.setContent("长".repeat(300));
-        var dto=converter.toView(new PetPostWithAuthor(post,AUTHOR,false,false));
+        var post = samplePost();
+        post.setContent("长".repeat(300));
+        var dto = converter.toView(new PetPostWithAuthor(post, AUTHOR, false, false));
         assertThat(dto.getContent()).hasSize(200);
         assertThat(dto.getAddress()).isEqualTo("杭州市西湖区");
         post.setContent(null);
-        assertThat(converter.toView(new PetPostWithAuthor(post,AUTHOR,false,false)).getContent()).isNull();
+        assertThat(converter.toView(new PetPostWithAuthor(post, AUTHOR, false, false)).getContent())
+                .isNull();
     }
 
     @Nested
@@ -81,26 +84,22 @@ class PetPostDtoConverterTest {
         @Test
         @DisplayName("改过名的字段正确映射回对外字段")
         void renamedFieldsMapBack() {
-            PetListResponseDto dto = converter.toView(
-                    new PetPostWithAuthor(samplePost(), AUTHOR, true, false));
+            PetListResponseDto dto =
+                    converter.toView(new PetPostWithAuthor(samplePost(), AUTHOR, true, false));
 
             assertThat(dto.getPetType())
                     .as("实体侧 petBreed 必须映射回 DTO 的 petType，否则前端品种显示为空")
                     .isEqualTo("橘猫");
-            assertThat(dto.getPetAge())
-                    .as("实体侧 petAgeText 必须映射回 DTO 的 petAge")
-                    .isEqualTo("3个月");
+            assertThat(dto.getPetAge()).as("实体侧 petAgeText 必须映射回 DTO 的 petAge").isEqualTo("3个月");
         }
 
         @Test
         @DisplayName("补齐老实现漏设的 petCategory 与 updateTime")
         void fillsFieldsOldImplOmitted() {
-            PetListResponseDto dto = converter.toView(
-                    new PetPostWithAuthor(samplePost(), AUTHOR, true, false));
+            PetListResponseDto dto =
+                    converter.toView(new PetPostWithAuthor(samplePost(), AUTHOR, true, false));
 
-            assertThat(dto.getPetCategory())
-                    .as("老实现没设置这个字段，列表里恒为 null")
-                    .isEqualTo(0);
+            assertThat(dto.getPetCategory()).as("老实现没设置这个字段，列表里恒为 null").isEqualTo(0);
             assertThat(dto.getUpdateTime())
                     .as("老实现同样漏了 updateTime")
                     .isEqualTo(LocalDateTime.of(2026, 10, 2, 11, 30));
@@ -109,8 +108,8 @@ class PetPostDtoConverterTest {
         @Test
         @DisplayName("其余字段逐项映射")
         void mapsRemainingFields() {
-            PetListResponseDto dto = converter.toView(
-                    new PetPostWithAuthor(samplePost(), AUTHOR, true, false));
+            PetListResponseDto dto =
+                    converter.toView(new PetPostWithAuthor(samplePost(), AUTHOR, true, false));
 
             assertThat(dto.getId()).isEqualTo(100L);
             assertThat(dto.getType()).isEqualTo(PetPostType.ADOPT.getCode());
@@ -130,8 +129,8 @@ class PetPostDtoConverterTest {
         @Test
         @DisplayName("作者缺失时正常转换")
         void toleratesMissingAuthor() {
-            PetListResponseDto dto = converter.toView(
-                    new PetPostWithAuthor(samplePost(), null, false, false));
+            PetListResponseDto dto =
+                    converter.toView(new PetPostWithAuthor(samplePost(), null, false, false));
 
             assertThat(dto.getUser()).isNull();
             assertThat(dto.getTitle()).isEqualTo("橘猫找家");
@@ -145,8 +144,8 @@ class PetPostDtoConverterTest {
         @Test
         @DisplayName("比列表多出正文与联系方式，并带上当前用户的互动态")
         void mapsDetailOnlyFields() {
-            PetDetailDto dto = converter.toDetail(
-                    new PetPostWithAuthor(samplePost(), AUTHOR, true, false));
+            PetDetailDto dto =
+                    converter.toDetail(new PetPostWithAuthor(samplePost(), AUTHOR, true, false));
 
             assertThat(dto.getContent()).isEqualTo("三个月大的橘猫，亲人");
             assertThat(dto.getContactPhone()).isEqualTo("13800000000");
@@ -159,8 +158,8 @@ class PetPostDtoConverterTest {
         @Test
         @DisplayName("互动态来自入参，不由转换器自行查询 —— 保证它是纯函数")
         void viewerStateComesFromInput() {
-            PetDetailDto liked = converter.toDetail(
-                    new PetPostWithAuthor(samplePost(), AUTHOR, false, true));
+            PetDetailDto liked =
+                    converter.toDetail(new PetPostWithAuthor(samplePost(), AUTHOR, false, true));
 
             assertThat(liked.getIsLiked()).isTrue();
             assertThat(liked.getIsFavorite()).isFalse();

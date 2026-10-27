@@ -28,43 +28,81 @@ class NoticeListCacheTest {
     final RedisTemplate<String, Object> redis = mock(RedisTemplate.class);
     final ValueOperations<String, Object> values = mock(ValueOperations.class);
     final AtomicReference<Object> shared = new AtomicReference<>();
-    final PmsNoticeServiceImpl service = new PmsNoticeServiceImpl(notices, reads,
-            new NoticeDtoConverter(), null, null, redis);
+    final PmsNoticeServiceImpl service =
+            new PmsNoticeServiceImpl(notices, reads, new NoticeDtoConverter(), null, null, redis);
     final Notice notice = new Notice();
 
     @SuppressWarnings("unchecked")
     NoticeListCacheTest() {
-        notice.setId(7L); notice.setStatus(1); notice.setTitle("notice");
+        notice.setId(7L);
+        notice.setStatus(1);
+        notice.setTitle("notice");
         notice.setPublishTime(LocalDateTime.now().minusDays(1));
         when(redis.opsForValue()).thenReturn(values);
         when(values.get("notice:list:1_10")).thenAnswer(i -> shared.get());
-        doAnswer(i -> { shared.set(i.getArgument(1)); return null; }).when(values)
+        doAnswer(
+                        i -> {
+                            shared.set(i.getArgument(1));
+                            return null;
+                        })
+                .when(values)
                 .set(eq("notice:list:1_10"), any(), eq(600L), eq(TimeUnit.SECONDS));
-        when(notices.selectPage(any(Page.class), any())).thenAnswer(i -> {
-            Page<Notice> page = i.getArgument(0);
-            page.setRecords(List.of(notice)); page.setTotal(1); return page;
-        });
+        when(notices.selectPage(any(Page.class), any()))
+                .thenAnswer(
+                        i -> {
+                            Page<Notice> page = i.getArgument(0);
+                            page.setRecords(List.of(notice));
+                            page.setTotal(1);
+                            return page;
+                        });
         when(reads.selectList(any())).thenReturn(List.of());
     }
-    @org.junit.jupiter.api.BeforeAll static void metadata() { com.baomidou.mybatisplus.core.metadata.TableInfoHelper.initTableInfo(new org.apache.ibatis.builder.MapperBuilderAssistant(new com.baomidou.mybatisplus.core.MybatisConfiguration(), "notice-cache-test"), NoticeReadRecord.class); }
-    @AfterEach void cleanup() { UserContext.clear(); }
-    void viewer(long id) { UserContext.setUser(new UserInfo(id, "viewer", 0, null, null)); }
-    NoticeReadRecord record(long id) {
-        NoticeReadRecord record = new NoticeReadRecord(); record.setNoticeId(7L); record.setUserId(id); return record;
-    }
-    @SuppressWarnings("unchecked") IPage<NoticeListDto> base() { return (IPage<NoticeListDto>) shared.get(); }
 
-    @Test void warmByAThenBThenAnonymousUsesNeutralCacheAndIndependentCopies() {
-        viewer(11L); when(reads.selectList(any())).thenReturn(List.of(record(11L)));
+    @org.junit.jupiter.api.BeforeAll
+    static void metadata() {
+        com.baomidou.mybatisplus.core.metadata.TableInfoHelper.initTableInfo(
+                new org.apache.ibatis.builder.MapperBuilderAssistant(
+                        new com.baomidou.mybatisplus.core.MybatisConfiguration(),
+                        "notice-cache-test"),
+                NoticeReadRecord.class);
+    }
+
+    @AfterEach
+    void cleanup() {
+        UserContext.clear();
+    }
+
+    void viewer(long id) {
+        UserContext.setUser(new UserInfo(id, "viewer", 0, null, null));
+    }
+
+    NoticeReadRecord record(long id) {
+        NoticeReadRecord record = new NoticeReadRecord();
+        record.setNoticeId(7L);
+        record.setUserId(id);
+        return record;
+    }
+
+    @SuppressWarnings("unchecked")
+    IPage<NoticeListDto> base() {
+        return (IPage<NoticeListDto>) shared.get();
+    }
+
+    @Test
+    void warmByAThenBThenAnonymousUsesNeutralCacheAndIndependentCopies() {
+        viewer(11L);
+        when(reads.selectList(any())).thenReturn(List.of(record(11L)));
         IPage<NoticeListDto> a = service.listForUser(1, 10);
         assertThat(a.getRecords().get(0).getIsRead()).isTrue();
         assertThat(base().getRecords().get(0).getIsRead()).isNull();
-        viewer(22L); when(reads.selectList(any())).thenReturn(List.of());
+        viewer(22L);
+        when(reads.selectList(any())).thenReturn(List.of());
         IPage<NoticeListDto> b = service.listForUser(1, 10);
         assertThat(b.getRecords().get(0).getIsRead()).isNull();
         assertThat(b).isNotSameAs(a).isNotSameAs(base());
         assertThat(b.getRecords().get(0)).isNotSameAs(base().getRecords().get(0));
-        UserContext.clear(); clearInvocations(reads);
+        UserContext.clear();
+        clearInvocations(reads);
         IPage<NoticeListDto> anon = service.listForUser(1, 10);
         assertThat(anon.getRecords().get(0).getIsRead()).isNull();
         assertThat(a.getRecords().get(0).getIsRead()).isTrue();
@@ -73,13 +111,18 @@ class NoticeListCacheTest {
         verify(notices, times(1)).selectPage(any(Page.class), any());
     }
 
-    @Test void readingDetailUpdatesReadStatusOnNextListCacheHit() {
+    @Test
+    void readingDetailUpdatesReadStatusOnNextListCacheHit() {
         viewer(22L);
         assertThat(service.listForUser(1, 10).getRecords().get(0).getIsRead()).isNull();
         when(notices.selectById(7L)).thenReturn(notice);
-        doAnswer(i -> {
-            when(reads.selectList(any())).thenReturn(List.of(record(22L))); return 1;
-        }).when(reads).insert(any(NoticeReadRecord.class));
+        doAnswer(
+                        i -> {
+                            when(reads.selectList(any())).thenReturn(List.of(record(22L)));
+                            return 1;
+                        })
+                .when(reads)
+                .insert(any(NoticeReadRecord.class));
         service.getByIdForUser(7L);
         assertThat(service.listForUser(1, 10).getRecords().get(0).getIsRead()).isTrue();
         assertThat(base().getRecords().get(0).getIsRead()).isNull();
@@ -87,9 +130,12 @@ class NoticeListCacheTest {
         verify(reads).exists(7L, 22L);
     }
 
-    @Test void legacyPersonalizedCacheIsOverriddenWithoutMutatingIt() {
+    @Test
+    void legacyPersonalizedCacheIsOverriddenWithoutMutatingIt() {
         NoticeListDto legacy = new NoticeDtoConverter().toListDto(notice, true);
-        Page<NoticeListDto> page = new Page<>(1, 10, 1); page.setRecords(List.of(legacy)); shared.set(page);
+        Page<NoticeListDto> page = new Page<>(1, 10, 1);
+        page.setRecords(List.of(legacy));
+        shared.set(page);
         viewer(22L);
         assertThat(service.listForUser(1, 10).getRecords().get(0).getIsRead()).isNull();
         UserContext.clear();
@@ -98,15 +144,24 @@ class NoticeListCacheTest {
         verifyNoInteractions(notices);
     }
 
-    @Test void expiredCachedPageIsRefilledInsteadOfReturningExpiredRowOrWrongTotal() {
+    @Test
+    void expiredCachedPageIsRefilledInsteadOfReturningExpiredRowOrWrongTotal() {
         NoticeListDto expired = new NoticeDtoConverter().toListDto(notice, null);
         expired.setExpireTime(LocalDateTime.now().minusSeconds(1));
-        Page<NoticeListDto> page = new Page<>(1, 10, 1); page.setRecords(List.of(expired)); shared.set(page);
-        when(notices.selectPage(any(Page.class), any())).thenAnswer(i -> {
-            Page<Notice> empty = i.getArgument(0); empty.setRecords(List.of()); empty.setTotal(0); return empty;
-        });
+        Page<NoticeListDto> page = new Page<>(1, 10, 1);
+        page.setRecords(List.of(expired));
+        shared.set(page);
+        when(notices.selectPage(any(Page.class), any()))
+                .thenAnswer(
+                        i -> {
+                            Page<Notice> empty = i.getArgument(0);
+                            empty.setRecords(List.of());
+                            empty.setTotal(0);
+                            return empty;
+                        });
         IPage<NoticeListDto> response = service.listForUser(1, 10);
-        assertThat(response.getRecords()).isEmpty(); assertThat(response.getTotal()).isZero();
+        assertThat(response.getRecords()).isEmpty();
+        assertThat(response.getTotal()).isZero();
         verify(notices).selectPage(any(Page.class), any());
     }
 }

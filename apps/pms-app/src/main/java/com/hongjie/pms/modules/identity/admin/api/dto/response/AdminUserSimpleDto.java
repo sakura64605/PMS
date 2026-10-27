@@ -31,5 +31,4 @@ public class AdminUserSimpleDto {
      * 是否禁用
      */
     private Boolean isDisable;
-
 }

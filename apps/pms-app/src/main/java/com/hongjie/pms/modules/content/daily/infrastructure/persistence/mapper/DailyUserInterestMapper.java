@@ -5,5 +5,4 @@ import com.hongjie.pms.modules.content.daily.infrastructure.persistence.entity.D
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface DailyUserInterestMapper extends BaseMapper<DailyUserInterest> {
-}
+public interface DailyUserInterestMapper extends BaseMapper<DailyUserInterest> {}

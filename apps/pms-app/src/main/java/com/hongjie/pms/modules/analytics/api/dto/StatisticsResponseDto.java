@@ -106,19 +106,19 @@ public class StatisticsResponseDto {
     @Builder
     public static class RangeStatisticsDto {
         // ===== 区间汇总数据 =====
-        private LocalDate startDate;           // 开始日期
-        private LocalDate endDate;             // 结束日期
+        private LocalDate startDate; // 开始日期
+        private LocalDate endDate; // 结束日期
 
         // 用户统计
-        private Integer totalNewUsers;         // 区间新增用户
-        private Integer avgActiveUsers;        // 区间日均活跃用户
-        private Integer maxDau;                // 区间最高DAU
-        private Integer minDau;                // 区间最低DAU
+        private Integer totalNewUsers; // 区间新增用户
+        private Integer avgActiveUsers; // 区间日均活跃用户
+        private Integer maxDau; // 区间最高DAU
+        private Integer minDau; // 区间最低DAU
 
         // 内容统计
-        private Integer totalNewPosts;         // 区间新增帖子
-        private Integer totalNewComments;      // 区间新增评论
-        private Integer totalNewLikes;         // 区间新增点赞
+        private Integer totalNewPosts; // 区间新增帖子
+        private Integer totalNewComments; // 区间新增评论
+        private Integer totalNewLikes; // 区间新增点赞
 
         // ===== 趋势数据（折线图用）=====
         private TrendDataDto trendData;

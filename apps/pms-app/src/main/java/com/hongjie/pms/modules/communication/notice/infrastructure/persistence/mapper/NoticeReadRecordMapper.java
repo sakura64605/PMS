@@ -7,10 +7,11 @@ import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface NoticeReadRecordMapper extends BaseMapper<NoticeReadRecord> {
-    
-    @Select("SELECT COUNT(*) > 0 FROM notice_read_record WHERE notice_id = #{noticeId} AND user_id = #{userId}")
+
+    @Select(
+            "SELECT COUNT(*) > 0 FROM notice_read_record WHERE notice_id = #{noticeId} AND user_id = #{userId}")
     boolean exists(Long noticeId, Long userId);
-    
+
     @Select("SELECT COUNT(*) FROM notice_read_record WHERE notice_id = #{noticeId}")
     int countReadByNoticeId(Long noticeId);
 }

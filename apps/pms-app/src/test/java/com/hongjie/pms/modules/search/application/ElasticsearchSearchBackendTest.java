@@ -11,21 +11,35 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ElasticsearchSearchBackendTest {
-    ElasticsearchClient client=mock(ElasticsearchClient.class);
-    ElasticsearchSearchBackend backend=new ElasticsearchSearchBackend(client);
-    @Test void requestHasVisibilityTypesTotalTrackingAndStableSort(){
-        var request=backend.request(SearchInput.of("cat",2,12,List.of("pet","daily"),"hot",7L));
-        assertThat(request.from()).isEqualTo(12);assertThat(request.size()).isEqualTo(12);
-        String json=request.toString();
-        assertThat(json).contains("auditStatus","userId","pet","daily","businessId","track_total_hits");
+    ElasticsearchClient client = mock(ElasticsearchClient.class);
+    ElasticsearchSearchBackend backend = new ElasticsearchSearchBackend(client);
+
+    @Test
+    void requestHasVisibilityTypesTotalTrackingAndStableSort() {
+        var request =
+                backend.request(SearchInput.of("cat", 2, 12, List.of("pet", "daily"), "hot", 7L));
+        assertThat(request.from()).isEqualTo(12);
+        assertThat(request.size()).isEqualTo(12);
+        String json = request.toString();
+        assertThat(json)
+                .contains(
+                        "auditStatus", "userId", "pet", "daily", "businessId", "track_total_hits");
         assertThat(request.sort()).hasSize(6);
     }
-    @Test void anonymousVisibilityDoesNotIncludeOwnership(){
-        String json=backend.request(SearchInput.of("cat",1,20,null,"time",null)).toString();
+
+    @Test
+    void anonymousVisibilityDoesNotIncludeOwnership() {
+        String json = backend.request(SearchInput.of("cat", 1, 20, null, "time", null)).toString();
         assertThat(json).contains("auditStatus").doesNotContain("userId");
     }
-    @Test void backendFailureIsNotReportedAsSuccessfulEmptySearch()throws Exception{
-        when(client.search(any(SearchRequest.class),eq(com.hongjie.pms.searchengine.SearchEngine.Document.class))).thenThrow(new IOException("injected unavailable"));
-        assertThatThrownBy(()->backend.search(SearchInput.of("cat",1,20,null,null,null))).isInstanceOf(BusinessException.class);
+
+    @Test
+    void backendFailureIsNotReportedAsSuccessfulEmptySearch() throws Exception {
+        when(client.search(
+                        any(SearchRequest.class),
+                        eq(com.hongjie.pms.searchengine.SearchEngine.Document.class)))
+                .thenThrow(new IOException("injected unavailable"));
+        assertThatThrownBy(() -> backend.search(SearchInput.of("cat", 1, 20, null, null, null)))
+                .isInstanceOf(BusinessException.class);
     }
 }

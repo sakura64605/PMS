@@ -5,5 +5,4 @@ import com.hongjie.pms.modules.ai.infrastructure.persistence.entity.AiKnowledgeB
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface AiKnowledgeBaseMapper extends BaseMapper<AiKnowledgeBase> {
-}
+public interface AiKnowledgeBaseMapper extends BaseMapper<AiKnowledgeBase> {}

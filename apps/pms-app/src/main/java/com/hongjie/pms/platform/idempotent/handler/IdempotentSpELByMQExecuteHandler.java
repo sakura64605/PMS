@@ -22,13 +22,15 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RequiredArgsConstructor
-public final class IdempotentSpELByMQExecuteHandler extends AbstractIdempotentExecuteHandler implements IdempotentSpELService {
+public final class IdempotentSpELByMQExecuteHandler extends AbstractIdempotentExecuteHandler
+        implements IdempotentSpELService {
 
-    private final static int TIMEOUT = 600;
+    private static final int TIMEOUT = 600;
 
-    private final static String WRAPPER = "wrapper:spEL:MQ";
+    private static final String WRAPPER = "wrapper:spEL:MQ";
 
-    private final static String LUA_SCRIPT_SET_IF_ABSENT_AND_GET_PATH = "lua/set_if_absent_and_get.lua";
+    private static final String LUA_SCRIPT_SET_IF_ABSENT_AND_GET_PATH =
+            "lua/set_if_absent_and_get.lua";
 
     private final DistributedCache distributedCache;
 
@@ -36,18 +38,31 @@ public final class IdempotentSpELByMQExecuteHandler extends AbstractIdempotentEx
     @Override
     protected IdempotentParamWrapper buildWrapper(ProceedingJoinPoint joinPoint) {
         Idempotent idempotent = IdempotentAspect.getIdempotent(joinPoint);
-        String key = (String) SpELUtil.parseKey(idempotent.key(), ((MethodSignature) joinPoint.getSignature()).getMethod(), joinPoint.getArgs());
+        String key =
+                (String)
+                        SpELUtil.parseKey(
+                                idempotent.key(),
+                                ((MethodSignature) joinPoint.getSignature()).getMethod(),
+                                joinPoint.getArgs());
         return IdempotentParamWrapper.builder().lockKey(key).joinPoint(joinPoint).build();
     }
 
     @Override
     public void handler(IdempotentParamWrapper wrapper) {
         String uniqueKey = wrapper.getIdempotent().uniqueKeyPrefix() + wrapper.getLockKey();
-        String absentAndGet = this.setIfAbsentAndGet(uniqueKey, IdempotentMQConsumeStatusEnum.CONSUMING.getCode(), TIMEOUT, TimeUnit.SECONDS);
+        String absentAndGet =
+                this.setIfAbsentAndGet(
+                        uniqueKey,
+                        IdempotentMQConsumeStatusEnum.CONSUMING.getCode(),
+                        TIMEOUT,
+                        TimeUnit.SECONDS);
 
         if (Objects.nonNull(absentAndGet)) {
             boolean error = IdempotentMQConsumeStatusEnum.isError(absentAndGet);
-            log.warn("[{}] MQ repeated consumption, {}.", uniqueKey, error ? "Wait for the client to delay consumption" : "Status is completed");
+            log.warn(
+                    "[{}] MQ repeated consumption, {}.",
+                    uniqueKey,
+                    error ? "Wait for the client to delay consumption" : "Status is completed");
             throw new RepeatConsumptionException(error);
         }
         IdempotentContext.put(WRAPPER, wrapper);
@@ -60,7 +75,8 @@ public final class IdempotentSpELByMQExecuteHandler extends AbstractIdempotentEx
         redisScript.setResultType(String.class);
 
         long millis = timeUnit.toMillis(timeout);
-        return ((StringRedisTemplate) distributedCache.getInstance()).execute(redisScript, List.of(key), value, String.valueOf(millis));
+        return ((StringRedisTemplate) distributedCache.getInstance())
+                .execute(redisScript, List.of(key), value, String.valueOf(millis));
     }
 
     @Override
@@ -84,7 +100,11 @@ public final class IdempotentSpELByMQExecuteHandler extends AbstractIdempotentEx
             Idempotent idempotent = wrapper.getIdempotent();
             String uniqueKey = idempotent.uniqueKeyPrefix() + wrapper.getLockKey();
             try {
-                distributedCache.put(uniqueKey, IdempotentMQConsumeStatusEnum.CONSUMED.getCode(), idempotent.keyTimeout(), TimeUnit.SECONDS);
+                distributedCache.put(
+                        uniqueKey,
+                        IdempotentMQConsumeStatusEnum.CONSUMED.getCode(),
+                        idempotent.keyTimeout(),
+                        TimeUnit.SECONDS);
             } catch (Throwable ex) {
                 log.error("[{}] Failed to set MQ anti-heavy token.", uniqueKey);
             }

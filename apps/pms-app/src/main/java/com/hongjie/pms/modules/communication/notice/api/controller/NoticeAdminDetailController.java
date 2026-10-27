@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class NoticeAdminDetailController {
     private final NoticeMapper noticeMapper;
+
     @GetMapping("/{id}")
     public CommonResult<Notice> detail(@PathVariable Long id) {
         if (!UserContext.isAdmin()) throw new BusinessException(ErrorCode.FORBIDDEN);

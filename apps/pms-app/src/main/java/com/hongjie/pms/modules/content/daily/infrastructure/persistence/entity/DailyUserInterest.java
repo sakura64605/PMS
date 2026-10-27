@@ -8,8 +8,7 @@ import java.time.LocalDateTime;
 @Data
 @TableName("daily_user_interest")
 public class DailyUserInterest {
-    @TableId
-    private Long userId;
+    @TableId private Long userId;
     private String interestJson;
     private LocalDateTime updateTime;
 }

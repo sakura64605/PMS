@@ -5,5 +5,4 @@ public interface IErrorCode {
     int code();
 
     String message();
-
 }

@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 public class DailyUserBehavior {
     @TableId(type = IdType.AUTO)
     private Long id;
+
     private Long userId;
     private Long targetId;
     private String actionType;

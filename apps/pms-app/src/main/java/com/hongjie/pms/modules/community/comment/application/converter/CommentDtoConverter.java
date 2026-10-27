@@ -29,25 +29,30 @@ public class CommentDtoConverter {
      * @param context 已批量查好的上下文
      */
     public CommentRespDto toView(Comment comment, CommentTreeContext context) {
-        CommentRespDto dto = CommentRespDto.builder()
-                .id(comment.getId())
-                .user(context.users().get(comment.getUserId()))
-                .content(comment.getContent())
-                .likeCount(comment.getLikeCount())
-                .isLiked(context.likedCommentIds().contains(comment.getId()))
-                .createTime(comment.getCreateTime())
-                .replyTo(comment.getReplyTo() == null ? null : context.users().get(comment.getReplyTo()))
-                .parentId(comment.getParentId())
-                .replies(new ArrayList<>())
-                .build();
+        CommentRespDto dto =
+                CommentRespDto.builder()
+                        .id(comment.getId())
+                        .user(context.users().get(comment.getUserId()))
+                        .content(comment.getContent())
+                        .likeCount(comment.getLikeCount())
+                        .isLiked(context.likedCommentIds().contains(comment.getId()))
+                        .createTime(comment.getCreateTime())
+                        .replyTo(
+                                comment.getReplyTo() == null
+                                        ? null
+                                        : context.users().get(comment.getReplyTo()))
+                        .parentId(comment.getParentId())
+                        .replies(new ArrayList<>())
+                        .build();
 
         List<Comment> children = context.repliesByParent().get(comment.getId());
         if (children != null && !children.isEmpty()) {
             // 与老实现一致：子评论按时间正序，读起来才是对话顺序
-            dto.setReplies(children.stream()
-                    .sorted(Comparator.comparing(Comment::getCreateTime))
-                    .map(child -> toView(child, context))
-                    .toList());
+            dto.setReplies(
+                    children.stream()
+                            .sorted(Comparator.comparing(Comment::getCreateTime))
+                            .map(child -> toView(child, context))
+                            .toList());
         }
         return dto;
     }

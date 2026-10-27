@@ -1,21 +1,25 @@
 package com.hongjie.pms.modules.ai.application.tool;
+
 import com.hongjie.pms.ai.contract.BaseTool;
 import com.hongjie.pms.modules.ai.api.dto.ToolCall;
 import com.hongjie.pms.aiservice.core.AiCoreClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import java.util.*;
+
 @Component
 @RequiredArgsConstructor
 public class MyActivitiesTool implements BaseTool {
     private final AiCoreClient core;
+
     @Override
-    public String getName() { return "my_activities"; }
+    public String getName() {
+        return "my_activities";
+    }
 
     @Override
     public String getDescription() {
-        return "查询当前用户报名的活动列表。注意：分页查询，每次只返回一页（默认5条），"
-                + "若提示还有更多请用 page 递增继续。";
+        return "查询当前用户报名的活动列表。注意：分页查询，每次只返回一页（默认5条），" + "若提示还有更多请用 page 递增继续。";
     }
 
     @Override
@@ -23,15 +27,21 @@ public class MyActivitiesTool implements BaseTool {
         Map<String, Object> params = new HashMap<>();
         params.put("type", "object");
         Map<String, Object> properties = new HashMap<>();
-        properties.put("status", Map.of("type", "string", "description", "报名状态: signed-已报名, cancelled-已取消, checked-已签到, 不传则查全部"));
+        properties.put(
+                "status",
+                Map.of(
+                        "type",
+                        "string",
+                        "description",
+                        "报名状态: signed-已报名, cancelled-已取消, checked-已签到, 不传则查全部"));
         properties.put("page", Map.of("type", "integer", "description", "页码，从1开始，默认1"));
         properties.put("limit", Map.of("type", "integer", "description", "每页条数，默认5，最大20"));
         params.put("properties", properties);
         return params;
     }
 
-
-    @Override public ToolCall execute(Map<String,Object> args, Long actor) {
-        return core.tool(getName(),args,actor);
+    @Override
+    public ToolCall execute(Map<String, Object> args, Long actor) {
+        return core.tool(getName(), args, actor);
     }
 }

@@ -5,5 +5,4 @@ import com.hongjie.pms.modules.governance.audit.infrastructure.persistence.entit
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface AuditRecordMapper extends BaseMapper<AuditRecord> {
-}
+public interface AuditRecordMapper extends BaseMapper<AuditRecord> {}

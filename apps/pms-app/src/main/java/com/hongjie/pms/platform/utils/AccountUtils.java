@@ -17,7 +17,8 @@ public class AccountUtils {
 
     // 带国际区号的中国手机号
     private static final String INTERNATIONAL_PHONE_REGEX = "^(\\+?86)?1[3-9]\\d{9}$";
-    private static final Pattern INTERNATIONAL_PHONE_PATTERN = Pattern.compile(INTERNATIONAL_PHONE_REGEX);
+    private static final Pattern INTERNATIONAL_PHONE_PATTERN =
+            Pattern.compile(INTERNATIONAL_PHONE_REGEX);
 
     // 纯数字正则
     private static final Pattern DIGIT_PATTERN = Pattern.compile("^\\d+$");
@@ -55,5 +56,4 @@ public class AccountUtils {
         account = account.trim();
         return INTERNATIONAL_PHONE_PATTERN.matcher(account).matches();
     }
-
 }

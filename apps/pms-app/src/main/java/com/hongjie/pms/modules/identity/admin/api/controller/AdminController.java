@@ -64,7 +64,12 @@ public class AdminController {
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer status) {
-        log.info("管理员用户列表: pageNum={}, pageSize={}, keyword={}, status={}", pageNum, pageSize, keyword, status);
+        log.info(
+                "管理员用户列表: pageNum={}, pageSize={}, keyword={}, status={}",
+                pageNum,
+                pageSize,
+                keyword,
+                status);
         IPage<AdminUserSimpleDto> page = adminService.userList(pageNum, pageSize, keyword, status);
         return CommonResult.success(page);
     }
@@ -73,7 +78,8 @@ public class AdminController {
      * 批量禁用用户
      */
     @PostMapping("/users/batch-disable")
-    public CommonResult<BatchOperationResponse> batchDisableUsers(@RequestBody @Valid BatchOperationRequest request) {
+    public CommonResult<BatchOperationResponse> batchDisableUsers(
+            @RequestBody @Valid BatchOperationRequest request) {
         if (!UserContext.isAdmin()) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
@@ -85,7 +91,8 @@ public class AdminController {
      * 批量启用用户
      */
     @PostMapping("/users/batch-enable")
-    public CommonResult<BatchOperationResponse> batchEnableUsers(@RequestBody @Valid BatchOperationRequest request) {
+    public CommonResult<BatchOperationResponse> batchEnableUsers(
+            @RequestBody @Valid BatchOperationRequest request) {
         if (!UserContext.isAdmin()) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
@@ -97,7 +104,8 @@ public class AdminController {
      * 批量重置用户密码
      */
     @PostMapping("/users/batch-reset-password")
-    public CommonResult<BatchOperationResponse> batchResetPassword(@RequestBody @Valid BatchOperationRequest request) {
+    public CommonResult<BatchOperationResponse> batchResetPassword(
+            @RequestBody @Valid BatchOperationRequest request) {
         if (!UserContext.isAdmin()) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }

@@ -14,12 +14,14 @@ import java.util.Map;
 @RequestMapping("/pet-system/activity/my-signups")
 public class MySignupsController {
     private final MySignupsQueries queries;
+
     @GetMapping
     public CommonResult<IPage<MySignupResponse>> list(MySignupsRequest request) {
         return CommonResult.success(queries.list(request));
     }
+
     @GetMapping("/summary")
-    public CommonResult<Map<String,Object>> summary() {
+    public CommonResult<Map<String, Object>> summary() {
         return CommonResult.success(queries.summary());
     }
 }

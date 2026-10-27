@@ -35,8 +35,8 @@ public class IdempotentAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    public IdempotentTokenService idempotentTokenExecuteHandler(DistributedCache distributedCache,
-                                                                IdempotentProperties idempotentProperties) {
+    public IdempotentTokenService idempotentTokenExecuteHandler(
+            DistributedCache distributedCache, IdempotentProperties idempotentProperties) {
         return new IdempotentTokenExecuteHandler(distributedCache, idempotentProperties);
     }
 
@@ -44,7 +44,8 @@ public class IdempotentAutoConfiguration {
      * 申请幂等 Token 控制器，基于 RestAPI 场景
      */
     @Bean
-    public IdempotentTokenController idempotentTokenController(IdempotentTokenService idempotentTokenService) {
+    public IdempotentTokenController idempotentTokenController(
+            IdempotentTokenService idempotentTokenService) {
         return new IdempotentTokenController(idempotentTokenService);
     }
 
@@ -53,7 +54,8 @@ public class IdempotentAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    public IdempotentSpELService idempotentSpELByRestAPIExecuteHandler(RedissonClient redissonClient) {
+    public IdempotentSpELService idempotentSpELByRestAPIExecuteHandler(
+            RedissonClient redissonClient) {
         return new IdempotentSpELByRestAPIExecuteHandler(redissonClient);
     }
 
@@ -62,7 +64,8 @@ public class IdempotentAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    public IdempotentSpELByMQExecuteHandler idempotentSpELByMQExecuteHandler(DistributedCache distributedCache) {
+    public IdempotentSpELByMQExecuteHandler idempotentSpELByMQExecuteHandler(
+            DistributedCache distributedCache) {
         return new IdempotentSpELByMQExecuteHandler(distributedCache);
     }
 

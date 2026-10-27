@@ -1,4 +1,5 @@
 package com.hongjie.pms.modules.ai.application.tool;
+
 import com.hongjie.pms.ai.contract.BaseTool;
 import com.hongjie.pms.ai.contract.ToolPaging;
 
@@ -19,7 +20,9 @@ public class KnowledgeSearchTool implements BaseTool {
     private final KnowledgeBaseService knowledgeBaseService;
 
     @Override
-    public String getName() { return "search_knowledge"; }
+    public String getName() {
+        return "search_knowledge";
+    }
 
     @Override
     public String getDescription() {

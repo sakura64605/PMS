@@ -15,17 +15,23 @@ import org.redisson.api.RedissonClient;
 
 @Slf4j
 @RequiredArgsConstructor
-public final class IdempotentSpELByRestAPIExecuteHandler extends AbstractIdempotentExecuteHandler implements IdempotentSpELService {
+public final class IdempotentSpELByRestAPIExecuteHandler extends AbstractIdempotentExecuteHandler
+        implements IdempotentSpELService {
 
     private final RedissonClient redissonClient;
 
-    private final static String LOCK = "lock:spEL:restAPI";
+    private static final String LOCK = "lock:spEL:restAPI";
 
     @SneakyThrows
     @Override
     protected IdempotentParamWrapper buildWrapper(ProceedingJoinPoint joinPoint) {
         Idempotent idempotent = IdempotentAspect.getIdempotent(joinPoint);
-        String key = (String) SpELUtil.parseKey(idempotent.key(), ((MethodSignature) joinPoint.getSignature()).getMethod(), joinPoint.getArgs());
+        String key =
+                (String)
+                        SpELUtil.parseKey(
+                                idempotent.key(),
+                                ((MethodSignature) joinPoint.getSignature()).getMethod(),
+                                joinPoint.getArgs());
         log.info("SpEL 表达式: {}, 解析结果: {}", idempotent.key(), key);
         return IdempotentParamWrapper.builder().lockKey(key).joinPoint(joinPoint).build();
     }

@@ -24,12 +24,14 @@ public interface DailyPostMapper extends BaseMapper<DailyPost> {
     @Update("UPDATE daily_post SET comment_count = comment_count + 1 WHERE id = #{id}")
     void incrementCommentCount(@Param("id") Long id);
 
-    @Select("SELECT * FROM daily_post WHERE audit_status = 1 AND status = 1 " +
-            "ORDER BY like_count DESC, view_count DESC LIMIT #{limit}")
+    @Select(
+            "SELECT * FROM daily_post WHERE audit_status = 1 AND status = 1 "
+                    + "ORDER BY like_count DESC, view_count DESC LIMIT #{limit}")
     List<DailyPost> getHotPosts(@Param("limit") int limit);
 
-    @Select("SELECT * FROM daily_post WHERE audit_status = 1 AND status = 1 " +
-            "AND id IN (SELECT daily_id FROM daily_topic_rel WHERE topic_id = #{topicId}) " +
-            "ORDER BY create_time DESC LIMIT #{limit}")
+    @Select(
+            "SELECT * FROM daily_post WHERE audit_status = 1 AND status = 1 "
+                    + "AND id IN (SELECT daily_id FROM daily_topic_rel WHERE topic_id = #{topicId}) "
+                    + "ORDER BY create_time DESC LIMIT #{limit}")
     List<DailyPost> getPostsByTopic(@Param("topicId") Long topicId, @Param("limit") int limit);
 }

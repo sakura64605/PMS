@@ -7,5 +7,4 @@ public class LikeRequest {
 
     private Long targetId;
     private String targetType;
-
 }

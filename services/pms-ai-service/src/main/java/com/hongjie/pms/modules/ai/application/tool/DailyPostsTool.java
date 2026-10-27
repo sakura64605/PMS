@@ -1,16 +1,21 @@
 package com.hongjie.pms.modules.ai.application.tool;
+
 import com.hongjie.pms.ai.contract.BaseTool;
 import com.hongjie.pms.modules.ai.api.dto.ToolCall;
 import com.hongjie.pms.aiservice.core.AiCoreClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import java.util.*;
+
 @Component
 @RequiredArgsConstructor
 public class DailyPostsTool implements BaseTool {
     private final AiCoreClient core;
+
     @Override
-    public String getName() { return "search_daily_posts"; }
+    public String getName() {
+        return "search_daily_posts";
+    }
 
     @Override
     public String getDescription() {
@@ -31,8 +36,8 @@ public class DailyPostsTool implements BaseTool {
         return params;
     }
 
-
-    @Override public ToolCall execute(Map<String,Object> args, Long actor) {
-        return core.tool(getName(),args,actor);
+    @Override
+    public ToolCall execute(Map<String, Object> args, Long actor) {
+        return core.tool(getName(), args, actor);
     }
 }

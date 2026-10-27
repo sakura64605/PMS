@@ -30,7 +30,8 @@ class PageTest {
         @Test
         @DisplayName("页大小封顶，防止恶意大分页拖垮数据库")
         void capsPageSize() {
-            assertThat(PageQuery.of(1L, 100_000L).normalizedPageSize()).isEqualTo(PageQuery.MAX_PAGE_SIZE);
+            assertThat(PageQuery.of(1L, 100_000L).normalizedPageSize())
+                    .isEqualTo(PageQuery.MAX_PAGE_SIZE);
             assertThat(PageQuery.of(1L, 100L).normalizedPageSize()).isEqualTo(100);
         }
 

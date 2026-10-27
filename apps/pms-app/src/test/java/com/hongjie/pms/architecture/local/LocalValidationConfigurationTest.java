@@ -20,38 +20,81 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class LocalValidationConfigurationTest {
-    @Configuration(proxyBeanMethods=false)
-    @EnableConfigurationProperties({SchedulingProperties.class,RocketMQProperties.class})
+    @Configuration(proxyBeanMethods = false)
+    @EnableConfigurationProperties({SchedulingProperties.class, RocketMQProperties.class})
     static class Binding {}
-    ApplicationContextRunner runner(){
-        return new ApplicationContextRunner().withUserConfiguration(Binding.class,LocalJobScheduler.class,XxlJobHandlers.class,
-                SearchIndexBootstrap.class,CacheWarmer.class)
-                .withBean(PmsJobActions.class,()->mock(PmsJobActions.class))
-                .withBean(SearchMaintenance.class,()->mock(SearchMaintenance.class))
-                .withBean(RedisTemplate.class,()->mock(RedisTemplate.class))
-                .withBean(RedisScanUtil.class,()->mock(RedisScanUtil.class))
-                .withBean(NoticeMapper.class,()->mock(NoticeMapper.class))
-                .withBean(NoticeReadRecordMapper.class,()->mock(NoticeReadRecordMapper.class))
-                .withBean(PetPostMapper.class,()->mock(PetPostMapper.class))
-                .withBean(ActivityMapper.class,()->mock(ActivityMapper.class))
-                .withBean(UserMapper.class,()->mock(UserMapper.class));
+
+    ApplicationContextRunner runner() {
+        return new ApplicationContextRunner()
+                .withUserConfiguration(
+                        Binding.class,
+                        LocalJobScheduler.class,
+                        XxlJobHandlers.class,
+                        SearchIndexBootstrap.class,
+                        CacheWarmer.class)
+                .withBean(PmsJobActions.class, () -> mock(PmsJobActions.class))
+                .withBean(SearchMaintenance.class, () -> mock(SearchMaintenance.class))
+                .withBean(RedisTemplate.class, () -> mock(RedisTemplate.class))
+                .withBean(RedisScanUtil.class, () -> mock(RedisScanUtil.class))
+                .withBean(NoticeMapper.class, () -> mock(NoticeMapper.class))
+                .withBean(NoticeReadRecordMapper.class, () -> mock(NoticeReadRecordMapper.class))
+                .withBean(PetPostMapper.class, () -> mock(PetPostMapper.class))
+                .withBean(ActivityMapper.class, () -> mock(ActivityMapper.class))
+                .withBean(UserMapper.class, () -> mock(UserMapper.class));
     }
-    @Test void localProfileDoesNotRunSharedBackgroundWork()throws Exception{
-        var properties=new YamlPropertySourceLoader().load("local-validation",new ClassPathResource("application-local-validation.yaml"));
-        runner().withInitializer(context->properties.forEach(p->context.getEnvironment().getPropertySources().addFirst(p))).run(context->{
-            assertThat(context).hasNotFailed();
-            assertThat(context).doesNotHaveBean(LocalJobScheduler.class).doesNotHaveBean(XxlJobHandlers.class)
-                    .doesNotHaveBean(SearchIndexBootstrap.class).doesNotHaveBean(CacheWarmer.class);
-            assertThat(context.getBean(SchedulingProperties.class).getMode()).isEqualTo(SchedulingProperties.Mode.DISABLED);
-            var listeners=context.getBean(RocketMQProperties.class).getConsumer().getListeners();
-            assertThat(listeners.get("message-consumer-group").get("message-topic")).isFalse();
-            assertThat(listeners.get("delay-task-consumer-group").get("delay-task-topic")).isFalse();
-            assertThat(listeners.get("cache-update-consumer-group").get("cache-update-topic")).isFalse();
-        });
+
+    @Test
+    void localProfileDoesNotRunSharedBackgroundWork() throws Exception {
+        var properties =
+                new YamlPropertySourceLoader()
+                        .load(
+                                "local-validation",
+                                new ClassPathResource("application-local-validation.yaml"));
+        runner().withInitializer(
+                        context ->
+                                properties.forEach(
+                                        p ->
+                                                context.getEnvironment()
+                                                        .getPropertySources()
+                                                        .addFirst(p)))
+                .run(
+                        context -> {
+                            assertThat(context).hasNotFailed();
+                            assertThat(context)
+                                    .doesNotHaveBean(LocalJobScheduler.class)
+                                    .doesNotHaveBean(XxlJobHandlers.class)
+                                    .doesNotHaveBean(SearchIndexBootstrap.class)
+                                    .doesNotHaveBean(CacheWarmer.class);
+                            assertThat(context.getBean(SchedulingProperties.class).getMode())
+                                    .isEqualTo(SchedulingProperties.Mode.DISABLED);
+                            var listeners =
+                                    context.getBean(RocketMQProperties.class)
+                                            .getConsumer()
+                                            .getListeners();
+                            assertThat(listeners.get("message-consumer-group").get("message-topic"))
+                                    .isFalse();
+                            assertThat(
+                                            listeners
+                                                    .get("delay-task-consumer-group")
+                                                    .get("delay-task-topic"))
+                                    .isFalse();
+                            assertThat(
+                                            listeners
+                                                    .get("cache-update-consumer-group")
+                                                    .get("cache-update-topic"))
+                                    .isFalse();
+                        });
     }
-    @Test void existingDefaultsStillEnableStartupWork(){
-        runner().run(context->{
-            assertThat(context).hasNotFailed().hasSingleBean(LocalJobScheduler.class).hasSingleBean(SearchIndexBootstrap.class).hasSingleBean(CacheWarmer.class);
-        });
+
+    @Test
+    void existingDefaultsStillEnableStartupWork() {
+        runner().run(
+                        context -> {
+                            assertThat(context)
+                                    .hasNotFailed()
+                                    .hasSingleBean(LocalJobScheduler.class)
+                                    .hasSingleBean(SearchIndexBootstrap.class)
+                                    .hasSingleBean(CacheWarmer.class);
+                        });
     }
 }

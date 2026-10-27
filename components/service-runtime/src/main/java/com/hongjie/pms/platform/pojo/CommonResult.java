@@ -9,23 +9,23 @@ import java.io.Serializable;
 public class CommonResult<T> implements Serializable {
 
     /**
-	 * 错误码
-	 */
+     * 错误码
+     */
     private Integer code;
 
     /**
-	 * 错误信息
-	 */
+     * 错误信息
+     */
     private String message;
 
     /**
-	 * 数据结果
-	 */
+     * 数据结果
+     */
     private T data;
 
     /**
-	 * 异常信息
-	 */
+     * 异常信息
+     */
     public String exception;
 
     public static <T> CommonResult<T> success() {
@@ -99,5 +99,4 @@ public class CommonResult<T> implements Serializable {
     public static <T> CommonResult<T> rateLimit(String message) {
         return error(ErrorCode.RATE_LIMIT, message);
     }
-
 }

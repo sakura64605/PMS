@@ -57,9 +57,14 @@ public class WebSocketHandler extends TextWebSocketHandler {
         if (session != null && session.isOpen()) {
             try {
                 var attributes = session.getAttributes();
-                if (attributes != null && attributes.get("pms.auth") instanceof com.hongjie.pms.modules.identity.user.application.UserSessions guard
-                        && guard.authenticate((String)attributes.get("pms.token")) == null) {
-                    SESSIONS.remove(userId, session); session.close(CloseStatus.NOT_ACCEPTABLE); return false;
+                if (attributes != null
+                        && attributes.get("pms.auth")
+                                instanceof
+                                com.hongjie.pms.modules.identity.user.application.UserSessions guard
+                        && guard.authenticate((String) attributes.get("pms.token")) == null) {
+                    SESSIONS.remove(userId, session);
+                    session.close(CloseStatus.NOT_ACCEPTABLE);
+                    return false;
                 }
                 String json = JSON.toJSONString(message);
                 // 并发推送同一 session 会抛 "Concurrent access"，加锁串行化
@@ -90,7 +95,8 @@ public class WebSocketHandler extends TextWebSocketHandler {
         if (query != null) {
             for (String param : query.split("&")) {
                 if (param.startsWith("token=")) {
-                    return java.net.URLDecoder.decode(param.substring(6), java.nio.charset.StandardCharsets.UTF_8);
+                    return java.net.URLDecoder.decode(
+                            param.substring(6), java.nio.charset.StandardCharsets.UTF_8);
                 }
             }
         }

@@ -1,4 +1,5 @@
 package com.hongjie.pms.modules.ai.application.memory;
+
 import com.hongjie.pms.modules.ai.api.service.ChatMemoryService;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -30,12 +31,13 @@ public class UserMemoryService {
         if (userId == null) {
             return List.of();
         }
-        LambdaQueryWrapper<AiUserMemory> wrapper = new LambdaQueryWrapper<AiUserMemory>()
-                .eq(AiUserMemory::getUserId, userId)
-                .eq(AiUserMemory::getStatus, 1)
-                .orderByDesc(AiUserMemory::getImportance)
-                .orderByDesc(AiUserMemory::getUpdatedAt)
-                .last("LIMIT " + Math.max(1, Math.min(limit, 100)));
+        LambdaQueryWrapper<AiUserMemory> wrapper =
+                new LambdaQueryWrapper<AiUserMemory>()
+                        .eq(AiUserMemory::getUserId, userId)
+                        .eq(AiUserMemory::getStatus, 1)
+                        .orderByDesc(AiUserMemory::getImportance)
+                        .orderByDesc(AiUserMemory::getUpdatedAt)
+                        .last("LIMIT " + Math.max(1, Math.min(limit, 100)));
         return memoryMapper.selectList(wrapper);
     }
 
@@ -56,16 +58,21 @@ public class UserMemoryService {
             AiUserMemory existing = findByUserAndContent(userId, content);
             if (existing != null) {
                 // 已存在 → 仅刷新（视为再次确认），并轻微提升重要度上限5
-                existing.setImportance(Math.min(5, (existing.getImportance() == null ? 1 : existing.getImportance()) + 1));
+                existing.setImportance(
+                        Math.min(
+                                5,
+                                (existing.getImportance() == null ? 1 : existing.getImportance())
+                                        + 1));
                 memoryMapper.updateById(existing);
             } else {
-                AiUserMemory mem = AiUserMemory.builder()
-                        .userId(userId)
-                        .content(content)
-                        .sourceSession(sourceSession)
-                        .importance(1)
-                        .status(1)
-                        .build();
+                AiUserMemory mem =
+                        AiUserMemory.builder()
+                                .userId(userId)
+                                .content(content)
+                                .sourceSession(sourceSession)
+                                .importance(1)
+                                .status(1)
+                                .build();
                 memoryMapper.insert(mem);
                 saved++;
             }
@@ -75,29 +82,32 @@ public class UserMemoryService {
     }
 
     private AiUserMemory findByUserAndContent(Long userId, String content) {
-        LambdaQueryWrapper<AiUserMemory> wrapper = new LambdaQueryWrapper<AiUserMemory>()
-                .eq(AiUserMemory::getUserId, userId)
-                .eq(AiUserMemory::getContent, content)
-                .last("LIMIT 1");
+        LambdaQueryWrapper<AiUserMemory> wrapper =
+                new LambdaQueryWrapper<AiUserMemory>()
+                        .eq(AiUserMemory::getUserId, userId)
+                        .eq(AiUserMemory::getContent, content)
+                        .last("LIMIT 1");
         return memoryMapper.selectOne(wrapper);
     }
 
     /** 超出上限时，按 重要度升序→更新时间升序 删掉多余的低价值记忆 */
     private void enforceCap(Long userId) {
-        LambdaQueryWrapper<AiUserMemory> countWrapper = new LambdaQueryWrapper<AiUserMemory>()
-                .eq(AiUserMemory::getUserId, userId)
-                .eq(AiUserMemory::getStatus, 1);
+        LambdaQueryWrapper<AiUserMemory> countWrapper =
+                new LambdaQueryWrapper<AiUserMemory>()
+                        .eq(AiUserMemory::getUserId, userId)
+                        .eq(AiUserMemory::getStatus, 1);
         Long total = memoryMapper.selectCount(countWrapper);
         if (total == null || total <= MAX_MEMORIES_PER_USER) {
             return;
         }
         long excess = total - MAX_MEMORIES_PER_USER;
-        LambdaQueryWrapper<AiUserMemory> drop = new LambdaQueryWrapper<AiUserMemory>()
-                .eq(AiUserMemory::getUserId, userId)
-                .eq(AiUserMemory::getStatus, 1)
-                .orderByAsc(AiUserMemory::getImportance)
-                .orderByAsc(AiUserMemory::getUpdatedAt)
-                .last("LIMIT " + excess);
+        LambdaQueryWrapper<AiUserMemory> drop =
+                new LambdaQueryWrapper<AiUserMemory>()
+                        .eq(AiUserMemory::getUserId, userId)
+                        .eq(AiUserMemory::getStatus, 1)
+                        .orderByAsc(AiUserMemory::getImportance)
+                        .orderByAsc(AiUserMemory::getUpdatedAt)
+                        .last("LIMIT " + excess);
         List<AiUserMemory> toDrop = memoryMapper.selectList(drop);
         for (AiUserMemory m : toDrop) {
             memoryMapper.deleteById(m.getId());
@@ -130,12 +140,21 @@ public class UserMemoryService {
         if (existing != null) {
             // 已存在（可能是对话自动添加的）→ 重新启用并刷新，避免重复
             existing.setStatus(1);
-            existing.setImportance(Math.min(5, (existing.getImportance() == null ? 1 : existing.getImportance()) + 1));
+            existing.setImportance(
+                    Math.min(
+                            5,
+                            (existing.getImportance() == null ? 1 : existing.getImportance()) + 1));
             memoryMapper.updateById(existing);
             return existing;
         }
-        AiUserMemory mem = AiUserMemory.builder()
-                .userId(userId).content(c).sourceSession("manual").importance(1).status(1).build();
+        AiUserMemory mem =
+                AiUserMemory.builder()
+                        .userId(userId)
+                        .content(c)
+                        .sourceSession("manual")
+                        .importance(1)
+                        .status(1)
+                        .build();
         memoryMapper.insert(mem);
         enforceCap(userId);
         log.info("用户 {} 手动添加长期记忆: {}", userId, c);
@@ -174,8 +193,8 @@ public class UserMemoryService {
 
     /** 清空某用户全部记忆 */
     public void clearByUser(Long userId) {
-        LambdaQueryWrapper<AiUserMemory> wrapper = new LambdaQueryWrapper<AiUserMemory>()
-                .eq(AiUserMemory::getUserId, userId);
+        LambdaQueryWrapper<AiUserMemory> wrapper =
+                new LambdaQueryWrapper<AiUserMemory>().eq(AiUserMemory::getUserId, userId);
         memoryMapper.delete(wrapper);
     }
 }

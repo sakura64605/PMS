@@ -24,8 +24,11 @@ public class AIAgentConfiguration {
 
     @Bean
     public ChatModel chatLanguageModel() {
-        log.info("初始化 ChatModel, model={}, temperature={}, maxTokens={}",
-                aiAgentConfig.getModelName(), aiAgentConfig.getTemperature(), aiAgentConfig.getMaxTokens());
+        log.info(
+                "初始化 ChatModel, model={}, temperature={}, maxTokens={}",
+                aiAgentConfig.getModelName(),
+                aiAgentConfig.getTemperature(),
+                aiAgentConfig.getMaxTokens());
 
         return OpenAiChatModel.builder()
                 .apiKey(aiAgentConfig.getApiKey())
@@ -53,8 +56,9 @@ public class AIAgentConfiguration {
                 }
                 acc.add(context.chatResponse().tokenUsage());
                 // 该响应若带工具调用请求，属于"工具决策轮"；计数用于判断 ReAct 是否多轮迭代
-                boolean isToolRound = context.chatResponse().aiMessage() != null
-                        && context.chatResponse().aiMessage().hasToolExecutionRequests();
+                boolean isToolRound =
+                        context.chatResponse().aiMessage() != null
+                                && context.chatResponse().aiMessage().hasToolExecutionRequests();
                 acc.recordCall(isToolRound);
             }
         };

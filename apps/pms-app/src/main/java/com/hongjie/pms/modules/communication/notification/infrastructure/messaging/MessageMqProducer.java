@@ -1,4 +1,5 @@
 package com.hongjie.pms.modules.communication.notification.infrastructure.messaging;
+
 import com.hongjie.pms.modules.communication.notification.infrastructure.messaging.MessageMqConsumer;
 
 import com.alibaba.fastjson2.JSON;
@@ -25,9 +26,7 @@ public class MessageMqProducer {
      */
     public void send(MessageMqDto dto) {
         try {
-            Message<String> message = MessageBuilder
-                    .withPayload(JSON.toJSONString(dto))
-                    .build();
+            Message<String> message = MessageBuilder.withPayload(JSON.toJSONString(dto)).build();
 
             long start = System.currentTimeMillis();
             rocketMQTemplate.syncSend(TOPIC + ":" + TAG, message);
@@ -47,13 +46,14 @@ public class MessageMqProducer {
      */
     public void sendDelay(MessageMqDto dto, int delayLevel) {
         try {
-            Message<String> message = MessageBuilder
-                    .withPayload(JSON.toJSONString(dto))
-                    .build();
+            Message<String> message = MessageBuilder.withPayload(JSON.toJSONString(dto)).build();
 
             rocketMQTemplate.syncSend(TOPIC + ":" + TAG, message, 3000, delayLevel);
-            log.info("延迟消息已发送到MQ: userId={}, type={}, delayLevel={}",
-                     dto.getUserId(), dto.getType(), delayLevel);
+            log.info(
+                    "延迟消息已发送到MQ: userId={}, type={}, delayLevel={}",
+                    dto.getUserId(),
+                    dto.getType(),
+                    delayLevel);
         } catch (Exception e) {
             log.error("MQ延迟消息发送失败: {}", e.getMessage());
             handleLocally(dto);

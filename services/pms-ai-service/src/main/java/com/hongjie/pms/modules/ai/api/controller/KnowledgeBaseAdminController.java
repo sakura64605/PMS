@@ -45,7 +45,8 @@ public class KnowledgeBaseAdminController {
             @RequestParam(defaultValue = "20") Integer pageSize) {
         checkAdmin();
 
-        return CommonResult.success(knowledgeBaseService.search(keyword, category, pageNum, pageSize));
+        return CommonResult.success(
+                knowledgeBaseService.search(keyword, category, pageNum, pageSize));
     }
 
     @DeleteMapping("/delete/{id}")

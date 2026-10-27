@@ -34,7 +34,6 @@ import java.util.Optional;
  * @see com.hongjie.pms.shared.extension.target.TargetTypeCodec
  */
 public enum BizTargetType implements CodableEnum<String> {
-
     PET_POST("pet_post", "宠物帖子", List.of("pet_post", "pet", "adopt", "help")),
     PET_ACTIVITY("pet_activity", "活动", List.of("pet_activity", "activity", "pet_event")),
     PET_COMMENT("pet_comment", "评论", List.of("pet_comment", "comment", "comment_reply")),
@@ -85,13 +84,15 @@ public enum BizTargetType implements CodableEnum<String> {
      * @throws BusinessException 无法识别的类型
      */
     public static BizTargetType resolve(String raw) {
-        return tryResolve(raw).orElseThrow(() -> new BusinessException(
-                ErrorCode.PARAM_ERROR, "无效的目标类型: " + raw));
+        return tryResolve(raw)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PARAM_ERROR, "无效的目标类型: " + raw));
     }
 
     /** 宽松解析，无法识别时返回空 */
     public static Optional<BizTargetType> tryResolve(String raw) {
-        return raw == null ? Optional.empty() : Optional.ofNullable(LOOKUP.get(raw.trim().toLowerCase(Locale.ROOT)));
+        return raw == null
+                ? Optional.empty()
+                : Optional.ofNullable(LOOKUP.get(raw.trim().toLowerCase(Locale.ROOT)));
     }
 
     /** 该枚举认可的全部字面量（含规范码），按表还原方言时使用 */

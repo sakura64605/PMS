@@ -1,6 +1,5 @@
 package com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity;
 
-
 import com.baomidou.mybatisplus.annotation.*;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.AllArgsConstructor;
@@ -11,7 +10,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,7 +19,7 @@ public class User {
     /**
      * 主键ID
      */
-    @TableId(type = IdType.AUTO)  // 自增主键
+    @TableId(type = IdType.AUTO) // 自增主键
     private Long id;
 
     /**
@@ -130,13 +128,13 @@ public class User {
     private LocalDateTime updateTime;
 
     // 新增：是否允许被搜索
-    private Integer searchable;  // 0-不允许 1-允许
+    private Integer searchable; // 0-不允许 1-允许
 
     private LocalDateTime lastActiveTime;
 
     private Integer followerCount; // 粉丝数
-    private Integer followingCount;// 关注数
-    private Integer likeCount;     // 获赞总数
+    private Integer followingCount; // 关注数
+    private Integer likeCount; // 获赞总数
 
     private Integer totalSignups;
     private Integer totalNoShows;

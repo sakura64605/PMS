@@ -68,7 +68,10 @@ public class NoticeCacheEvictListener {
     }
 
     private void run(Runnable task) {
-        try { task.run(); }
-        catch (RuntimeException e) { log.error("Notice committed but cache eviction failed", e); }
+        try {
+            task.run();
+        } catch (RuntimeException e) {
+            log.error("Notice committed but cache eviction failed", e);
+        }
     }
 }

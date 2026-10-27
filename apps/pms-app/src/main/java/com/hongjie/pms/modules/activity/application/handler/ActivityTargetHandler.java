@@ -55,6 +55,7 @@ public class ActivityTargetHandler implements Commentable {
     }
 
     private Activity load(Long targetId) {
-        return Guard.requireFound(activityMapper.selectById(targetId), ErrorCode.ACTIVITY_NOT_FOUND, targetId);
+        return Guard.requireFound(
+                activityMapper.selectById(targetId), ErrorCode.ACTIVITY_NOT_FOUND, targetId);
     }
 }

@@ -17,16 +17,25 @@ public class FollowCreatedListener {
     private final PlatformTransactionManager transactionManager;
 
     @TransactionalEventListener
-    public void created(FollowCreated event){
-        try{
+    public void created(FollowCreated event) {
+        try {
             // MQ failure may fall back to a local database insert. The committed
             // relationship transaction must not be reused for that write.
-            var transaction=new TransactionTemplate(transactionManager);
+            var transaction = new TransactionTemplate(transactionManager);
             transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-            transaction.executeWithoutResult(status->messages.sendFollowNotification(
-                    event.followingId(),event.followerId(),event.followerName(),"/user/"+event.followerId()));
-        }catch(RuntimeException e){
-            log.error("关注已提交，通知发送失败: followerId={}, followingId={}",event.followerId(),event.followingId(),e);
+            transaction.executeWithoutResult(
+                    status ->
+                            messages.sendFollowNotification(
+                                    event.followingId(),
+                                    event.followerId(),
+                                    event.followerName(),
+                                    "/user/" + event.followerId()));
+        } catch (RuntimeException e) {
+            log.error(
+                    "关注已提交，通知发送失败: followerId={}, followingId={}",
+                    event.followerId(),
+                    event.followingId(),
+                    e);
         }
     }
 }

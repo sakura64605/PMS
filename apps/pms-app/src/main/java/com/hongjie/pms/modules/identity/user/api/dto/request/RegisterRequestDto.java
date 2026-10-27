@@ -24,5 +24,4 @@ public class RegisterRequestDto {
      * 手机号
      */
     private String phone;
-
 }

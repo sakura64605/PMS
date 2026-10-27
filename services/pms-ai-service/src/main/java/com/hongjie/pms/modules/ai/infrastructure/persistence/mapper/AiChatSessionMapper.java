@@ -8,7 +8,7 @@ import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface AiChatSessionMapper extends BaseMapper<AiChatSession> {
-    
+
     @Select("SELECT * FROM ai_chat_session WHERE session_id = #{sessionId}")
     AiChatSession selectBySessionId(@Param("sessionId") String sessionId);
 }

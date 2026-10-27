@@ -15,8 +15,7 @@ import com.hongjie.pms.platform.exception.BusinessException;
  */
 public final class Guard {
 
-    private Guard() {
-    }
+    private Guard() {}
 
     /**
      * 断言实体存在。
@@ -28,8 +27,7 @@ public final class Guard {
      */
     public static <T> T requireFound(T entity, Class<T> type, Object id) {
         if (entity == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND,
-                    type.getSimpleName() + " 不存在: " + id);
+            throw new BusinessException(ErrorCode.NOT_FOUND, type.getSimpleName() + " 不存在: " + id);
         }
         return entity;
     }

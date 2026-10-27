@@ -7,31 +7,32 @@ import java.util.Deque;
  * 链路追踪上下文（基于 ThreadLocal）
  */
 public class TraceContext {
-    
+
     private static final ThreadLocal<String> traceIdHolder = new ThreadLocal<>();
-    private static final ThreadLocal<Deque<Span>> spanStackHolder = ThreadLocal.withInitial(ArrayDeque::new);
-    
+    private static final ThreadLocal<Deque<Span>> spanStackHolder =
+            ThreadLocal.withInitial(ArrayDeque::new);
+
     /**
      * 生成新的 TraceId
      */
     public static String generateTraceId() {
         return java.util.UUID.randomUUID().toString().replace("-", "");
     }
-    
+
     /**
      * 设置 TraceId
      */
     public static void setTraceId(String traceId) {
         traceIdHolder.set(traceId);
     }
-    
+
     /**
      * 获取 TraceId
      */
     public static String getTraceId() {
         return traceIdHolder.get();
     }
-    
+
     /**
      * 开始一个 Span
      */
@@ -41,7 +42,7 @@ public class TraceContext {
         span.setParentSpanId(getCurrentSpanId());
         stack.push(span);
     }
-    
+
     /**
      * 结束当前 Span
      */
@@ -55,7 +56,7 @@ public class TraceContext {
             System.out.println(span.toJson());
         }
     }
-    
+
     /**
      * 获取当前 SpanId
      */
@@ -66,7 +67,7 @@ public class TraceContext {
         }
         return null;
     }
-    
+
     /**
      * 清理上下文
      */

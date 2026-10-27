@@ -38,13 +38,18 @@ public class IdempotentAspect {
     public Object idempotentHandler(ProceedingJoinPoint joinPoint) throws Throwable {
         Idempotent idempotent = getIdempotent(joinPoint);
         // 添加日志，查看注解参数
-        log.info("幂等配置 - key: {}, type: {}, perUser: {}, scene: {}",
-                idempotent.key(), idempotent.type(), idempotent.perUser(), idempotent.scene());
+        log.info(
+                "幂等配置 - key: {}, type: {}, perUser: {}, scene: {}",
+                idempotent.key(),
+                idempotent.type(),
+                idempotent.perUser(),
+                idempotent.scene());
 
         // 构建 key
         String key = buildKey(joinPoint, idempotent);
         log.info("构建的幂等 key: {}", key);
-        IdempotentExecuteHandler instance = IdempotentExecuteHandlerFactory.getInstance(idempotent.scene(), idempotent.type());
+        IdempotentExecuteHandler instance =
+                IdempotentExecuteHandlerFactory.getInstance(idempotent.scene(), idempotent.type());
         Object resultObj;
         try {
             instance.execute(joinPoint, idempotent);
@@ -79,9 +84,10 @@ public class IdempotentAspect {
         // 添加类名和方法名
         MethodSignature signature = (MethodSignature) point.getSignature();
         Method method = signature.getMethod();
-        keyBuilder.append(method.getDeclaringClass().getSimpleName())
-                  .append(":")
-                  .append(method.getName());
+        keyBuilder
+                .append(method.getDeclaringClass().getSimpleName())
+                .append(":")
+                .append(method.getName());
 
         // 解析SpEL表达式
         if (StringUtils.hasText(idempotent.key())) {
@@ -107,7 +113,8 @@ public class IdempotentAspect {
     /**
      * 解析SpEL表达式
      */
-    private String parseSpelExpression(String spelExpression, ProceedingJoinPoint point, MethodSignature signature) {
+    private String parseSpelExpression(
+            String spelExpression, ProceedingJoinPoint point, MethodSignature signature) {
         try {
             Expression expression = spelParser.parseExpression(spelExpression);
             EvaluationContext context = new StandardEvaluationContext();
@@ -143,7 +150,9 @@ public class IdempotentAspect {
      */
     private String getClientIp() {
         try {
-            HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+            HttpServletRequest request =
+                    ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
+                            .getRequest();
             String ip = request.getHeader("X-Forwarded-For");
             if (StringUtils.hasText(ip) && !"unknown".equalsIgnoreCase(ip)) {
                 // 多次反向代理后会有多个IP值，第一个为真实IP
@@ -169,16 +178,23 @@ public class IdempotentAspect {
      */
     private String getRequestUri() {
         try {
-            HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+            HttpServletRequest request =
+                    ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
+                            .getRequest();
             return request.getRequestURI();
         } catch (Exception e) {
             return "unknown";
         }
     }
 
-    public static Idempotent getIdempotent(ProceedingJoinPoint joinPoint) throws NoSuchMethodException {
+    public static Idempotent getIdempotent(ProceedingJoinPoint joinPoint)
+            throws NoSuchMethodException {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-        Method method = joinPoint.getTarget().getClass().getDeclaredMethod(signature.getName(), signature.getParameterTypes());
+        Method method =
+                joinPoint
+                        .getTarget()
+                        .getClass()
+                        .getDeclaredMethod(signature.getName(), signature.getParameterTypes());
         return method.getAnnotation(Idempotent.class);
     }
 }

@@ -6,7 +6,6 @@ import com.hongjie.pms.shared.core.enums.CodableEnum;
  * 用户账号状态，对应 {@code user.status}：0-禁用 1-正常。
  */
 public enum UserStatus implements CodableEnum<Integer> {
-
     DISABLED(0, "禁用"),
     NORMAL(1, "正常");
 

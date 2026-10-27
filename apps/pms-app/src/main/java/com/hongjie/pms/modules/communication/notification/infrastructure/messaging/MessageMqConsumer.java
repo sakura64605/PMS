@@ -20,8 +20,7 @@ import java.time.LocalDateTime;
 @RocketMQMessageListener(
         topic = "message-topic",
         selectorExpression = "push",
-        consumerGroup = "message-consumer-group"
-)
+        consumerGroup = "message-consumer-group")
 public class MessageMqConsumer implements RocketMQListener<String> {
 
     private final UserMessageMapper messageMapper;
@@ -33,7 +32,7 @@ public class MessageMqConsumer implements RocketMQListener<String> {
             handleMessage(dto);
         } catch (Exception e) {
             log.error("消费消息失败: {}", e.getMessage(), e);
-            throw new RuntimeException(e);  // 抛出异常触发重试
+            throw new RuntimeException(e); // 抛出异常触发重试
         }
     }
 
@@ -46,8 +45,7 @@ public class MessageMqConsumer implements RocketMQListener<String> {
             minRequestAmount = 5,
             errorRateThreshold = 0.5,
             openDurationSeconds = 10,
-            fallbackMethod = "fallbackHandleMessage"
-    )
+            fallbackMethod = "fallbackHandleMessage")
     public void handleMessage(MessageMqDto dto) {
         // 1. 存储到数据库
         UserMessage userMessage = new UserMessage();
@@ -59,7 +57,8 @@ public class MessageMqConsumer implements RocketMQListener<String> {
         userMessage.setBusinessId(dto.getBusinessId());
         userMessage.setLink(dto.getLink());
         userMessage.setIsRead(0);
-        userMessage.setCreateTime(dto.getCreateTime() != null ? dto.getCreateTime() : LocalDateTime.now());
+        userMessage.setCreateTime(
+                dto.getCreateTime() != null ? dto.getCreateTime() : LocalDateTime.now());
 
         messageMapper.insert(userMessage);
         log.info("消息已存储: userId={}, type={}", dto.getUserId(), dto.getType());

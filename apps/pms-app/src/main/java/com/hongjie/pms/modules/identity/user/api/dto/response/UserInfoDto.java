@@ -92,7 +92,6 @@ public class UserInfoDto {
     private Integer searchable;
 
     private Integer followerCount; // 粉丝数
-    private Integer followingCount;// 关注数
-    private Integer likeCount;     // 获赞总数
-
+    private Integer followingCount; // 关注数
+    private Integer likeCount; // 获赞总数
 }

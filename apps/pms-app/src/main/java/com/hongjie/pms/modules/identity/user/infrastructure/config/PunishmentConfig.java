@@ -28,10 +28,10 @@ public class PunishmentConfig {
 
     @Data
     public static class Rule {
-        private double minRate;   // 最低爽约率
-        private double maxRate;   // 最高爽约率
-        private int days;         // 惩罚天数
-        private String message;   // 提示信息
+        private double minRate; // 最低爽约率
+        private double maxRate; // 最高爽约率
+        private int days; // 惩罚天数
+        private String message; // 提示信息
     }
 
     @PostConstruct

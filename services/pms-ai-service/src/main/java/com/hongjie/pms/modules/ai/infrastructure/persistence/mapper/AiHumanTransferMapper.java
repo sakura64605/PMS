@@ -5,5 +5,4 @@ import com.hongjie.pms.modules.ai.infrastructure.persistence.entity.AiHumanTrans
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface AiHumanTransferMapper extends BaseMapper<AiHumanTransfer> {
-}
+public interface AiHumanTransferMapper extends BaseMapper<AiHumanTransfer> {}

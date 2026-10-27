@@ -24,19 +24,21 @@ public class LikeNotificationHandler implements NotificationHandler<LikeNotifica
 
     @Override
     public NotificationMessage build(LikeNotificationContext ctx) {
-        String title = switch (ctx.targetType()) {
-            case PET_POST -> "有人点赞了你的帖子";
-            case PET_COMMENT -> "有人点赞了你的评论";
-            case PET_ACTIVITY -> "有人点赞了你的活动";
-            default -> "有人点赞了";
-        };
+        String title =
+                switch (ctx.targetType()) {
+                    case PET_POST -> "有人点赞了你的帖子";
+                    case PET_COMMENT -> "有人点赞了你的评论";
+                    case PET_ACTIVITY -> "有人点赞了你的活动";
+                    default -> "有人点赞了";
+                };
 
-        String content = switch (ctx.targetType()) {
-            case PET_POST -> "点赞了你的帖子《" + ctx.targetTitle() + "》";
-            case PET_COMMENT -> "点赞了你的评论";
-            case PET_ACTIVITY -> "点赞了你的活动《" + ctx.targetTitle() + "》";
-            default -> "点赞了《" + ctx.targetTitle() + "》";
-        };
+        String content =
+                switch (ctx.targetType()) {
+                    case PET_POST -> "点赞了你的帖子《" + ctx.targetTitle() + "》";
+                    case PET_COMMENT -> "点赞了你的评论";
+                    case PET_ACTIVITY -> "点赞了你的活动《" + ctx.targetTitle() + "》";
+                    default -> "点赞了《" + ctx.targetTitle() + "》";
+                };
 
         return new NotificationMessage(
                 ctx.receiverId(),

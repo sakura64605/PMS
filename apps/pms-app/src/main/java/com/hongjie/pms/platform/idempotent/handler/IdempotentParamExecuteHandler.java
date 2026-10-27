@@ -12,15 +12,19 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 @RequiredArgsConstructor
-public final class IdempotentParamExecuteHandler extends AbstractIdempotentExecuteHandler implements IdempotentParamService {
+public final class IdempotentParamExecuteHandler extends AbstractIdempotentExecuteHandler
+        implements IdempotentParamService {
 
     private final RedissonClient redissonClient;
 
-    private final static String LOCK = "lock:param:restAPI";
+    private static final String LOCK = "lock:param:restAPI";
 
     @Override
     protected IdempotentParamWrapper buildWrapper(ProceedingJoinPoint joinPoint) {
-        String lockKey = String.format("idempotent:path:%s:currentUserId:%s:md5:%s", getServletPath(), getCurrentUserId(), calcArgsMD5(joinPoint));
+        String lockKey =
+                String.format(
+                        "idempotent:path:%s:currentUserId:%s:md5:%s",
+                        getServletPath(), getCurrentUserId(), calcArgsMD5(joinPoint));
         return IdempotentParamWrapper.builder().lockKey(lockKey).joinPoint(joinPoint).build();
     }
 
@@ -28,7 +32,8 @@ public final class IdempotentParamExecuteHandler extends AbstractIdempotentExecu
      * @return 获取当前线程上下文 ServletPath
      */
     private String getServletPath() {
-        ServletRequestAttributes sra = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        ServletRequestAttributes sra =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         return sra.getRequest().getServletPath();
     }
 
@@ -38,7 +43,7 @@ public final class IdempotentParamExecuteHandler extends AbstractIdempotentExecu
     private String getCurrentUserId() {
         Long id = UserContext.getUserId();
         String userId = String.valueOf(id);
-        if (userId == null || userId.isBlank()){
+        if (userId == null || userId.isBlank()) {
             throw new ClientException("用户ID获取失败，请登录");
         }
         return userId;

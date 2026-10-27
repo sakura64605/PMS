@@ -20,18 +20,14 @@ class StrategyRegistryTest {
     }
 
     /** 能同时服务两个键的策略 */
-    record MultiKeyAnimal(Set<String> keys, String label) implements Animal {
-    }
+    record MultiKeyAnimal(Set<String> keys, String label) implements Animal {}
 
     /** 能力接口必须自身也是 Animal，才符合 {@code get(key, Class<? extends S>)} 的约束 */
-    interface Swimmable extends Animal {
-    }
+    interface Swimmable extends Animal {}
 
-    record Duck(Set<String> keys) implements Animal, Swimmable {
-    }
+    record Duck(Set<String> keys) implements Animal, Swimmable {}
 
-    record Cat(Set<String> keys) implements Animal {
-    }
+    record Cat(Set<String> keys) implements Animal {}
 
     private static StrategyRegistry<String, Animal> registryOf(Animal... animals) {
         return new StrategyRegistry<>("动物", List.of(animals), Animal::keys);
@@ -40,8 +36,8 @@ class StrategyRegistryTest {
     @Test
     @DisplayName("一个策略可注册多个键")
     void oneStrategyMayServeMultipleKeys() {
-        StrategyRegistry<String, Animal> registry = registryOf(
-                new MultiKeyAnimal(Set.of("duck", "goose"), "水禽"));
+        StrategyRegistry<String, Animal> registry =
+                registryOf(new MultiKeyAnimal(Set.of("duck", "goose"), "水禽"));
 
         assertThat(registry.get("duck")).isSameAs(registry.get("goose"));
         assertThat(registry.size()).isEqualTo(2);
@@ -50,9 +46,7 @@ class StrategyRegistryTest {
     @Test
     @DisplayName("重复键在构造期快速失败 —— 启动即暴露，而非线上某分支才炸")
     void duplicateKeyFailsFast() {
-        assertThatThrownBy(() -> registryOf(
-                new Cat(Set.of("same")),
-                new Duck(Set.of("same"))))
+        assertThatThrownBy(() -> registryOf(new Cat(Set.of("same")), new Duck(Set.of("same"))))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("策略键重复")
                 .hasMessageContaining("same");
@@ -79,9 +73,8 @@ class StrategyRegistryTest {
     @Test
     @DisplayName("能力校验：不支持该能力时立刻失败，而不是留到调用点 ClassCastException")
     void capabilityCheckRejectsUnsupported() {
-        StrategyRegistry<String, Animal> registry = registryOf(
-                new Duck(Set.of("duck")),
-                new Cat(Set.of("cat")));
+        StrategyRegistry<String, Animal> registry =
+                registryOf(new Duck(Set.of("duck")), new Cat(Set.of("cat")));
 
         assertThat(registry.get("duck", Swimmable.class)).isInstanceOf(Duck.class);
         assertThatThrownBy(() -> registry.get("cat", Swimmable.class))
@@ -113,7 +106,8 @@ class StrategyRegistryTest {
     @Test
     @DisplayName("空策略集合可正常构造，查任何键都返回未注册")
     void emptyRegistryIsUsable() {
-        StrategyRegistry<String, Animal> registry = new StrategyRegistry<>("空", List.of(), Animal::keys);
+        StrategyRegistry<String, Animal> registry =
+                new StrategyRegistry<>("空", List.of(), Animal::keys);
 
         assertThat(registry.size()).isZero();
         assertThat(registry.keys()).isEmpty();

@@ -28,25 +28,33 @@ public class DailyCacheInvalidator {
     }
 
     public void viewerAfterCommit(Long userId) {
-        afterCommit(() -> {
-            run(() -> scan.scanAndDelete("daily:rec:" + userId + ":*"));
-            run(() -> scan.scanAndDelete("rec:daily:" + userId + ":*"));
-        });
+        afterCommit(
+                () -> {
+                    run(() -> scan.scanAndDelete("daily:rec:" + userId + ":*"));
+                    run(() -> scan.scanAndDelete("rec:daily:" + userId + ":*"));
+                });
     }
 
     private void afterCommit(Runnable task) {
         if (TransactionSynchronizationManager.isActualTransactionActive()
                 && TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override public void afterCommit() { task.run(); }
-            });
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            task.run();
+                        }
+                    });
         } else {
             task.run();
         }
     }
 
     private void run(Runnable task) {
-        try { task.run(); }
-        catch (RuntimeException e) { log.error("Daily write committed but cache eviction failed", e); }
+        try {
+            task.run();
+        } catch (RuntimeException e) {
+            log.error("Daily write committed but cache eviction failed", e);
+        }
     }
 }

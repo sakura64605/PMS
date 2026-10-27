@@ -12,7 +12,7 @@ public interface CommentMapper extends BaseMapper<Comment> {
     @Update("UPDATE comment SET like_count = like_count + 1 WHERE id = #{commentId}")
     void incrementLikeCount(@Param("commentId") Long commentId);
 
-    @Update("UPDATE comment SET like_count = like_count - 1 WHERE id = #{commentId} AND like_count > 0")
+    @Update(
+            "UPDATE comment SET like_count = like_count - 1 WHERE id = #{commentId} AND like_count > 0")
     void decrementLikeCount(@Param("commentId") Long commentId);
-
 }

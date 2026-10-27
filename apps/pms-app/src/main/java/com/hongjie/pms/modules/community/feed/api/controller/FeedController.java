@@ -27,7 +27,7 @@ public class FeedController {
     public CommonResult<IPage<FeedDto>> getHomeFeed(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
-        
+
         log.info("获取首页Feed: pageNum={}, pageSize={}", pageNum, pageSize);
         IPage<FeedDto> feed = feedService.getHomeFeed(pageNum, pageSize);
         return CommonResult.success(feed);

@@ -16,10 +16,14 @@ public final class FastJson2Util {
         ParameterizedTypeImpl beforeType = null;
         if (types != null && types.length > 0) {
             if (types.length == 1) {
-                return new ParameterizedTypeImpl(new Type[]{null}, null, types[0]);
+                return new ParameterizedTypeImpl(new Type[] {null}, null, types[0]);
             }
             for (int i = types.length - 1; i > 0; i--) {
-                beforeType = new ParameterizedTypeImpl(new Type[]{beforeType == null ? types[i] : beforeType}, null, types[i - 1]);
+                beforeType =
+                        new ParameterizedTypeImpl(
+                                new Type[] {beforeType == null ? types[i] : beforeType},
+                                null,
+                                types[i - 1]);
             }
         }
         return beforeType;

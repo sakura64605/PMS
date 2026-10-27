@@ -22,5 +22,5 @@ public class NoticeDetailDto {
     private LocalDateTime publishTime;
     private LocalDateTime expireTime;
     private LocalDateTime createTime;
-    private Boolean isRead;        // 当前用户是否已读
+    private Boolean isRead; // 当前用户是否已读
 }

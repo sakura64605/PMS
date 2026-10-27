@@ -39,17 +39,21 @@ public class AIMemoryController {
         if (request == null || !StringUtils.hasText(request.getContent())) {
             throw new BusinessException("记忆内容不能为空");
         }
-        AiUserMemory mem = userMemoryService.addManual(UserContext.getUserId(), request.getContent());
+        AiUserMemory mem =
+                userMemoryService.addManual(UserContext.getUserId(), request.getContent());
         return CommonResult.success(mem);
     }
 
     /** 修改我的一条长期记忆（内容/重要度） */
     @PutMapping("/{id}")
-    public CommonResult<String> update(@PathVariable Long id, @RequestBody AIUserMemoryRequest request) {
-        boolean ok = userMemoryService.updateByUser(
-                UserContext.getUserId(), id,
-                request != null ? request.getContent() : null,
-                request != null ? request.getImportance() : null);
+    public CommonResult<String> update(
+            @PathVariable Long id, @RequestBody AIUserMemoryRequest request) {
+        boolean ok =
+                userMemoryService.updateByUser(
+                        UserContext.getUserId(),
+                        id,
+                        request != null ? request.getContent() : null,
+                        request != null ? request.getImportance() : null);
         if (!ok) {
             throw new BusinessException(404, "记忆不存在或无权操作");
         }

@@ -77,6 +77,7 @@ public class PetPostTargetHandler implements Commentable, Likeable, Favorable, R
     }
 
     private PmsPetPost load(Long targetId) {
-        return Guard.requireFound(petPostMapper.selectById(targetId), ErrorCode.PET_NOT_FOUND, targetId);
+        return Guard.requireFound(
+                petPostMapper.selectById(targetId), ErrorCode.PET_NOT_FOUND, targetId);
     }
 }

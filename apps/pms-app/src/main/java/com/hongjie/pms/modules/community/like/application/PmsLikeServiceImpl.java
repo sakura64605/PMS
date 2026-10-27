@@ -34,21 +34,32 @@ public class PmsLikeServiceImpl implements LikeService {
             throw new BusinessException(ErrorCode.PARAM_ERROR);
         LikeTarget strategy = likeTargetRegistry.get(request.getTargetType());
         var snapshot = strategy.load(request.getTargetId());
-        var existing = records.selectOne(new LambdaQueryWrapper<LikeRecord>()
-                .eq(LikeRecord::getUserId, actor).eq(LikeRecord::getTargetId, request.getTargetId())
-                .eq(LikeRecord::getTargetType, strategy.type()));
+        var existing =
+                records.selectOne(
+                        new LambdaQueryWrapper<LikeRecord>()
+                                .eq(LikeRecord::getUserId, actor)
+                                .eq(LikeRecord::getTargetId, request.getTargetId())
+                                .eq(LikeRecord::getTargetType, strategy.type()));
         boolean liked = existing == null;
         if (liked) {
-            records.insert(LikeRecord.builder().userId(actor).targetId(request.getTargetId())
-                    .targetType(strategy.type()).createTime(LocalDateTime.now()).build());
+            records.insert(
+                    LikeRecord.builder()
+                            .userId(actor)
+                            .targetId(request.getTargetId())
+                            .targetType(strategy.type())
+                            .createTime(LocalDateTime.now())
+                            .build());
             strategy.increment(request.getTargetId());
         } else {
             if (records.deleteById(existing.getId()) != 1)
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "点赞状态已变化，请刷新后重试");
             strategy.decrement(request.getTargetId());
         }
-        events.publishEvent(new LikeChanged(actor, request.getTargetId(), strategy.type(), snapshot, liked));
-        return LikeResponseDto.builder().isLiked(liked)
-                .likeCount(Math.max(0, snapshot.count() + (liked ? 1 : -1))).build();
+        events.publishEvent(
+                new LikeChanged(actor, request.getTargetId(), strategy.type(), snapshot, liked));
+        return LikeResponseDto.builder()
+                .isLiked(liked)
+                .likeCount(Math.max(0, snapshot.count() + (liked ? 1 : -1)))
+                .build();
     }
 }

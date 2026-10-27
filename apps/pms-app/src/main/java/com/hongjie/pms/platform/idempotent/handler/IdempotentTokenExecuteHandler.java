@@ -18,7 +18,8 @@ import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
-public final class IdempotentTokenExecuteHandler extends AbstractIdempotentExecuteHandler implements IdempotentTokenService {
+public final class IdempotentTokenExecuteHandler extends AbstractIdempotentExecuteHandler
+        implements IdempotentTokenService {
 
     private final DistributedCache distributedCache;
     private final IdempotentProperties idempotentProperties;
@@ -34,14 +35,22 @@ public final class IdempotentTokenExecuteHandler extends AbstractIdempotentExecu
 
     @Override
     public String createToken() {
-        String token = Optional.ofNullable(Strings.emptyToNull(idempotentProperties.getPrefix())).orElse(TOKEN_PREFIX_KEY) + UUID.randomUUID();
-        distributedCache.put(token, "", Optional.ofNullable(idempotentProperties.getTimeout()).orElse(TOKEN_EXPIRED_TIME));
+        String token =
+                Optional.ofNullable(Strings.emptyToNull(idempotentProperties.getPrefix()))
+                                .orElse(TOKEN_PREFIX_KEY)
+                        + UUID.randomUUID();
+        distributedCache.put(
+                token,
+                "",
+                Optional.ofNullable(idempotentProperties.getTimeout()).orElse(TOKEN_EXPIRED_TIME));
         return token;
     }
 
     @Override
     public void handler(IdempotentParamWrapper wrapper) {
-        HttpServletRequest request = ((ServletRequestAttributes) (RequestContextHolder.currentRequestAttributes())).getRequest();
+        HttpServletRequest request =
+                ((ServletRequestAttributes) (RequestContextHolder.currentRequestAttributes()))
+                        .getRequest();
         String token = request.getHeader(TOKEN_KEY);
         if (StrUtil.isBlank(token)) {
             token = request.getParameter(TOKEN_KEY);
@@ -51,9 +60,10 @@ public final class IdempotentTokenExecuteHandler extends AbstractIdempotentExecu
         }
         Boolean tokenDelFlag = distributedCache.delete(token);
         if (!tokenDelFlag) {
-            String errMsg = StrUtil.isNotBlank(wrapper.getIdempotent().message())
-                    ? wrapper.getIdempotent().message()
-                    : ErrorCode.IDEMPOTENT_TOKEN_DELETE_ERROR.message();
+            String errMsg =
+                    StrUtil.isNotBlank(wrapper.getIdempotent().message())
+                            ? wrapper.getIdempotent().message()
+                            : ErrorCode.IDEMPOTENT_TOKEN_DELETE_ERROR.message();
             throw new BusinessException(ErrorCode.IDEMPOTENT_TOKEN_DELETE_ERROR, errMsg);
         }
     }

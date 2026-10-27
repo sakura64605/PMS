@@ -8,5 +8,6 @@ import jakarta.validation.Valid;
 public interface CommentService {
     void createComment(@Valid CommentCreateRequest request);
 
-    IPage<CommentRespDto> getCommentList(String targetType, Long targetId, Integer pageNum, Integer pageSize);
+    IPage<CommentRespDto> getCommentList(
+            String targetType, Long targetId, Integer pageNum, Integer pageSize);
 }

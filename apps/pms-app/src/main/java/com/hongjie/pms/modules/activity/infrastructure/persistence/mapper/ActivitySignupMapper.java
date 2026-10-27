@@ -5,5 +5,4 @@ import com.hongjie.pms.modules.activity.infrastructure.persistence.entity.Activi
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface ActivitySignupMapper extends BaseMapper<ActivitySignup> {
-}
+public interface ActivitySignupMapper extends BaseMapper<ActivitySignup> {}

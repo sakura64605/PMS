@@ -83,18 +83,21 @@ public class AIAgentEngine {
             List<ToolCall> toolTrace = new ArrayList<>();
 
             // 工具执行器（闭包捕获 userId；执行异常作为观察结果回喂模型纠错）
-            Map<ToolSpecification, ToolExecutor> toolExecutors = toolRegistry.getToolExecutors(userId);
+            Map<ToolSpecification, ToolExecutor> toolExecutors =
+                    toolRegistry.getToolExecutors(userId);
 
             // 每请求现搭 ReAct Agent：内置 Thought→Action→Observation 循环，无共享状态、线程安全
-            UntypedAgent agent = AgenticServices.agentBuilder()
-                    .chatModel(chatLanguageModel)
-                    .tools(toolExecutors)
-                    .systemMessageProvider(input -> buildSystemPrompt(userId, userMessage))
-                    .userMessageProvider(input -> userMessage)
-                    .chatMemoryProvider(memoryId -> buildSeededMemory(request.getSessionId()))
-                    .maxToolCallingRoundTrips(MAX_TOOL_CALLING_ROUND_TRIPS)
-                    .listener(createToolTraceListener(toolTrace))
-                    .build();
+            UntypedAgent agent =
+                    AgenticServices.agentBuilder()
+                            .chatModel(chatLanguageModel)
+                            .tools(toolExecutors)
+                            .systemMessageProvider(input -> buildSystemPrompt(userId, userMessage))
+                            .userMessageProvider(input -> userMessage)
+                            .chatMemoryProvider(
+                                    memoryId -> buildSeededMemory(request.getSessionId()))
+                            .maxToolCallingRoundTrips(MAX_TOOL_CALLING_ROUND_TRIPS)
+                            .listener(createToolTraceListener(toolTrace))
+                            .build();
 
             // 先落库用户消息（下次请求注入历史时包含本句）
             memoryService.saveMessage(request.getSessionId(), "user", userMessage, userId);
@@ -104,18 +107,30 @@ public class AIAgentEngine {
             String answer = result != null ? result.toString() : "";
 
             // 落库助手回复，带上本次请求的 token 合计与工具调用轨迹
-            memoryService.saveMessage(request.getSessionId(), "assistant", answer, userId, usage.totalTokens(),
+            memoryService.saveMessage(
+                    request.getSessionId(),
+                    "assistant",
+                    answer,
+                    userId,
+                    usage.totalTokens(),
                     toolTrace.isEmpty() ? null : JSON.toJSONString(toolTrace));
 
             // 长期记忆（配置开启时）：异步抽取用户持久事实/偏好并落库，避免阻塞本次响应，失败不影响主链路
             if (aiAgentConfig.isEnableLongTermMemory()) {
-                java.util.concurrent.CompletableFuture.runAsync(() ->
-                        extractAndSaveLongTermMemory(request.getSessionId(), userId, userMessage, answer));
+                java.util.concurrent.CompletableFuture.runAsync(
+                        () ->
+                                extractAndSaveLongTermMemory(
+                                        request.getSessionId(), userId, userMessage, answer));
             }
 
             long latency = System.currentTimeMillis() - startTime;
-            log.info("AI请求完成: sessionId={}, llmCalls={}, toolRounds={}, tokens={}, toolExecutions={}",
-                    request.getSessionId(), usage.llmCalls(), usage.toolRounds(), usage.totalTokens(), toolTrace.size());
+            log.info(
+                    "AI请求完成: sessionId={}, llmCalls={}, toolRounds={}, tokens={}, toolExecutions={}",
+                    request.getSessionId(),
+                    usage.llmCalls(),
+                    usage.toolRounds(),
+                    usage.totalTokens(),
+                    toolTrace.size());
 
             return AIAgentResponse.builder()
                     .messageId(messageId)
@@ -135,7 +150,13 @@ public class AIAgentEngine {
             log.error("AI Agent处理失败: sessionId={}", request.getSessionId(), e);
             // AI 故障也要把"用户消息 + 故障回复"落库，否则刷新历史后像没发过一样
             String errorReply = "抱歉，我遇到了一些问题，请稍后再试或联系人工客服。";
-            persistFallbackReply(request.getSessionId(), userMessage, userId, userSaved, errorReply, usage.totalTokens());
+            persistFallbackReply(
+                    request.getSessionId(),
+                    userMessage,
+                    userId,
+                    userSaved,
+                    errorReply,
+                    usage.totalTokens());
             return AIAgentResponse.builder()
                     .messageId(messageId)
                     .sessionId(request.getSessionId())
@@ -153,8 +174,13 @@ public class AIAgentEngine {
      * AI 故障/转人工等降级路径落库兜底：确保用户消息已存，再存一条助手回复，
      * 使用户刷新历史时能看到完整往返，而不是"像没发过"。
      */
-    private void persistFallbackReply(String sessionId, String userMessage, Long userId,
-                                      boolean userSaved, String assistantReply, Integer tokensUsed) {
+    private void persistFallbackReply(
+            String sessionId,
+            String userMessage,
+            Long userId,
+            boolean userSaved,
+            String assistantReply,
+            Integer tokensUsed) {
         try {
             if (!userSaved) {
                 memoryService.saveMessage(sessionId, "user", userMessage, userId);
@@ -169,7 +195,8 @@ public class AIAgentEngine {
      * 长期记忆抽取：配置开启时，把"用户消息+本轮答复"交给抽取器提炼持久事实/偏好并落库。
      * 单独 try-catch，抽取失败只记日志，绝不影响主链路返回。
      */
-    private void extractAndSaveLongTermMemory(String sessionId, Long userId, String userMessage, String answer) {
+    private void extractAndSaveLongTermMemory(
+            String sessionId, Long userId, String userMessage, String answer) {
         if (userId == null) {
             return;
         }
@@ -189,14 +216,15 @@ public class AIAgentEngine {
      * N 由 ai.agent.max-memory-rounds 控制。保持多轮上下文连续，同时不改变 /ai/history 与 clearMemory 语义。
      */
     private ChatMemory buildSeededMemory(String sessionId) {
-        int rounds = aiAgentConfig.getMaxMemoryRounds() > 0
-                ? Math.min(aiAgentConfig.getMaxMemoryRounds(), 20) : 5;
-        MessageWindowChatMemory memory = MessageWindowChatMemory.builder()
-                .id(sessionId)
-                .maxMessages(rounds * 2 + 2)
-                .build();
+        int rounds =
+                aiAgentConfig.getMaxMemoryRounds() > 0
+                        ? Math.min(aiAgentConfig.getMaxMemoryRounds(), 20)
+                        : 5;
+        MessageWindowChatMemory memory =
+                MessageWindowChatMemory.builder().id(sessionId).maxMessages(rounds * 2 + 2).build();
         try {
-            List<ChatMemoryService.MemoryMessage> history = memoryService.getRecentMessages(sessionId, rounds);
+            List<ChatMemoryService.MemoryMessage> history =
+                    memoryService.getRecentMessages(sessionId, rounds);
             for (ChatMemoryService.MemoryMessage msg : history) {
                 if ("user".equals(msg.getRole())) {
                     memory.add(UserMessage.from(msg.getContent()));
@@ -221,19 +249,21 @@ public class AIAgentEngine {
                 ToolExecution exec = observation.toolExecution();
                 ToolExecutionRequest req = exec.request();
                 String result = exec.hasFailed() ? "工具执行失败: " + exec.result() : exec.result();
-                trace.add(ToolCall.builder()
-                        .id(req.id() != null ? req.id() : UUID.randomUUID().toString())
-                        .name(req.name())
-                        .arguments(req.arguments())
-                        .result(result)
-                        .build());
+                trace.add(
+                        ToolCall.builder()
+                                .id(req.id() != null ? req.id() : UUID.randomUUID().toString())
+                                .name(req.name())
+                                .arguments(req.arguments())
+                                .result(result)
+                                .build());
             }
         };
     }
 
     private String buildSystemPrompt(Long userId, String userMessage) {
         StringBuilder sb = new StringBuilder();
-        sb.append("""
+        sb.append(
+                """
             你是宠物社区平台"宠小伴"的AI助手，帮用户解决平台使用问题、查询信息、提供建议。
 
             核心能力：
@@ -258,7 +288,8 @@ public class AIAgentEngine {
                 sb.append("\n- 昵称：").append(profile.nickname());
                 sb.append("\n- 发布的领养帖：").append(profile.postCount()).append("个");
                 sb.append("\n- 已报名的活动：").append(profile.signupCount()).append("个");
-                if (profile.signature() != null && !profile.signature().isEmpty()) sb.append("\n- 签名：").append(profile.signature());
+                if (profile.signature() != null && !profile.signature().isEmpty())
+                    sb.append("\n- 签名：").append(profile.signature());
             } catch (Exception e) {
                 log.warn("获取用户画像失败: userId={}", userId, e);
             }
@@ -267,7 +298,9 @@ public class AIAgentEngine {
         // 长期记忆注入（跨会话的用户持久事实/偏好，配置开启时加载）
         if (userId != null && aiAgentConfig.isEnableLongTermMemory()) {
             try {
-                List<AiUserMemory> memories = userMemoryService.getActiveByUser(userId, aiAgentConfig.getMaxLongTermMemories());
+                List<AiUserMemory> memories =
+                        userMemoryService.getActiveByUser(
+                                userId, aiAgentConfig.getMaxLongTermMemories());
                 if (!memories.isEmpty()) {
                     sb.append("\n\n用户长期记忆（来自历史对话沉淀，请据此更贴合地服务用户）：");
                     for (AiUserMemory m : memories) {
@@ -307,26 +340,38 @@ public class AIAgentEngine {
                     }
                 }
                 // 过滤掉无意义的单字和常用虚词
-                keywords.removeIf(kw -> kw.length() < 2 || "怎么".equals(kw) || "如何".equals(kw) || "怎样".equals(kw) || "哪个".equals(kw) || "哪些".equals(kw));
+                keywords.removeIf(
+                        kw ->
+                                kw.length() < 2
+                                        || "怎么".equals(kw)
+                                        || "如何".equals(kw)
+                                        || "怎样".equals(kw)
+                                        || "哪个".equals(kw)
+                                        || "哪些".equals(kw));
                 log.info("知识库搜索关键词: {}", keywords);
 
                 // 仅当存在有效关键词时才拼接 AND(...) 条件，避免空条件生成 "WHERE (status=? AND )" 的 SQL 语法错误
                 if (!keywords.isEmpty()) {
-                    wrapper.and(w -> {
-                        boolean first = true;
-                        for (String kw : keywords) {
-                            if (first) {
-                                w.like(AiKnowledgeBase::getTitle, kw)
-                                        .or()
-                                        .like(AiKnowledgeBase::getContent, kw);
-                                first = false;
-                            } else {
-                                w.or(i -> i.like(AiKnowledgeBase::getTitle, kw)
-                                        .or()
-                                        .like(AiKnowledgeBase::getContent, kw));
-                            }
-                        }
-                    });
+                    wrapper.and(
+                            w -> {
+                                boolean first = true;
+                                for (String kw : keywords) {
+                                    if (first) {
+                                        w.like(AiKnowledgeBase::getTitle, kw)
+                                                .or()
+                                                .like(AiKnowledgeBase::getContent, kw);
+                                        first = false;
+                                    } else {
+                                        w.or(
+                                                i ->
+                                                        i.like(AiKnowledgeBase::getTitle, kw)
+                                                                .or()
+                                                                .like(
+                                                                        AiKnowledgeBase::getContent,
+                                                                        kw));
+                                    }
+                                }
+                            });
                 }
                 wrapper.last("LIMIT 3");
 
@@ -358,7 +403,10 @@ public class AIAgentEngine {
     }
 
     private List<String> smartSuggestions(String message) {
-        if (message.contains("宠物") || message.contains("领养") || message.contains("猫") || message.contains("狗")) {
+        if (message.contains("宠物")
+                || message.contains("领养")
+                || message.contains("猫")
+                || message.contains("狗")) {
             return List.of("领养需要什么条件？", "如何发布领养信息？", "帮我看看我的帖子");
         }
         if (message.contains("活动") || message.contains("报名")) {

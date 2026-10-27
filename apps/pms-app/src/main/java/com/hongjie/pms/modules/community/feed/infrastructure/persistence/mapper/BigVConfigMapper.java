@@ -5,5 +5,4 @@ import com.hongjie.pms.modules.community.feed.infrastructure.persistence.entity.
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface BigVConfigMapper extends BaseMapper<BigVConfig> {
-}
+public interface BigVConfigMapper extends BaseMapper<BigVConfig> {}

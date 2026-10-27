@@ -8,8 +8,7 @@ import java.time.LocalDateTime;
 @Data
 @TableName("daily_item_feature")
 public class DailyItemFeature {
-    @TableId
-    private Long dailyId;
+    @TableId private Long dailyId;
     private String topicIds;
     private String topicTags;
     private Double hotScore;

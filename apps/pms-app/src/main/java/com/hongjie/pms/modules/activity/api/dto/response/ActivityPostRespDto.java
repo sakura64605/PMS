@@ -29,5 +29,4 @@ public class ActivityPostRespDto {
 
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-
 }

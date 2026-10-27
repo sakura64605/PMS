@@ -9,8 +9,7 @@ public final class ToolPaging {
     public static final int DEFAULT_PAGE_SIZE = 5;
     public static final int MAX_PAGE_SIZE = 20;
 
-    private ToolPaging() {
-    }
+    private ToolPaging() {}
 
     /** 解析页码（≥1，默认1） */
     public static int page(Object value) {
@@ -34,12 +33,16 @@ public final class ToolPaging {
      *
      * @param noun 计量词，如 只/个/条
      */
-    public static void appendPagingFooter(StringBuilder sb, int page, int totalPages,
-                                          long total, int pageSize, String noun) {
+    public static void appendPagingFooter(
+            StringBuilder sb, int page, int totalPages, long total, int pageSize, String noun) {
         if (page < totalPages) {
             long remaining = total - (long) page * pageSize;
-            sb.append("还有 ").append(Math.max(0, remaining)).append(' ').append(noun)
-                    .append("未展示。若用户想看更多，请再次调用本工具并传 page=").append(page + 1)
+            sb.append("还有 ")
+                    .append(Math.max(0, remaining))
+                    .append(' ')
+                    .append(noun)
+                    .append("未展示。若用户想看更多，请再次调用本工具并传 page=")
+                    .append(page + 1)
                     .append("（其余参数保持不变）。");
         } else {
             sb.append("已展示全部 ").append(total).append(' ').append(noun).append('。');

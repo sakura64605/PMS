@@ -1,4 +1,5 @@
 package com.hongjie.pms.modules.activity.application.ai;
+
 import com.hongjie.pms.ai.contract.CoreQueryTool;
 import com.hongjie.pms.ai.contract.ToolPaging;
 
@@ -25,7 +26,9 @@ public class MyActivitiesTool implements CoreQueryTool {
     private final ActivityMapper activityMapper;
 
     @Override
-    public String getName() { return "my_activities"; }
+    public String getName() {
+        return "my_activities";
+    }
 
     @Override
     public ToolCall execute(Map<String, Object> args, Long userId) {
@@ -46,8 +49,8 @@ public class MyActivitiesTool implements CoreQueryTool {
         wrapper.orderByDesc(ActivitySignup::getCreateTime);
 
         long total = signupMapper.selectCount(wrapper);
-        List<ActivitySignup> signups = signupMapper.selectList(
-                wrapper.last("LIMIT " + offset + ", " + pageSize));
+        List<ActivitySignup> signups =
+                signupMapper.selectList(wrapper.last("LIMIT " + offset + ", " + pageSize));
         int totalPages = total == 0 ? 0 : (int) ((total + pageSize - 1) / pageSize);
 
         StringBuilder result = new StringBuilder();
@@ -55,7 +58,11 @@ public class MyActivitiesTool implements CoreQueryTool {
             if (total == 0) {
                 result.append("您还没有报名过任何活动。");
             } else {
-                result.append("第 ").append(page).append(" 页没有更多报名记录了（共 ").append(total).append(" 条，已全部展示）。");
+                result.append("第 ")
+                        .append(page)
+                        .append(" 页没有更多报名记录了（共 ")
+                        .append(total)
+                        .append(" 条，已全部展示）。");
             }
         } else {
             result.append("您共报名 ").append(total).append(" 次活动");
@@ -67,18 +74,27 @@ public class MyActivitiesTool implements CoreQueryTool {
                 ActivitySignup signup = signups.get(i);
                 int no = offset + i + 1;
                 Activity act = activityMapper.selectById(signup.getActivityId());
-                String statusText = switch (signup.getStatus()) {
-                    case 1 -> "已报名";
-                    case 2 -> "已取消";
-                    case 3 -> "已签到";
-                    case 4 -> "爽约";
-                    default -> "未知";
-                };
+                String statusText =
+                        switch (signup.getStatus()) {
+                            case 1 -> "已报名";
+                            case 2 -> "已取消";
+                            case 3 -> "已签到";
+                            case 4 -> "爽约";
+                            default -> "未知";
+                        };
                 if (act != null) {
-                    result.append(no).append(". 【").append(act.getTitle()).append("】").append(statusText).append("\n");
+                    result.append(no)
+                            .append(". 【")
+                            .append(act.getTitle())
+                            .append("】")
+                            .append(statusText)
+                            .append("\n");
                     result.append("   地点：").append(act.getLocation()).append("\n");
-                    result.append("   时间：").append(act.getStartTime().format(fmt))
-                            .append(" 至 ").append(act.getEndTime().format(fmt)).append("\n");
+                    result.append("   时间：")
+                            .append(act.getStartTime().format(fmt))
+                            .append(" 至 ")
+                            .append(act.getEndTime().format(fmt))
+                            .append("\n");
                 } else {
                     result.append(no).append(". [活动已删除] 状态：").append(statusText).append("\n");
                 }

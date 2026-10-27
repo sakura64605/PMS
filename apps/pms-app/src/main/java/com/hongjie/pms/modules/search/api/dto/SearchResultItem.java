@@ -14,8 +14,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SearchResultItem {
-    private String type;           // daily, activity, pet
-    private Long id;               // 业务ID
+    private String type; // daily, activity, pet
+    private Long id; // 业务ID
     private String title;
     private String highlightTitle; // 高亮标题
     private String content;
@@ -27,11 +27,11 @@ public class SearchResultItem {
     private Integer commentCount;
     private Integer viewCount;
     private LocalDateTime createTime;
-    
+
     // 日记特有
     private List<String> topics;
     private Boolean isLiked;
-    
+
     // 宠物特有
     private String petName;
     private String petType;
@@ -39,7 +39,7 @@ public class SearchResultItem {
     private Integer petGender;
     private String address;
     private Boolean isFavorite;
-    
+
     // 活动特有
     private Integer maxPeople;
     private Integer currentPeople;

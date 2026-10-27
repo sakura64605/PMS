@@ -27,7 +27,8 @@ class CommentDtoConverterTest {
         return UserSimpleDto.builder().userId(id).username(name).nickname(name).build();
     }
 
-    private static Comment comment(Long id, Long userId, Long parentId, String content, int minute) {
+    private static Comment comment(
+            Long id, Long userId, Long parentId, String content, int minute) {
         Comment comment = new Comment();
         comment.setId(id);
         comment.setUserId(userId);
@@ -39,9 +40,10 @@ class CommentDtoConverterTest {
         return comment;
     }
 
-    private static CommentTreeContext context(Map<Long, List<Comment>> repliesByParent,
-                                              Map<Long, UserSimpleDto> users,
-                                              Set<Long> likedIds) {
+    private static CommentTreeContext context(
+            Map<Long, List<Comment>> repliesByParent,
+            Map<Long, UserSimpleDto> users,
+            Set<Long> likedIds) {
         return new CommentTreeContext(repliesByParent, users, likedIds);
     }
 
@@ -54,8 +56,8 @@ class CommentDtoConverterTest {
         void mapsBasicFields() {
             Comment root = comment(1L, 7L, 0L, "好可爱", 0);
 
-            CommentRespDto dto = converter.toView(root,
-                    context(Map.of(), Map.of(7L, user(7L, "张三")), Set.of()));
+            CommentRespDto dto =
+                    converter.toView(root, context(Map.of(), Map.of(7L, user(7L, "张三")), Set.of()));
 
             assertThat(dto.getId()).isEqualTo(1L);
             assertThat(dto.getContent()).isEqualTo("好可爱");
@@ -83,8 +85,13 @@ class CommentDtoConverterTest {
             Comment reply = comment(2L, 8L, 1L, "同问", 5);
             reply.setReplyTo(7L);
 
-            CommentRespDto dto = converter.toView(reply, context(Map.of(),
-                    Map.of(7L, user(7L, "张三"), 8L, user(8L, "李四")), Set.of()));
+            CommentRespDto dto =
+                    converter.toView(
+                            reply,
+                            context(
+                                    Map.of(),
+                                    Map.of(7L, user(7L, "张三"), 8L, user(8L, "李四")),
+                                    Set.of()));
 
             assertThat(dto.getUser().getNickname()).isEqualTo("李四");
             assertThat(dto.getReplyTo().getNickname()).isEqualTo("张三");
@@ -96,8 +103,8 @@ class CommentDtoConverterTest {
             Comment root = comment(1L, 7L, 0L, "a", 0);
             root.setReplyTo(null);
 
-            CommentRespDto dto = converter.toView(root,
-                    context(Map.of(), Map.of(7L, user(7L, "张三")), Set.of()));
+            CommentRespDto dto =
+                    converter.toView(root, context(Map.of(), Map.of(7L, user(7L, "张三")), Set.of()));
 
             assertThat(dto.getReplyTo()).isNull();
         }
@@ -127,19 +134,30 @@ class CommentDtoConverterTest {
 
             return context(
                     Map.of(1L, List.of(c2, c4), 2L, List.of(c3)),
-                    Map.of(1L, user(1L, "u1"), 2L, user(2L, "u2"),
-                            3L, user(3L, "u3"), 4L, user(4L, "u4")),
+                    Map.of(
+                            1L,
+                            user(1L, "u1"),
+                            2L,
+                            user(2L, "u2"),
+                            3L,
+                            user(3L, "u3"),
+                            4L,
+                            user(4L, "u4")),
                     Set.of());
         }
 
         @Test
         @DisplayName("逐层挂载，深度不受限")
         void buildsDeepTree() {
-            CommentRespDto tree = converter.toView(comment(1L, 1L, 0L, "顶级", 0), threeLevelContext());
+            CommentRespDto tree =
+                    converter.toView(comment(1L, 1L, 0L, "顶级", 0), threeLevelContext());
 
             assertThat(tree.getReplies()).hasSize(2);
-            CommentRespDto firstReply = tree.getReplies().stream()
-                    .filter(r -> r.getId().equals(2L)).findFirst().orElseThrow();
+            CommentRespDto firstReply =
+                    tree.getReplies().stream()
+                            .filter(r -> r.getId().equals(2L))
+                            .findFirst()
+                            .orElseThrow();
             assertThat(firstReply.getReplies()).hasSize(1);
             assertThat(firstReply.getReplies().get(0).getId()).isEqualTo(3L);
         }
@@ -147,9 +165,11 @@ class CommentDtoConverterTest {
         @Test
         @DisplayName("同一层的子评论按时间正序 —— 读起来才是对话顺序")
         void sortsSiblingsByTime() {
-            CommentRespDto tree = converter.toView(comment(1L, 1L, 0L, "顶级", 0), threeLevelContext());
+            CommentRespDto tree =
+                    converter.toView(comment(1L, 1L, 0L, "顶级", 0), threeLevelContext());
 
-            assertThat(tree.getReplies()).extracting(CommentRespDto::getId)
+            assertThat(tree.getReplies())
+                    .extracting(CommentRespDto::getId)
                     .as("入参顺序是 [2(第10分), 4(第5分)]，应按时间重排为 [4, 2]")
                     .containsExactly(4L, 2L);
         }
@@ -157,7 +177,8 @@ class CommentDtoConverterTest {
         @Test
         @DisplayName("没有子评论时 replies 是空列表而非 null")
         void emptyRepliesNotNull() {
-            CommentRespDto leaf = converter.toView(comment(3L, 3L, 2L, "叶子", 20), threeLevelContext());
+            CommentRespDto leaf =
+                    converter.toView(comment(3L, 3L, 2L, "叶子", 20), threeLevelContext());
 
             assertThat(leaf.getReplies()).isNotNull().isEmpty();
         }

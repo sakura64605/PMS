@@ -1,6 +1,5 @@
 package com.hongjie.pms.platform.exception;
 
-
 import com.hongjie.pms.platform.enums.BaseErrorCode;
 import com.hongjie.pms.platform.enums.IErrorCode;
 
@@ -24,9 +23,13 @@ public class ClientException extends AbstractException {
 
     @Override
     public String toString() {
-        return "ClientException{" +
-                "code='" + errorCode + "'," +
-                "message='" + errorMessage + "'" +
-                '}';
+        return "ClientException{"
+                + "code='"
+                + errorCode
+                + "',"
+                + "message='"
+                + errorMessage
+                + "'"
+                + '}';
     }
 }

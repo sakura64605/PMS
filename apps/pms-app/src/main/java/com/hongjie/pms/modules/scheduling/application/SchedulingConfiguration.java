@@ -18,7 +18,9 @@ public class SchedulingConfiguration {
         Assert.hasText(settings.getAccessToken(), "XXL-JOB access token must be configured");
         Assert.hasText(settings.getAdminAddresses(), "XXL-JOB admin address must be configured");
         Assert.hasText(settings.getAppname(), "XXL-JOB appname must be configured");
-        Assert.isTrue(settings.getPort() > 0 && settings.getPort() < 65536, "Invalid XXL-JOB executor port");
+        Assert.isTrue(
+                settings.getPort() > 0 && settings.getPort() < 65536,
+                "Invalid XXL-JOB executor port");
         var executor = new XxlJobSpringExecutor();
         executor.setAdminAddresses(settings.getAdminAddresses());
         executor.setAccessToken(settings.getAccessToken());

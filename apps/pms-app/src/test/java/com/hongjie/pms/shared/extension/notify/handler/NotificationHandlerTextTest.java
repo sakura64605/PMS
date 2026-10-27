@@ -24,14 +24,17 @@ class NotificationHandlerTextTest {
     private static final String POST_TITLE = "橘猫找家";
     private static final String ACTIVITY_TITLE = "周末流浪猫救助";
 
-    private static NotificationMessage comment(BizTargetType targetType, String title, String content) {
-        return new CommentNotificationHandler().build(new CommentNotificationContext(
-                1L, 2L, targetType, title, content, 100L, "/pet/100?commentId=7"));
+    private static NotificationMessage comment(
+            BizTargetType targetType, String title, String content) {
+        return new CommentNotificationHandler()
+                .build(
+                        new CommentNotificationContext(
+                                1L, 2L, targetType, title, content, 100L, "/pet/100?commentId=7"));
     }
 
     private static NotificationMessage like(BizTargetType targetType, String title) {
-        return new LikeNotificationHandler().build(new LikeNotificationContext(
-                1L, 2L, targetType, title, 100L, "/pet/100"));
+        return new LikeNotificationHandler()
+                .build(new LikeNotificationContext(1L, 2L, targetType, title, 100L, "/pet/100"));
     }
 
     @Nested
@@ -51,7 +54,8 @@ class NotificationHandlerTextTest {
         @Test
         @DisplayName("评论活动")
         void onActivity() {
-            NotificationMessage message = comment(BizTargetType.PET_ACTIVITY, ACTIVITY_TITLE, "报名了");
+            NotificationMessage message =
+                    comment(BizTargetType.PET_ACTIVITY, ACTIVITY_TITLE, "报名了");
 
             assertThat(message.title()).isEqualTo("有人评论了你的活动");
             assertThat(message.content()).isEqualTo("评论了你的活动《周末流浪猫救助》：报名了");
@@ -60,8 +64,7 @@ class NotificationHandlerTextTest {
         @Test
         @DisplayName("回复某条评论落到通用分支 —— 与老实现的 default 行为一致")
         void onCommentReply() {
-            NotificationMessage message = comment(
-                    BizTargetType.PET_COMMENT, null, "回复了你的评论：同问");
+            NotificationMessage message = comment(BizTargetType.PET_COMMENT, null, "回复了你的评论：同问");
 
             assertThat(message.title()).isEqualTo("有人评论了你");
             assertThat(message.content())

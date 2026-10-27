@@ -1,6 +1,5 @@
 package com.hongjie.pms.modules.community.comment.api.controller;
 
-
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.hongjie.pms.platform.idempotent.annotation.Idempotent;
 import com.hongjie.pms.platform.annotation.RedisRateLimit;
@@ -37,15 +36,24 @@ public class CommentController {
             @RequestParam(defaultValue = "10") Integer pageSize) {
         // 查询评论列表
         log.info("获取评论列表");
-        IPage<CommentRespDto> page = commentService.getCommentList(targetType, targetId, pageNum, pageSize);
+        IPage<CommentRespDto> page =
+                commentService.getCommentList(targetType, targetId, pageNum, pageSize);
         return CommonResult.success(page);
     }
 
     /**
      * 创建评论
      */
-    @RedisRateLimit(key = "createComment", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.SECONDS)
-    @Idempotent(key = "#request.targetId + '-' + #request.targetType + '-' + #request.content", keyTimeout = 300, message = "评论操作正在处理中，请稍后再试")
+    @RedisRateLimit(
+            key = "createComment",
+            capacity = 5,
+            refillRate = 5,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
+    @Idempotent(
+            key = "#request.targetId + '-' + #request.targetType + '-' + #request.content",
+            keyTimeout = 300,
+            message = "评论操作正在处理中，请稍后再试")
     @PostMapping("/create")
     public CommonResult<String> createComment(@RequestBody @Valid CommentCreateRequest request) {
         // 创建评论
@@ -62,8 +70,7 @@ public class CommentController {
     public CommonResult<String> deleteComment(@PathVariable Long id) {
         // 删除评论
         log.info("删除评论");
-        //commentService.deleteComment(id);
+        // commentService.deleteComment(id);
         return CommonResult.success("评论删除成功");
     }
-
 }

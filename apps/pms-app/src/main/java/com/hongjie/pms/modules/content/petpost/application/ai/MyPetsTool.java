@@ -1,4 +1,5 @@
 package com.hongjie.pms.modules.content.petpost.application.ai;
+
 import com.hongjie.pms.ai.contract.CoreQueryTool;
 import com.hongjie.pms.ai.contract.ToolPaging;
 
@@ -21,7 +22,9 @@ public class MyPetsTool implements CoreQueryTool {
     private final PetPostMapper petPostMapper;
 
     @Override
-    public String getName() { return "my_pets"; }
+    public String getName() {
+        return "my_pets";
+    }
 
     @Override
     public ToolCall execute(Map<String, Object> args, Long userId) {
@@ -42,8 +45,8 @@ public class MyPetsTool implements CoreQueryTool {
         wrapper.orderByDesc(PetPost::getCreateTime);
 
         long total = petPostMapper.selectCount(wrapper);
-        List<PetPost> pets = petPostMapper.selectList(
-                wrapper.last("LIMIT " + offset + ", " + pageSize));
+        List<PetPost> pets =
+                petPostMapper.selectList(wrapper.last("LIMIT " + offset + ", " + pageSize));
         int totalPages = total == 0 ? 0 : (int) ((total + pageSize - 1) / pageSize);
 
         StringBuilder result = new StringBuilder();
@@ -51,7 +54,11 @@ public class MyPetsTool implements CoreQueryTool {
             if (total == 0) {
                 result.append("您还没有发布过宠物领养/救助帖子。");
             } else {
-                result.append("第 ").append(page).append(" 页没有更多帖子了（共 ").append(total).append(" 条，已全部展示）。");
+                result.append("第 ")
+                        .append(page)
+                        .append(" 页没有更多帖子了（共 ")
+                        .append(total)
+                        .append(" 条，已全部展示）。");
             }
         } else {
             result.append("您共发布 ").append(total).append(" 条相关帖子");
@@ -61,16 +68,28 @@ public class MyPetsTool implements CoreQueryTool {
             for (int i = 0; i < pets.size(); i++) {
                 PetPost pet = pets.get(i);
                 int no = offset + i + 1;
-                String statusText = switch (pet.getStatus()) {
-                    case 1 -> "已发布";
-                    case 2 -> "已领养/完成";
-                    case 3 -> "已下架";
-                    default -> "未知";
-                };
-                result.append(no).append(". 【").append(pet.getTitle()).append("】").append(statusText).append("\n");
-                if (pet.getPetName() != null) result.append("   宠物名：").append(pet.getPetName()).append("\n");
-                if (pet.getPetType() != null) result.append("   品种：").append(pet.getPetType()).append("\n");
-                result.append("   浏览：").append(pet.getViewCount()).append(" 点赞：").append(pet.getLikeCount()).append("\n\n");
+                String statusText =
+                        switch (pet.getStatus()) {
+                            case 1 -> "已发布";
+                            case 2 -> "已领养/完成";
+                            case 3 -> "已下架";
+                            default -> "未知";
+                        };
+                result.append(no)
+                        .append(". 【")
+                        .append(pet.getTitle())
+                        .append("】")
+                        .append(statusText)
+                        .append("\n");
+                if (pet.getPetName() != null)
+                    result.append("   宠物名：").append(pet.getPetName()).append("\n");
+                if (pet.getPetType() != null)
+                    result.append("   品种：").append(pet.getPetType()).append("\n");
+                result.append("   浏览：")
+                        .append(pet.getViewCount())
+                        .append(" 点赞：")
+                        .append(pet.getLikeCount())
+                        .append("\n\n");
             }
             ToolPaging.appendPagingFooter(result, page, totalPages, total, pageSize, "条");
         }

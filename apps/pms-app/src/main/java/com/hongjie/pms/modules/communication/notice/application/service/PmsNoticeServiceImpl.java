@@ -115,8 +115,11 @@ public class PmsNoticeServiceImpl implements NoticeService {
 
         if (scheduleAt != null) {
             delayTaskService.addTask(NoticePublishExecutor.TASK_TYPE, notice.getId(), scheduleAt);
-            log.info("管理员创建定时公告: id={}, title={}, 定时于 {}",
-                    notice.getId(), notice.getTitle(), scheduleAt);
+            log.info(
+                    "管理员创建定时公告: id={}, title={}, 定时于 {}",
+                    notice.getId(),
+                    notice.getTitle(),
+                    scheduleAt);
         } else {
             log.info("管理员创建并发布公告: id={}, title={}", notice.getId(), notice.getTitle());
         }
@@ -199,8 +202,8 @@ public class PmsNoticeServiceImpl implements NoticeService {
 
     @Override
     @RequireRole
-    public IPage<NoticeListDto> listForAdmin(Integer pageNum, Integer pageSize,
-                                             Integer status, String keyword) {
+    public IPage<NoticeListDto> listForAdmin(
+            Integer pageNum, Integer pageSize, Integer status, String keyword) {
         PageQuery pageQuery = PageQuery.of(asLong(pageNum), asLong(pageSize));
 
         LambdaQueryWrapper<Notice> wrapper = new LambdaQueryWrapper<>();
@@ -216,8 +219,8 @@ public class PmsNoticeServiceImpl implements NoticeService {
                 .orderByDesc(Notice::getCreateTime);
 
         IPage<Notice> page = noticeMapper.selectPage(pageQuery.toPage(), wrapper);
-        return PageBridge.toIPage(PageBridge.of(page)
-                .map(notice -> converter.toListDto(notice, null)));
+        return PageBridge.toIPage(
+                PageBridge.of(page).map(notice -> converter.toListDto(notice, null)));
     }
 
     // ==================== 用户端 ====================
@@ -226,30 +229,43 @@ public class PmsNoticeServiceImpl implements NoticeService {
     @SuppressWarnings("unchecked")
     public IPage<NoticeListDto> listForUser(Integer pageNum, Integer pageSize) {
         PageQuery pageQuery = PageQuery.of(asLong(pageNum), asLong(pageSize));
-        String cacheKey = listCacheKey(pageQuery.normalizedPageNum(), pageQuery.normalizedPageSize());
+        String cacheKey =
+                listCacheKey(pageQuery.normalizedPageNum(), pageQuery.normalizedPageSize());
 
-        IPage<NoticeListDto> cached = (IPage<NoticeListDto>) redisTemplate.opsForValue().get(cacheKey);
+        IPage<NoticeListDto> cached =
+                (IPage<NoticeListDto>) redisTemplate.opsForValue().get(cacheKey);
         LocalDateTime now = LocalDateTime.now();
         // Expiry needs no write event: refill the whole page to preserve totals/pagination.
-        if (cached != null && cached.getRecords().stream().noneMatch(row ->
-                !NoticeStatus.PUBLISHED.getCode().equals(row.getStatus())
-                        || (row.getPublishTime() != null && row.getPublishTime().isAfter(now))
-                        || (row.getExpireTime() != null && !row.getExpireTime().isAfter(now)))) {
+        if (cached != null
+                && cached.getRecords().stream()
+                        .noneMatch(
+                                row ->
+                                        !NoticeStatus.PUBLISHED.getCode().equals(row.getStatus())
+                                                || (row.getPublishTime() != null
+                                                        && row.getPublishTime().isAfter(now))
+                                                || (row.getExpireTime() != null
+                                                        && !row.getExpireTime().isAfter(now)))) {
             log.debug("从缓存获取公告列表: key={}", cacheKey);
             return forCurrentViewer(cached);
         }
 
-        IPage<Notice> page = noticeMapper.selectPage(pageQuery.toPage(),
-                new LambdaQueryWrapper<Notice>()
-                        .eq(Notice::getStatus, NoticeStatus.PUBLISHED.getCode())
-                        .le(Notice::getPublishTime, now)
-                        .and(w -> w.isNull(Notice::getExpireTime).or().gt(Notice::getExpireTime, now))
-                        .orderByDesc(Notice::getIsTop)
-                        .orderByDesc(Notice::getPriority)
-                        .orderByDesc(Notice::getPublishTime));
+        IPage<Notice> page =
+                noticeMapper.selectPage(
+                        pageQuery.toPage(),
+                        new LambdaQueryWrapper<Notice>()
+                                .eq(Notice::getStatus, NoticeStatus.PUBLISHED.getCode())
+                                .le(Notice::getPublishTime, now)
+                                .and(
+                                        w ->
+                                                w.isNull(Notice::getExpireTime)
+                                                        .or()
+                                                        .gt(Notice::getExpireTime, now))
+                                .orderByDesc(Notice::getIsTop)
+                                .orderByDesc(Notice::getPriority)
+                                .orderByDesc(Notice::getPublishTime));
 
-        PageResult<NoticeListDto> result = PageBridge.of(page)
-                .map(notice -> converter.toListDto(notice, null));
+        PageResult<NoticeListDto> result =
+                PageBridge.of(page).map(notice -> converter.toListDto(notice, null));
 
         IPage<NoticeListDto> resultPage = PageBridge.toIPage(result);
         redisTemplate.opsForValue().set(cacheKey, resultPage, LIST_CACHE_SECONDS, TimeUnit.SECONDS);
@@ -258,15 +274,22 @@ public class PmsNoticeServiceImpl implements NoticeService {
 
     /** Copy even legacy personalized cache entries; never mutate shared DTOs/pages. */
     private IPage<NoticeListDto> forCurrentViewer(IPage<NoticeListDto> base) {
-        Map<Long, Boolean> readStatus = readStatusMap(UserContext.getUserId(),
-                base.getRecords().stream().map(NoticeListDto::getId).toList());
-        Page<NoticeListDto> response = new Page<>(base.getCurrent(), base.getSize(), base.getTotal());
-        response.setRecords(base.getRecords().stream().map(row -> {
-            NoticeListDto copy = new NoticeListDto();
-            BeanUtils.copyProperties(row, copy);
-            copy.setIsRead(readStatus.get(row.getId()));
-            return copy;
-        }).toList());
+        Map<Long, Boolean> readStatus =
+                readStatusMap(
+                        UserContext.getUserId(),
+                        base.getRecords().stream().map(NoticeListDto::getId).toList());
+        Page<NoticeListDto> response =
+                new Page<>(base.getCurrent(), base.getSize(), base.getTotal());
+        response.setRecords(
+                base.getRecords().stream()
+                        .map(
+                                row -> {
+                                    NoticeListDto copy = new NoticeListDto();
+                                    BeanUtils.copyProperties(row, copy);
+                                    copy.setIsRead(readStatus.get(row.getId()));
+                                    return copy;
+                                })
+                        .toList());
         return response;
     }
 
@@ -277,9 +300,12 @@ public class PmsNoticeServiceImpl implements NoticeService {
 
         Notice notice = requireNotice(id);
         // 未发布的公告对普通用户等同于不存在
-        Guard.requireTrue(NoticeStatus.PUBLISHED.getCode().equals(notice.getStatus()),
-                ErrorCode.NOT_FOUND, "公告不存在: " + id);
-        if (notice.getExpireTime() != null && notice.getExpireTime().isBefore(LocalDateTime.now())) {
+        Guard.requireTrue(
+                NoticeStatus.PUBLISHED.getCode().equals(notice.getStatus()),
+                ErrorCode.NOT_FOUND,
+                "公告不存在: " + id);
+        if (notice.getExpireTime() != null
+                && notice.getExpireTime().isBefore(LocalDateTime.now())) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "公告已过期");
         }
 
@@ -308,17 +334,20 @@ public class PmsNoticeServiceImpl implements NoticeService {
         // 老实现对每条公告单独查一次已读记录（N+1）。这里一次查出该用户在这批公告里的
         // 已读集合，再用集合判断 —— 结果与逐条 exists 完全等价，但只需一条查询。
         List<Long> noticeIds = published.stream().map(Notice::getId).toList();
-        Set<Long> readNoticeIds = noticeReadRecordMapper.selectList(
-                        new LambdaQueryWrapper<NoticeReadRecord>()
-                                .eq(NoticeReadRecord::getUserId, userId)
-                                .in(NoticeReadRecord::getNoticeId, noticeIds))
-                .stream()
-                .map(NoticeReadRecord::getNoticeId)
-                .collect(Collectors.toSet());
+        Set<Long> readNoticeIds =
+                noticeReadRecordMapper
+                        .selectList(
+                                new LambdaQueryWrapper<NoticeReadRecord>()
+                                        .eq(NoticeReadRecord::getUserId, userId)
+                                        .in(NoticeReadRecord::getNoticeId, noticeIds))
+                        .stream()
+                        .map(NoticeReadRecord::getNoticeId)
+                        .collect(Collectors.toSet());
 
-        return (int) published.stream()
-                .filter(notice -> !readNoticeIds.contains(notice.getId()))
-                .count();
+        return (int)
+                published.stream()
+                        .filter(notice -> !readNoticeIds.contains(notice.getId()))
+                        .count();
     }
 
     // ==================== 内部方法 ====================
@@ -353,12 +382,17 @@ public class PmsNoticeServiceImpl implements NoticeService {
         if (userId == null || noticeIds.isEmpty()) {
             return Map.of();
         }
-        return noticeReadRecordMapper.selectList(new LambdaQueryWrapper<NoticeReadRecord>()
-                        .eq(NoticeReadRecord::getUserId, userId)
-                        .in(NoticeReadRecord::getNoticeId, noticeIds))
+        return noticeReadRecordMapper
+                .selectList(
+                        new LambdaQueryWrapper<NoticeReadRecord>()
+                                .eq(NoticeReadRecord::getUserId, userId)
+                                .in(NoticeReadRecord::getNoticeId, noticeIds))
                 .stream()
-                .collect(Collectors.toMap(NoticeReadRecord::getNoticeId,
-                        record -> Boolean.TRUE, (a, b) -> a));
+                .collect(
+                        Collectors.toMap(
+                                NoticeReadRecord::getNoticeId,
+                                record -> Boolean.TRUE,
+                                (a, b) -> a));
     }
 
     /** 与老实现一致的 key：{@code notice:list:{page}_{size}} */

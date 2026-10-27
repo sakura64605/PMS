@@ -28,7 +28,8 @@ public class AiMemoryExtractor {
         if (conversationText == null || conversationText.isBlank()) {
             return List.of();
         }
-        String prompt = """
+        String prompt =
+                """
             你是用户长期记忆抽取器。阅读下面这段"宠友社"平台用户与AI助手的对话，
             只提取【用户本人陈述的、跨会话有效的持久事实或偏好】，例如：
             - 养了什么宠物（名字/品种/数量）
@@ -43,7 +44,8 @@ public class AiMemoryExtractor {
 
             对话内容：
             %s
-            """.formatted(conversationText);
+            """
+                        .formatted(conversationText);
 
         try {
             String raw = chatLanguageModel.chat(prompt);
@@ -53,7 +55,9 @@ public class AiMemoryExtractor {
                 return List.of();
             }
             List<String> facts = JSON.parseArray(array, String.class);
-            return facts == null ? List.of() : facts.stream().filter(f -> f != null && !f.isBlank()).toList();
+            return facts == null
+                    ? List.of()
+                    : facts.stream().filter(f -> f != null && !f.isBlank()).toList();
         } catch (Exception e) {
             log.warn("长期记忆抽取失败", e);
             return List.of();

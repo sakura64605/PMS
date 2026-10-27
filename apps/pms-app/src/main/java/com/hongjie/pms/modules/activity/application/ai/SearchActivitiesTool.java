@@ -1,4 +1,5 @@
 package com.hongjie.pms.modules.activity.application.ai;
+
 import com.hongjie.pms.ai.contract.CoreQueryTool;
 import com.hongjie.pms.ai.contract.ToolPaging;
 
@@ -41,8 +42,10 @@ public class SearchActivitiesTool implements CoreQueryTool {
         int offset = (page - 1) * pageSize;
 
         long total = activityMapper.selectCount(buildWrapper(keyword, location, false));
-        List<Activity> activities = activityMapper.selectList(
-                buildWrapper(keyword, location, true).last("LIMIT " + offset + ", " + pageSize));
+        List<Activity> activities =
+                activityMapper.selectList(
+                        buildWrapper(keyword, location, true)
+                                .last("LIMIT " + offset + ", " + pageSize));
         int totalPages = total == 0 ? 0 : (int) ((total + pageSize - 1) / pageSize);
 
         StringBuilder result = new StringBuilder();
@@ -54,14 +57,22 @@ public class SearchActivitiesTool implements CoreQueryTool {
                     result.append(" 建议尝试其他关键词或查看全部活动。");
                 }
             } else {
-                result.append("第 ").append(page).append(" 页没有更多活动了（共 ").append(total).append(" 个，已全部展示）。");
+                result.append("第 ")
+                        .append(page)
+                        .append(" 页没有更多活动了（共 ")
+                        .append(total)
+                        .append(" 个，已全部展示）。");
             }
         } else {
             result.append("共找到 ").append(total).append(" 个活动");
             if (totalPages > 1) {
                 result.append("（共 ").append(totalPages).append(" 页）");
             }
-            result.append("，当前第 ").append(page).append(" 页，本页 ").append(activities.size()).append(" 个：\n\n");
+            result.append("，当前第 ")
+                    .append(page)
+                    .append(" 页，本页 ")
+                    .append(activities.size())
+                    .append(" 个：\n\n");
 
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd HH:mm");
             for (int i = 0; i < activities.size(); i++) {
@@ -69,11 +80,22 @@ public class SearchActivitiesTool implements CoreQueryTool {
                 int no = offset + i + 1;
                 result.append(no).append(". 【").append(act.getTitle()).append("】\n");
                 result.append("   地点：").append(act.getLocation()).append("\n");
-                result.append("   时间：").append(act.getStartTime().format(formatter))
-                        .append(" 至 ").append(act.getEndTime().format(formatter)).append("\n");
-                result.append("   报名：").append(act.getCurrentPeople()).append("/").append(act.getMaxPeople()).append("人\n");
-                result.append("   描述：").append(act.getContent() != null && act.getContent().length() > 80 ?
-                        act.getContent().substring(0, 80) + "..." : act.getContent()).append("\n\n");
+                result.append("   时间：")
+                        .append(act.getStartTime().format(formatter))
+                        .append(" 至 ")
+                        .append(act.getEndTime().format(formatter))
+                        .append("\n");
+                result.append("   报名：")
+                        .append(act.getCurrentPeople())
+                        .append("/")
+                        .append(act.getMaxPeople())
+                        .append("人\n");
+                result.append("   描述：")
+                        .append(
+                                act.getContent() != null && act.getContent().length() > 80
+                                        ? act.getContent().substring(0, 80) + "..."
+                                        : act.getContent())
+                        .append("\n\n");
             }
             appendPagingHint(result, page, totalPages, total, pageSize);
         }
@@ -86,16 +108,19 @@ public class SearchActivitiesTool implements CoreQueryTool {
                 .build();
     }
 
-    private LambdaQueryWrapper<Activity> buildWrapper(String keyword, String location, boolean withOrder) {
+    private LambdaQueryWrapper<Activity> buildWrapper(
+            String keyword, String location, boolean withOrder) {
         LambdaQueryWrapper<Activity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Activity::getStatus, 1)
-                .eq(Activity::getAuditStatus, 1);
+        wrapper.eq(Activity::getStatus, 1).eq(Activity::getAuditStatus, 1);
         if (location != null && !location.isEmpty()) {
             wrapper.like(Activity::getLocation, location);
         }
         if (keyword != null && !keyword.isEmpty()) {
-            wrapper.and(w -> w.like(Activity::getTitle, keyword)
-                    .or().like(Activity::getContent, keyword));
+            wrapper.and(
+                    w ->
+                            w.like(Activity::getTitle, keyword)
+                                    .or()
+                                    .like(Activity::getContent, keyword));
         }
         if (withOrder) {
             wrapper.orderByDesc(Activity::getCreateTime);
@@ -104,11 +129,14 @@ public class SearchActivitiesTool implements CoreQueryTool {
     }
 
     /** 结果末尾的分页引导 */
-    static void appendPagingHint(StringBuilder sb, int page, int totalPages, long total, int pageSize) {
+    static void appendPagingHint(
+            StringBuilder sb, int page, int totalPages, long total, int pageSize) {
         if (page < totalPages) {
             long remaining = total - (long) page * pageSize;
-            sb.append("还有 ").append(Math.max(0, remaining))
-                    .append(" 个未展示。若用户想看更多，请再次调用本工具并传 page=").append(page + 1)
+            sb.append("还有 ")
+                    .append(Math.max(0, remaining))
+                    .append(" 个未展示。若用户想看更多，请再次调用本工具并传 page=")
+                    .append(page + 1)
                     .append("（其余参数保持不变）。");
         } else {
             sb.append("已展示全部 ").append(total).append(" 个。");

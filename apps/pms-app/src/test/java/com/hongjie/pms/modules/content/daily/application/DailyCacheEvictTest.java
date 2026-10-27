@@ -20,34 +20,58 @@ class DailyCacheEvictTest {
     final RedisScanUtil scan = mock(RedisScanUtil.class);
     final RedisTemplate<String, Object> redis = mock(RedisTemplate.class);
     final DailyCacheInvalidator cache = new DailyCacheInvalidator(scan, redis);
-    final TransactionTemplate tx = new TransactionTemplate(new AbstractPlatformTransactionManager() {
-        protected Object doGetTransaction() { return new Object(); }
-        protected void doBegin(Object t, TransactionDefinition d) {}
-        protected void doCommit(DefaultTransactionStatus s) {}
-        protected void doRollback(DefaultTransactionStatus s) {}
-    });
+    final TransactionTemplate tx =
+            new TransactionTemplate(
+                    new AbstractPlatformTransactionManager() {
+                        protected Object doGetTransaction() {
+                            return new Object();
+                        }
 
-    @Test void writesEvictActualPagePatternsOnlyAfterCommitAndNeverOnRollback() {
-        tx.executeWithoutResult(s -> { cache.allAfterCommit(); verifyNoInteractions(scan, redis); s.setRollbackOnly(); });
+                        protected void doBegin(Object t, TransactionDefinition d) {}
+
+                        protected void doCommit(DefaultTransactionStatus s) {}
+
+                        protected void doRollback(DefaultTransactionStatus s) {}
+                    });
+
+    @Test
+    void writesEvictActualPagePatternsOnlyAfterCommitAndNeverOnRollback() {
+        tx.executeWithoutResult(
+                s -> {
+                    cache.allAfterCommit();
+                    verifyNoInteractions(scan, redis);
+                    s.setRollbackOnly();
+                });
         verifyNoInteractions(scan, redis);
-        tx.executeWithoutResult(s -> { cache.allAfterCommit(); verifyNoInteractions(scan, redis); });
+        tx.executeWithoutResult(
+                s -> {
+                    cache.allAfterCommit();
+                    verifyNoInteractions(scan, redis);
+                });
         verify(scan).scanAndDelete("daily:rec:*");
         verify(scan).scanAndDelete("rec:daily:*");
         verify(redis).delete("topic:hot");
     }
 
-    @Test void actionsEvictAllPagesOfOnlyThatViewer() {
-        tx.executeWithoutResult(s -> { cache.viewerAfterCommit(12L); verifyNoInteractions(scan); });
+    @Test
+    void actionsEvictAllPagesOfOnlyThatViewer() {
+        tx.executeWithoutResult(
+                s -> {
+                    cache.viewerAfterCommit(12L);
+                    verifyNoInteractions(scan);
+                });
         verify(scan).scanAndDelete("daily:rec:12:*");
         verify(scan).scanAndDelete("rec:daily:12:*");
         verifyNoMoreInteractions(scan);
         verifyNoInteractions(redis);
     }
 
-    @Test void domainEventsEvictOnCommitIncludingSelfCommentsButNotOtherDomainsOrRollback() {
+    @Test
+    void domainEventsEvictOnCommitIncludingSelfCommentsButNotOtherDomainsOrRollback() {
         try (var context = new AnnotationConfigApplicationContext()) {
             context.registerBean(TransactionalEventListenerFactory.class);
-            context.registerBean(DailyCacheEvictListener.class, () -> new DailyCacheEvictListener(cache));
+            context.registerBean(
+                    DailyCacheEvictListener.class, () -> new DailyCacheEvictListener(cache));
             context.refresh();
             Object[] events = {
                 new CommentCreatedEvent(1L, BizTargetType.DAILY, 3L),
@@ -57,14 +81,26 @@ class DailyCacheEvictTest {
             };
             for (Object event : events) {
                 clearInvocations(scan, redis);
-                tx.executeWithoutResult(s -> { context.publishEvent(event); verifyNoInteractions(scan, redis); s.setRollbackOnly(); });
+                tx.executeWithoutResult(
+                        s -> {
+                            context.publishEvent(event);
+                            verifyNoInteractions(scan, redis);
+                            s.setRollbackOnly();
+                        });
                 verifyNoInteractions(scan, redis);
-                tx.executeWithoutResult(s -> { context.publishEvent(event); verifyNoInteractions(scan, redis); });
+                tx.executeWithoutResult(
+                        s -> {
+                            context.publishEvent(event);
+                            verifyNoInteractions(scan, redis);
+                        });
                 verify(scan).scanAndDelete("daily:rec:*");
                 verify(scan).scanAndDelete("rec:daily:*");
             }
             clearInvocations(scan, redis);
-            tx.executeWithoutResult(s -> context.publishEvent(new CommentCreatedEvent(1L, BizTargetType.PET_POST, 3L)));
+            tx.executeWithoutResult(
+                    s ->
+                            context.publishEvent(
+                                    new CommentCreatedEvent(1L, BizTargetType.PET_POST, 3L)));
             context.publishEvent(events[0]);
             verifyNoInteractions(scan, redis);
         }

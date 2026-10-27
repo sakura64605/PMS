@@ -18,20 +18,36 @@ class NoticeCacheEvictListenerTest {
     final RedisScanUtil scan = mock(RedisScanUtil.class);
     final NoticeCacheEvictListener listener = new NoticeCacheEvictListener(mq, redis, scan);
 
-    @Test void immediateEvictionAndDelayedMqOccurOnlyAfterCommit() {
-        var tx = new TransactionTemplate(new AbstractPlatformTransactionManager() {
-            protected Object doGetTransaction() { return new Object(); }
-            protected void doBegin(Object t, TransactionDefinition d) {}
-            protected void doCommit(DefaultTransactionStatus s) {}
-            protected void doRollback(DefaultTransactionStatus s) {}
-        });
+    @Test
+    void immediateEvictionAndDelayedMqOccurOnlyAfterCommit() {
+        var tx =
+                new TransactionTemplate(
+                        new AbstractPlatformTransactionManager() {
+                            protected Object doGetTransaction() {
+                                return new Object();
+                            }
+
+                            protected void doBegin(Object t, TransactionDefinition d) {}
+
+                            protected void doCommit(DefaultTransactionStatus s) {}
+
+                            protected void doRollback(DefaultTransactionStatus s) {}
+                        });
         try (var context = new AnnotationConfigApplicationContext()) {
             context.registerBean(TransactionalEventListenerFactory.class);
             context.registerBean(NoticeCacheEvictListener.class, () -> listener);
             context.refresh();
-            tx.executeWithoutResult(s -> { context.publishEvent(new NoticeChangedEvent(7L)); s.setRollbackOnly(); });
+            tx.executeWithoutResult(
+                    s -> {
+                        context.publishEvent(new NoticeChangedEvent(7L));
+                        s.setRollbackOnly();
+                    });
             verifyNoInteractions(redis, scan, mq);
-            tx.executeWithoutResult(s -> { context.publishEvent(new NoticeChangedEvent(7L)); verifyNoInteractions(redis, scan, mq); });
+            tx.executeWithoutResult(
+                    s -> {
+                        context.publishEvent(new NoticeChangedEvent(7L));
+                        verifyNoInteractions(redis, scan, mq);
+                    });
             var order = inOrder(redis, scan, mq);
             order.verify(redis).delete("notice:7");
             order.verify(scan).scanAndDelete("notice:list:*");
@@ -40,7 +56,8 @@ class NoticeCacheEvictListenerTest {
         }
     }
 
-    @Test void redisFailureDoesNotSuppressListOrDelayedEviction() {
+    @Test
+    void redisFailureDoesNotSuppressListOrDelayedEviction() {
         when(redis.delete("notice:7")).thenThrow(new IllegalStateException("unavailable"));
         listener.evict(7L);
         verify(scan).scanAndDelete("notice:list:*");
@@ -48,7 +65,8 @@ class NoticeCacheEvictListenerTest {
         verify(mq).sendEvictAll("notice:list");
     }
 
-    @Test void nullIdEvictsListsWithoutInventingDetailKey() {
+    @Test
+    void nullIdEvictsListsWithoutInventingDetailKey() {
         listener.evict(null);
         verifyNoInteractions(redis);
         verify(scan).scanAndDelete("notice:list:*");

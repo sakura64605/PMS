@@ -14,6 +14,7 @@ public class PageQuery {
 
     public static final long DEFAULT_PAGE_NUM = 1L;
     public static final long DEFAULT_PAGE_SIZE = 10L;
+
     /** 单页上限，防止恶意大分页 */
     public static final long MAX_PAGE_SIZE = 100L;
 

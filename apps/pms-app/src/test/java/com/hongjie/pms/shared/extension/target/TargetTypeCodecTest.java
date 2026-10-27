@@ -46,30 +46,37 @@ class TargetTypeCodecTest {
         @DisplayName("report_record 方言写 pet / activity / comment")
         void reportDialect() {
             assertThat(codec.write(BizTargetType.PET_POST, LegacyDialect.REPORT)).isEqualTo("pet");
-            assertThat(codec.write(BizTargetType.PET_ACTIVITY, LegacyDialect.REPORT)).isEqualTo("activity");
-            assertThat(codec.write(BizTargetType.PET_COMMENT, LegacyDialect.REPORT)).isEqualTo("comment");
+            assertThat(codec.write(BizTargetType.PET_ACTIVITY, LegacyDialect.REPORT))
+                    .isEqualTo("activity");
+            assertThat(codec.write(BizTargetType.PET_COMMENT, LegacyDialect.REPORT))
+                    .isEqualTo("comment");
             assertThat(codec.write(BizTargetType.USER, LegacyDialect.REPORT)).isEqualTo("user");
         }
 
         @Test
         @DisplayName("交互表方言写 pet_post / pet_activity")
         void interactionDialect() {
-            assertThat(codec.write(BizTargetType.PET_POST, LegacyDialect.INTERACTION)).isEqualTo("pet_post");
-            assertThat(codec.write(BizTargetType.PET_ACTIVITY, LegacyDialect.INTERACTION)).isEqualTo("pet_activity");
-            assertThat(codec.write(BizTargetType.DAILY, LegacyDialect.INTERACTION)).isEqualTo("daily");
+            assertThat(codec.write(BizTargetType.PET_POST, LegacyDialect.INTERACTION))
+                    .isEqualTo("pet_post");
+            assertThat(codec.write(BizTargetType.PET_ACTIVITY, LegacyDialect.INTERACTION))
+                    .isEqualTo("pet_activity");
+            assertThat(codec.write(BizTargetType.DAILY, LegacyDialect.INTERACTION))
+                    .isEqualTo("daily");
         }
 
         @Test
         @DisplayName("活动在审计方言里无歧义，可直接写")
         void auditDialectForActivityIsUnambiguous() {
-            assertThat(codec.write(BizTargetType.PET_ACTIVITY, LegacyDialect.AUDIT)).isEqualTo("activity");
+            assertThat(codec.write(BizTargetType.PET_ACTIVITY, LegacyDialect.AUDIT))
+                    .isEqualTo("activity");
         }
 
         @Test
         @DisplayName("writeCanonical 用于没有历史包袱的新表")
         void canonicalForNewTables() {
             assertThat(codec.writeCanonical(BizTargetType.resolve("pet"))).isEqualTo("pet_post");
-            assertThat(codec.writeCanonical(BizTargetType.resolve("comment"))).isEqualTo("pet_comment");
+            assertThat(codec.writeCanonical(BizTargetType.resolve("comment")))
+                    .isEqualTo("pet_comment");
         }
     }
 

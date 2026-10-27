@@ -41,7 +41,6 @@ public class PetDetailDto {
     private Integer shareCount;
     private Integer commentCount;
     private Integer likeCount;
-    private Boolean isLiked;    // 当前用户是否点赞
-    private Boolean isFavorite;// 当前用户是否收藏
-
+    private Boolean isLiked; // 当前用户是否点赞
+    private Boolean isFavorite; // 当前用户是否收藏
 }

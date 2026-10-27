@@ -21,13 +21,13 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @RequiredArgsConstructor
 public class AIAgentWebSocketHandler extends TextWebSocketHandler {
-    
+
     private final AiConversationGateway conversations;
     private final com.hongjie.pms.aiservice.core.AiCoreClient userSessions;
-    
-    private final Map<String,String> businessSessions = new ConcurrentHashMap<>();
+
+    private final Map<String, String> businessSessions = new ConcurrentHashMap<>();
     private static final Map<String, WebSocketSession> SESSIONS = new ConcurrentHashMap<>();
-    
+
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         // 从 URL 参数中获取 token 并验证
@@ -42,57 +42,72 @@ public class AIAgentWebSocketHandler extends TextWebSocketHandler {
             }
             return;
         }
-        
+
         Long userId = identity.getUserId();
         String sessionId = session.getId();
         SESSIONS.put(sessionId, session);
         log.info("AI客服WebSocket连接建立: sessionId={}, userId={}", sessionId, userId);
     }
-    
+
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) {
         String sessionId = session.getId();
-        
+
         try {
             var identity = userSessions.authenticate(getTokenFromSession(session));
-            if (identity == null) { session.close(CloseStatus.NOT_ACCEPTABLE); return; }
+            if (identity == null) {
+                session.close(CloseStatus.NOT_ACCEPTABLE);
+                return;
+            }
             Map<String, Object> data = JSON.parseObject(message.getPayload());
             String userMessage = (String) data.get("message");
-            
+
             AIAgentRequest request = new AIAgentRequest();
             request.setUserId(identity.getUserId());
             String requested = (String) data.get("sessionId");
             request.setSessionId(requested);
             request.setMessage(userMessage);
             request.setStream(false);
-            
+
             if (requested == null || requested.isBlank()) {
-                request.setSessionId(businessSessions.computeIfAbsent(sessionId, key ->
-                        conversations.prepare(identity.getUserId(), request, "websocket").getSessionId()));
+                request.setSessionId(
+                        businessSessions.computeIfAbsent(
+                                sessionId,
+                                key ->
+                                        conversations
+                                                .prepare(identity.getUserId(), request, "websocket")
+                                                .getSessionId()));
             }
-            AIAgentResponse response = conversations.process(identity.getUserId(), request, "websocket");
-            businessSessions.compute(sessionId, (key, previous) ->
-                    session.isOpen() && SESSIONS.containsKey(sessionId) ? response.getSessionId() : null);
+            AIAgentResponse response =
+                    conversations.process(identity.getUserId(), request, "websocket");
+            businessSessions.compute(
+                    sessionId,
+                    (key, previous) ->
+                            session.isOpen() && SESSIONS.containsKey(sessionId)
+                                    ? response.getSessionId()
+                                    : null);
             sendMessage(sessionId, response);
-            
+
         } catch (Exception e) {
             log.error("处理消息失败", e);
-            sendMessage(sessionId, AIAgentResponse.builder()
-                    .messageId(UUID.randomUUID().toString())
-                    .sessionId(sessionId)
-                    .content("抱歉，处理出错了，请稍后再试。")
-                    .needHuman(true)
-                    .build());
+            sendMessage(
+                    sessionId,
+                    AIAgentResponse.builder()
+                            .messageId(UUID.randomUUID().toString())
+                            .sessionId(sessionId)
+                            .content("抱歉，处理出错了，请稍后再试。")
+                            .needHuman(true)
+                            .build());
         }
     }
-    
+
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         SESSIONS.remove(session.getId());
         businessSessions.remove(session.getId());
         log.info("AI客服WebSocket连接关闭: sessionId={}", session.getId());
     }
-    
+
     private void sendMessage(String sessionId, AIAgentResponse response) {
         WebSocketSession session = SESSIONS.get(sessionId);
         if (session != null && session.isOpen()) {
@@ -103,7 +118,7 @@ public class AIAgentWebSocketHandler extends TextWebSocketHandler {
             }
         }
     }
-    
+
     /**
      * 从 WebSocket 会话中获取 token
      */
@@ -113,7 +128,8 @@ public class AIAgentWebSocketHandler extends TextWebSocketHandler {
             String[] params = query.split("&");
             for (String param : params) {
                 if (param.startsWith("token=")) {
-                    return java.net.URLDecoder.decode(param.substring(6), java.nio.charset.StandardCharsets.UTF_8);
+                    return java.net.URLDecoder.decode(
+                            param.substring(6), java.nio.charset.StandardCharsets.UTF_8);
                 }
             }
         }

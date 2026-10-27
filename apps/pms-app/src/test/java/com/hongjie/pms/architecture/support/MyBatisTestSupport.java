@@ -8,7 +8,6 @@ import com.baomidou.mybatisplus.spring.MybatisSqlSessionFactoryBean;
 import com.mysql.cj.jdbc.MysqlDataSource;
 import org.apache.ibatis.session.SqlSessionFactory;
 
-
 /**
  * 等价性测试的 MyBatis 支撑：直接架一个指向测试库的 {@link SqlSessionFactory}。
  *
@@ -35,8 +34,7 @@ public final class MyBatisTestSupport {
                     + "?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai"
                     + "&allowMultiQueries=true";
 
-    private MyBatisTestSupport() {
-    }
+    private MyBatisTestSupport() {}
 
     /** 是否具备运行等价性测试的条件（至少要给出密码） */
     public static boolean configured() {

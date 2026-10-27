@@ -45,16 +45,21 @@ public class StrategyRegistry<K, S> {
      * @param strategies   Spring 按类型注入的全部策略实现
      * @param keyExtractor 从一个策略上取出它负责的全部键（一个策略可服务多个键）
      */
-    public StrategyRegistry(String name, Collection<S> strategies, Function<S, Collection<K>> keyExtractor) {
+    public StrategyRegistry(
+            String name, Collection<S> strategies, Function<S, Collection<K>> keyExtractor) {
         this.name = name;
         Map<K, S> table = new LinkedHashMap<>();
         for (S strategy : strategies) {
             for (K key : keyExtractor.apply(strategy)) {
                 S previous = table.put(key, strategy);
                 if (previous != null) {
-                    throw new IllegalStateException(String.format(
-                            "%s 策略键重复: %s 同时被 %s 与 %s 注册",
-                            name, key, previous.getClass().getSimpleName(), strategy.getClass().getSimpleName()));
+                    throw new IllegalStateException(
+                            String.format(
+                                    "%s 策略键重复: %s 同时被 %s 与 %s 注册",
+                                    name,
+                                    key,
+                                    previous.getClass().getSimpleName(),
+                                    strategy.getClass().getSimpleName()));
                 }
             }
         }
@@ -63,8 +68,11 @@ public class StrategyRegistry<K, S> {
 
     /** 按键取策略，不存在即抛业务异常 */
     public S get(K key) {
-        return find(key).orElseThrow(() -> new BusinessException(
-                ErrorCode.PARAM_ERROR, "未注册的 " + name + " 类型: " + key));
+        return find(key)
+                .orElseThrow(
+                        () ->
+                                new BusinessException(
+                                        ErrorCode.PARAM_ERROR, "未注册的 " + name + " 类型: " + key));
     }
 
     public Optional<S> find(K key) {
@@ -81,8 +89,11 @@ public class StrategyRegistry<K, S> {
     public <T extends S> T get(K key, Class<T> capability) {
         S strategy = get(key);
         if (!capability.isInstance(strategy)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, String.format(
-                    "%s 的 %s 不支持 %s 能力", key, strategy.getClass().getSimpleName(), capability.getSimpleName()));
+            throw new BusinessException(
+                    ErrorCode.PARAM_ERROR,
+                    String.format(
+                            "%s 的 %s 不支持 %s 能力",
+                            key, strategy.getClass().getSimpleName(), capability.getSimpleName()));
         }
         return capability.cast(strategy);
     }

@@ -36,14 +36,18 @@ public interface AuditService {
     /**
      * 待审核列表
      */
-    IPage<AuditListDto> getPendingList(String targetType, String keyword,
-                                       String dateRange, Integer pageNum, Integer pageSize);
+    IPage<AuditListDto> getPendingList(
+            String targetType, String keyword, String dateRange, Integer pageNum, Integer pageSize);
 
     /**
      * 审核历史
      */
-    IPage<AuditHistoryDto> getHistoryList(String targetType, String keyword,
-                                          Integer auditStatus, Integer pageNum, Integer pageSize);
+    IPage<AuditHistoryDto> getHistoryList(
+            String targetType,
+            String keyword,
+            Integer auditStatus,
+            Integer pageNum,
+            Integer pageSize);
 
     /**
      * 获取详情

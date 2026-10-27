@@ -25,17 +25,16 @@ public class ElasticsearchConfig {
 
     @Bean(destroyMethod = "close")
     public ElasticsearchTransport pmsElasticsearchTransport() {
-        RestClient restClient = RestClient.builder(
-                new HttpHost(host, port, "http")
-        ).build();
+        RestClient restClient = RestClient.builder(new HttpHost(host, port, "http")).build();
 
         ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());  // 注册 JSR310 模块
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);  // 使用 ISO 格式
+        mapper.registerModule(new JavaTimeModule()); // 注册 JSR310 模块
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS); // 使用 ISO 格式
 
         JacksonJsonpMapper jsonpMapper = new JacksonJsonpMapper(mapper);
         return new RestClientTransport(restClient, jsonpMapper);
     }
+
     @Bean
     public ElasticsearchClient elasticsearchClient(ElasticsearchTransport transport) {
         return new ElasticsearchClient(transport);

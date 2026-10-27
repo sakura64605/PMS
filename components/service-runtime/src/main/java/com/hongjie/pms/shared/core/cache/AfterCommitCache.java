@@ -8,17 +8,26 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Slf4j
 public final class AfterCommitCache {
     private AfterCommitCache() {}
+
     public static void evict(Runnable eviction) {
         if (TransactionSynchronizationManager.isActualTransactionActive()
                 && TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override public void afterCommit() { run(eviction); }
-            });
-        } else { run(eviction); }
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            run(eviction);
+                        }
+                    });
+        } else {
+            run(eviction);
+        }
     }
+
     private static void run(Runnable eviction) {
-        try { eviction.run(); }
-        catch (RuntimeException failure) {
+        try {
+            eviction.run();
+        } catch (RuntimeException failure) {
             log.error("Committed database write succeeded, but cache eviction failed", failure);
         }
     }

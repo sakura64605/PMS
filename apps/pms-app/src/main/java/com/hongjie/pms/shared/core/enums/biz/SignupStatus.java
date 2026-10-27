@@ -9,7 +9,6 @@ import com.hongjie.pms.shared.core.enums.CodableEnum;
  * {@code DelayTaskHandler} 等多处，v2 一律走本枚举。
  */
 public enum SignupStatus implements CodableEnum<Integer> {
-
     SIGNED_UP(1, "已报名"),
     CANCELLED(2, "已取消"),
     CHECKED_IN(3, "已签到"),

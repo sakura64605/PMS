@@ -7,5 +7,7 @@ import org.springframework.stereotype.Component;
 /** Adapter around the legacy static socket transport, replaceable in tests. */
 @Component
 public class PrivateMessagePush {
-    public void send(Long recipient,MessageDto message){WebSocketHandler.pushToUser(recipient,message);}
+    public void send(Long recipient, MessageDto message) {
+        WebSocketHandler.pushToUser(recipient, message);
+    }
 }

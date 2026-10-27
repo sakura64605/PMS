@@ -5,5 +5,4 @@ import com.hongjie.pms.modules.identity.user.infrastructure.persistence.entity.A
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface AvatarHistoryMapper extends BaseMapper<AvatarHistory> {
-}
+public interface AvatarHistoryMapper extends BaseMapper<AvatarHistory> {}

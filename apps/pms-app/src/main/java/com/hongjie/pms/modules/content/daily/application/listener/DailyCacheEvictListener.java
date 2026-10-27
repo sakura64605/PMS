@@ -22,7 +22,8 @@ public class DailyCacheEvictListener {
 
     @TransactionalEventListener
     public void liked(LikeChanged event) {
-        if ("daily".equals(event.targetType()) || "daily_post".equals(event.targetType())) cache.evictAll();
+        if ("daily".equals(event.targetType()) || "daily_post".equals(event.targetType()))
+            cache.evictAll();
     }
 
     @TransactionalEventListener

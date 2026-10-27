@@ -1,14 +1,17 @@
 package com.hongjie.pms.modules.ai.application.tool;
+
 import com.hongjie.pms.ai.contract.BaseTool;
 import com.hongjie.pms.modules.ai.api.dto.ToolCall;
 import com.hongjie.pms.aiservice.core.AiCoreClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import java.util.*;
+
 @Component
 @RequiredArgsConstructor
 public class SearchActivitiesTool implements BaseTool {
     private final AiCoreClient core;
+
     @Override
     public String getName() {
         return "search_activities";
@@ -16,8 +19,7 @@ public class SearchActivitiesTool implements BaseTool {
 
     @Override
     public String getDescription() {
-        return "搜索平台上的活动信息。注意：分页查询，每次只返回一页（默认5条）。"
-                + "若结果提示还有更多页，请用 page 参数递增继续获取，不要凭当前一页断定没有更多。";
+        return "搜索平台上的活动信息。注意：分页查询，每次只返回一页（默认5条）。" + "若结果提示还有更多页，请用 page 参数递增继续获取，不要凭当前一页断定没有更多。";
     }
 
     @Override
@@ -35,8 +37,8 @@ public class SearchActivitiesTool implements BaseTool {
         return params;
     }
 
-
-    @Override public ToolCall execute(Map<String,Object> args, Long actor) {
-        return core.tool(getName(),args,actor);
+    @Override
+    public ToolCall execute(Map<String, Object> args, Long actor) {
+        return core.tool(getName(), args, actor);
     }
 }

@@ -16,5 +16,5 @@ public record LikeNotificationContext(
         BizTargetType targetType,
         String targetTitle,
         Long businessId,
-        String link) implements NotificationContext {
-}
+        String link)
+        implements NotificationContext {}

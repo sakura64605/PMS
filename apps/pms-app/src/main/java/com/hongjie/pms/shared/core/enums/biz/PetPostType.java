@@ -10,7 +10,6 @@ import com.hongjie.pms.shared.core.enums.CodableEnum;
  * {@code TargetTypeCodec} 中关于「审计方言不可逆」的说明。
  */
 public enum PetPostType implements CodableEnum<Integer> {
-
     ADOPT(0, "领养"),
     HELP(1, "救助");
 

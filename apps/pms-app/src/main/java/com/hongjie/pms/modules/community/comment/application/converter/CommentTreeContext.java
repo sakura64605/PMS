@@ -22,5 +22,4 @@ import java.util.Set;
 public record CommentTreeContext(
         Map<Long, List<Comment>> repliesByParent,
         Map<Long, UserSimpleDto> users,
-        Set<Long> likedCommentIds) {
-}
+        Set<Long> likedCommentIds) {}

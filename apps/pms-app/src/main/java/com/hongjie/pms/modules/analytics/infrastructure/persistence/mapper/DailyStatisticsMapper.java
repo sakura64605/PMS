@@ -12,14 +12,16 @@ import java.util.List;
 @Mapper
 public interface DailyStatisticsMapper extends BaseMapper<DailyStatistics> {
 
-    @Select("SELECT * FROM daily_statistics WHERE stat_date BETWEEN #{startDate} AND #{endDate} ORDER BY stat_date ASC")
-    List<DailyStatistics> selectByDateRange(@Param("startDate") LocalDate startDate,
-                                            @Param("endDate") LocalDate endDate);
+    @Select(
+            "SELECT * FROM daily_statistics WHERE stat_date BETWEEN #{startDate} AND #{endDate} ORDER BY stat_date ASC")
+    List<DailyStatistics> selectByDateRange(
+            @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     @Select("SELECT * FROM daily_statistics WHERE stat_date = #{date}")
     DailyStatistics selectByDate(@Param("date") LocalDate date);
 
-    @Select("SELECT * FROM daily_statistics WHERE YEAR(stat_date) = #{year} AND MONTH(stat_date) = #{month} ORDER BY stat_date ASC")
+    @Select(
+            "SELECT * FROM daily_statistics WHERE YEAR(stat_date) = #{year} AND MONTH(stat_date) = #{month} ORDER BY stat_date ASC")
     List<DailyStatistics> selectByMonth(@Param("year") int year, @Param("month") int month);
 
     @Select("SELECT * FROM daily_statistics WHERE YEAR(stat_date) = #{year} ORDER BY stat_date ASC")

@@ -53,9 +53,13 @@ class CodableEnumTest {
     @Test
     @DisplayName("枚举内业务码不重复")
     void codesAreUniqueWithinEachEnum() {
-        assertThat(PetPostStatus.values()).extracting(PetPostStatus::getCode).doesNotHaveDuplicates();
+        assertThat(PetPostStatus.values())
+                .extracting(PetPostStatus::getCode)
+                .doesNotHaveDuplicates();
         assertThat(NoticeStatus.values()).extracting(NoticeStatus::getCode).doesNotHaveDuplicates();
-        assertThat(ActivityStatus.values()).extracting(ActivityStatus::getCode).doesNotHaveDuplicates();
+        assertThat(ActivityStatus.values())
+                .extracting(ActivityStatus::getCode)
+                .doesNotHaveDuplicates();
         assertThat(SignupStatus.values()).extracting(SignupStatus::getCode).doesNotHaveDuplicates();
     }
 

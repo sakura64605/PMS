@@ -20,7 +20,7 @@ public class ActivityDetailRespDto {
      * 活动ID
      */
     private Long id;
-    
+
     /**
      * 创建者
      */
@@ -122,5 +122,4 @@ public class ActivityDetailRespDto {
      * 是否点赞
      */
     private Integer isLike;
-
 }

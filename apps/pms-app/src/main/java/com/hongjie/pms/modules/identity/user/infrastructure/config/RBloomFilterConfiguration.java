@@ -17,9 +17,14 @@ public class RBloomFilterConfiguration {
      * 防止用户注册缓存穿透的布隆过滤器
      */
     @Bean
-    public RBloomFilter<String> userRegisterCachePenetrationBloomFilter(RedissonClient redissonClient, UserRegisterBloomFilterProperties userRegisterBloomFilterProperties) {
-        RBloomFilter<String> cachePenetrationBloomFilter = redissonClient.getBloomFilter(userRegisterBloomFilterProperties.getName());
-        cachePenetrationBloomFilter.tryInit(userRegisterBloomFilterProperties.getExpectedInsertions(), userRegisterBloomFilterProperties.getFalseProbability());
+    public RBloomFilter<String> userRegisterCachePenetrationBloomFilter(
+            RedissonClient redissonClient,
+            UserRegisterBloomFilterProperties userRegisterBloomFilterProperties) {
+        RBloomFilter<String> cachePenetrationBloomFilter =
+                redissonClient.getBloomFilter(userRegisterBloomFilterProperties.getName());
+        cachePenetrationBloomFilter.tryInit(
+                userRegisterBloomFilterProperties.getExpectedInsertions(),
+                userRegisterBloomFilterProperties.getFalseProbability());
         return cachePenetrationBloomFilter;
     }
 }

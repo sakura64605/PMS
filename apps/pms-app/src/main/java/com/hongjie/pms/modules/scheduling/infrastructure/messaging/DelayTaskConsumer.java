@@ -10,10 +10,13 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-@RocketMQMessageListener(topic="delay-task-topic", selectorExpression="delay",
-        consumerGroup="delay-task-consumer-group")
+@RocketMQMessageListener(
+        topic = "delay-task-topic",
+        selectorExpression = "delay",
+        consumerGroup = "delay-task-consumer-group")
 public class DelayTaskConsumer implements RocketMQListener<String> {
     private final LegacyDelayMessages tasks;
+
     @Override
     public void onMessage(String message) {
         tasks.accept(JSON.parseObject(message, DelayMessageDto.class));

@@ -8,7 +8,8 @@ public interface ReportService {
 
     void submit(Long userId, ReportRequest request);
 
-    IPage<ReportListDto> getList(Integer status, String targetType, Integer pageNum, Integer pageSize);
+    IPage<ReportListDto> getList(
+            Integer status, String targetType, Integer pageNum, Integer pageSize);
 
     void handle(Long reportId, Long adminId, Integer status, String handleResult);
 

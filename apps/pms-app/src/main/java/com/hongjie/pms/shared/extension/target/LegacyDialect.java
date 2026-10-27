@@ -15,18 +15,20 @@ import java.util.Map;
 public enum LegacyDialect {
 
     /** {@code comment.target_type} / {@code like_record.target_type} / {@code favorite_record.target_type} */
-    INTERACTION(Map.of(
-            BizTargetType.PET_POST, List.of("pet_post"),
-            BizTargetType.PET_ACTIVITY, List.of("pet_activity"),
-            BizTargetType.PET_COMMENT, List.of("pet_comment"),
-            BizTargetType.DAILY, List.of("daily"))),
+    INTERACTION(
+            Map.of(
+                    BizTargetType.PET_POST, List.of("pet_post"),
+                    BizTargetType.PET_ACTIVITY, List.of("pet_activity"),
+                    BizTargetType.PET_COMMENT, List.of("pet_comment"),
+                    BizTargetType.DAILY, List.of("daily"))),
 
     /** {@code report_record.target_type} */
-    REPORT(Map.of(
-            BizTargetType.PET_POST, List.of("pet"),
-            BizTargetType.PET_ACTIVITY, List.of("activity"),
-            BizTargetType.PET_COMMENT, List.of("comment"),
-            BizTargetType.USER, List.of("user"))),
+    REPORT(
+            Map.of(
+                    BizTargetType.PET_POST, List.of("pet"),
+                    BizTargetType.PET_ACTIVITY, List.of("activity"),
+                    BizTargetType.PET_COMMENT, List.of("comment"),
+                    BizTargetType.USER, List.of("user"))),
 
     /**
      * {@code audit_record.target_type} —— 这套方言<b>不可逆</b>。
@@ -38,9 +40,10 @@ public enum LegacyDialect {
      * 必须结合 {@code pet_post.type}。这正是防腐层存在的意义：
      * 把这种历史造成的不可逆性<b>显式建模</b>，而不是让它变成运行期的脏数据。
      */
-    AUDIT(Map.of(
-            BizTargetType.PET_POST, List.of("adopt", "help"),
-            BizTargetType.PET_ACTIVITY, List.of("activity")));
+    AUDIT(
+            Map.of(
+                    BizTargetType.PET_POST, List.of("adopt", "help"),
+                    BizTargetType.PET_ACTIVITY, List.of("activity")));
 
     private final Map<BizTargetType, List<String>> canonicalToDialect;
 

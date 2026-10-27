@@ -15,9 +15,13 @@ class ActivityCacheTest {
     RedisScanUtil scan = mock(RedisScanUtil.class);
     ActivityCache activities = new ActivityCache(cache, scan);
 
-    @AfterEach void cleanup() { TransactionSynchronizationManager.clear(); }
+    @AfterEach
+    void cleanup() {
+        TransactionSynchronizationManager.clear();
+    }
 
-    @Test void deletesExactKeysAndAllPagesThroughDistributedCache() {
+    @Test
+    void deletesExactKeysAndAllPagesThroughDistributedCache() {
         var pages = Set.of("activityList_1_10_0", "activityList_2_20_city_date");
         var users = Set.of("userActivity_11", "userActivity_12");
         when(scan.scanKeys("activityList_*")).thenReturn(pages);
@@ -29,21 +33,27 @@ class ActivityCacheTest {
         verify(cache).delete(users);
     }
 
-    @Test void waitsUntilCommit() {
+    @Test
+    void waitsUntilCommit() {
         TransactionSynchronizationManager.setActualTransactionActive(true);
         TransactionSynchronizationManager.initSynchronization();
         activities.evictAfterCommit(7L);
         verifyNoInteractions(cache, scan);
-        TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+        TransactionSynchronizationManager.getSynchronizations()
+                .forEach(TransactionSynchronization::afterCommit);
         verify(cache).delete("activity_7");
     }
 
-    @Test void rollbackLeavesCacheUntouched() {
+    @Test
+    void rollbackLeavesCacheUntouched() {
         TransactionSynchronizationManager.setActualTransactionActive(true);
         TransactionSynchronizationManager.initSynchronization();
         activities.evictAfterCommit(7L);
-        TransactionSynchronizationManager.getSynchronizations().forEach(
-                sync -> sync.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
+        TransactionSynchronizationManager.getSynchronizations()
+                .forEach(
+                        sync ->
+                                sync.afterCompletion(
+                                        TransactionSynchronization.STATUS_ROLLED_BACK));
         verifyNoInteractions(cache, scan);
     }
 }

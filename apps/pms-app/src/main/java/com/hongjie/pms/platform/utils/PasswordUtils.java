@@ -56,5 +56,4 @@ public class PasswordUtils {
         System.out.println(encodedPassword);
         System.out.println(PasswordUtils.matches(password, encodedPassword));
     }
-
 }

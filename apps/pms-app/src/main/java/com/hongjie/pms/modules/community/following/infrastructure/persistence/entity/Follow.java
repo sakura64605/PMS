@@ -19,5 +19,4 @@ public class Follow {
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
-
 }

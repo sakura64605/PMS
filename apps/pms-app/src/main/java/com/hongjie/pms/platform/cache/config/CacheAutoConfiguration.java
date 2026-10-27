@@ -14,7 +14,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 
 @Configuration
 @AllArgsConstructor
-@EnableConfigurationProperties({RedisDistributedProperties.class, BloomFilterPenetrateProperties.class})
+@EnableConfigurationProperties({
+    RedisDistributedProperties.class,
+    BloomFilterPenetrateProperties.class
+})
 public class CacheAutoConfiguration {
 
     private final RedisDistributedProperties redisDistributedProperties;
@@ -33,22 +36,32 @@ public class CacheAutoConfiguration {
      * 防止缓存穿透的布隆过滤器
      */
     @Bean
-    @ConditionalOnProperty(prefix = BloomFilterPenetrateProperties.PREFIX, name = "enabled", havingValue = "true")
-    public RBloomFilter<String> cachePenetrationBloomFilter(RedissonClient redissonClient, BloomFilterPenetrateProperties bloomFilterPenetrateProperties) {
-        RBloomFilter<String> cachePenetrationBloomFilter = redissonClient.getBloomFilter(bloomFilterPenetrateProperties.getName());
-        cachePenetrationBloomFilter.tryInit(bloomFilterPenetrateProperties.getExpectedInsertions(), bloomFilterPenetrateProperties.getFalseProbability());
+    @ConditionalOnProperty(
+            prefix = BloomFilterPenetrateProperties.PREFIX,
+            name = "enabled",
+            havingValue = "true")
+    public RBloomFilter<String> cachePenetrationBloomFilter(
+            RedissonClient redissonClient,
+            BloomFilterPenetrateProperties bloomFilterPenetrateProperties) {
+        RBloomFilter<String> cachePenetrationBloomFilter =
+                redissonClient.getBloomFilter(bloomFilterPenetrateProperties.getName());
+        cachePenetrationBloomFilter.tryInit(
+                bloomFilterPenetrateProperties.getExpectedInsertions(),
+                bloomFilterPenetrateProperties.getFalseProbability());
         return cachePenetrationBloomFilter;
     }
 
     @Bean
     // 静态代理模式: Redis 客户端代理类增强
-    public StringRedisTemplateProxy stringRedisTemplateProxy(RedisKeySerializer redisKeySerializer,
-                                                             StringRedisTemplate stringRedisTemplate,
-                                                             RedissonClient redissonClient) {
+    public StringRedisTemplateProxy stringRedisTemplateProxy(
+            RedisKeySerializer redisKeySerializer,
+            StringRedisTemplate stringRedisTemplate,
+            RedissonClient redissonClient) {
         stringRedisTemplate.setKeySerializer(redisKeySerializer);
-        return new StringRedisTemplateProxy(stringRedisTemplate, redisDistributedProperties, redissonClient);
+        return new StringRedisTemplateProxy(
+                stringRedisTemplate, redisDistributedProperties, redissonClient);
     }
-    
+
     @Bean
     // 注册 DistributedCache 类型的 Bean
     @org.springframework.context.annotation.Primary

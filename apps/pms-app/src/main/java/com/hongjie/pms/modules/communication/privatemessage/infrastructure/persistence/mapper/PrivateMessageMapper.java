@@ -12,11 +12,14 @@ import java.util.List;
 @Mapper
 public interface PrivateMessageMapper extends BaseMapper<PrivateMessage> {
 
-    @Select("SELECT * FROM private_message WHERE conversation_id = #{conversationId} ORDER BY create_time DESC LIMIT #{offset}, #{limit}")
-    List<PrivateMessage> selectByConversationId(@Param("conversationId") Long conversationId,
-                                                 @Param("offset") int offset,
-                                                 @Param("limit") int limit);
+    @Select(
+            "SELECT * FROM private_message WHERE conversation_id = #{conversationId} ORDER BY create_time DESC LIMIT #{offset}, #{limit}")
+    List<PrivateMessage> selectByConversationId(
+            @Param("conversationId") Long conversationId,
+            @Param("offset") int offset,
+            @Param("limit") int limit);
 
-    @Update("UPDATE private_message SET is_read = 1 WHERE conversation_id = #{conversationId} AND to_user_id = #{userId} AND is_read = 0")
+    @Update(
+            "UPDATE private_message SET is_read = 1 WHERE conversation_id = #{conversationId} AND to_user_id = #{userId} AND is_read = 0")
     int markAsRead(@Param("conversationId") Long conversationId, @Param("userId") Long userId);
 }

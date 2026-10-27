@@ -13,5 +13,5 @@ public interface AvatarService {
 
     String switchToHistoryAvatar(Long historyId);
 
-//    void updateAvatar(String avatarUrl);
+    //    void updateAvatar(String avatarUrl);
 }

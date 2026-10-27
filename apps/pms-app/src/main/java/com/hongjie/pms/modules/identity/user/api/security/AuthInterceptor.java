@@ -37,36 +37,36 @@ public class AuthInterceptor implements HandlerInterceptor {
      * 公开接口白名单（不需要登录即可访问）
      * 使用 Ant 风格路径模式，支持通配符精确匹配
      */
-    private static final List<String> WHITE_LIST = Arrays.asList(
-            // 用户认证
-            "/pet-system/user/login",
-            "/pet-system/user/register",
-            // 公开浏览接口
-            "/pet-system/pet/list",
-            "/pet-system/pet/{id}",
-            "/pet-system/activity/list",
-            "/pet-system/activity/detail/{id}",
-            "/pet-system/notice/list",
-            "/pet-system/notice/{id}",
-            "/pet-system/comment/list",
-            "/pet-system/daily/{id}",
-            "/pet-system/daily/topics/hot",
-            "/pet-system/daily/topics/search",
-            "/pet-system/search/global",
-            "/pet-system/search/suggest",
-            // WebSocket 路径（通过 URL 参数传递 token）
-            "/pet-system/ws/**",
-            "/pet-system/ai/ws/**",
-            // 系统路径
-            "/error",
-            "/swagger-ui/**",
-            "/v3/api-docs/**"
-    );
+    private static final List<String> WHITE_LIST =
+            Arrays.asList(
+                    // 用户认证
+                    "/pet-system/user/login",
+                    "/pet-system/user/register",
+                    // 公开浏览接口
+                    "/pet-system/pet/list",
+                    "/pet-system/pet/{id}",
+                    "/pet-system/activity/list",
+                    "/pet-system/activity/detail/{id}",
+                    "/pet-system/notice/list",
+                    "/pet-system/notice/{id}",
+                    "/pet-system/comment/list",
+                    "/pet-system/daily/{id}",
+                    "/pet-system/daily/topics/hot",
+                    "/pet-system/daily/topics/search",
+                    "/pet-system/search/global",
+                    "/pet-system/search/suggest",
+                    // WebSocket 路径（通过 URL 参数传递 token）
+                    "/pet-system/ws/**",
+                    "/pet-system/ai/ws/**",
+                    // 系统路径
+                    "/error",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**");
 
     @Override
-    public boolean preHandle(HttpServletRequest request,
-                             HttpServletResponse response,
-                             Object handler) throws Exception {
+    public boolean preHandle(
+            HttpServletRequest request, HttpServletResponse response, Object handler)
+            throws Exception {
 
         String uri = request.getRequestURI();
         String method = request.getMethod();
@@ -101,10 +101,9 @@ public class AuthInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public void afterCompletion(HttpServletRequest request,
-                                HttpServletResponse response,
-                                Object handler,
-                                Exception ex) throws Exception {
+    public void afterCompletion(
+            HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)
+            throws Exception {
         // 请求结束后清除 ThreadLocal，防止内存泄漏
         UserContext.clear();
     }

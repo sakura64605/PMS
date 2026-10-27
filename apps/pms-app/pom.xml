@@ -13,7 +13,16 @@
     <name>PMS</name>
     <description>PMS</description>
     <dependencies>
-<dependency><groupId>com.hongjie</groupId><artifactId>pms-service-runtime</artifactId><version>${project.version}</version></dependency><dependency><groupId>com.hongjie</groupId><artifactId>pms-ai-contracts</artifactId><version>${project.version}</version></dependency>
+        <dependency>
+            <groupId>com.hongjie</groupId>
+            <artifactId>pms-service-runtime</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.hongjie</groupId>
+            <artifactId>pms-ai-contracts</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.retry</groupId>
             <artifactId>spring-retry</artifactId>

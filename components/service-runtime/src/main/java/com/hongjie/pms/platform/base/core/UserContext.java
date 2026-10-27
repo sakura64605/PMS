@@ -65,5 +65,4 @@ public class UserContext {
     public static void clear() {
         USER_HOLDER.remove();
     }
-
 }

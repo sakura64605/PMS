@@ -15,13 +15,12 @@ public class TestIdempotentController {
      */
     @PostMapping("/token/create")
     @Idempotent(
-        type = IdempotentTypeEnum.SPEL,
-            key = "#request.orderNo",  // 指定使用订单号作为幂等 key
+            type = IdempotentTypeEnum.SPEL,
+            key = "#request.orderNo", // 指定使用订单号作为幂等 key
             uniqueKeyPrefix = "order:",
             message = "请勿重复提交订单",
             perUser = true,
-            keyTimeout = 60
-    )
+            keyTimeout = 60)
     public CommonResult<String> createOrder(@RequestBody OrderRequest request) {
         // 模拟业务处理
         System.out.println("处理订单：" + request.getOrderNo());

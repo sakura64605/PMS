@@ -26,12 +26,16 @@ public class LikeController {
     /**
      * 点赞
      */
-    @RedisRateLimit(key = "likePet", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(
+            key = "likePet",
+            capacity = 5,
+            refillRate = 5,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
     @PostMapping()
     public CommonResult<LikeResponseDto> like(@RequestBody LikeRequest request) {
         log.info("点赞宠物信息: id={}", request.getTargetId());
         LikeResponseDto response = likeService.like(request);
         return CommonResult.success(response);
     }
-
 }

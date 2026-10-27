@@ -3,14 +3,14 @@ package com.hongjie.pms.platform.idempotent.handler;
 import com.hongjie.pms.platform.idempotent.annotation.Idempotent;
 import org.aspectj.lang.ProceedingJoinPoint;
 
-public abstract class AbstractIdempotentExecuteHandler implements IdempotentExecuteHandler{
+public abstract class AbstractIdempotentExecuteHandler implements IdempotentExecuteHandler {
 
     protected abstract IdempotentParamWrapper buildWrapper(ProceedingJoinPoint joinPoint);
 
     public void execute(ProceedingJoinPoint joinPoint, Idempotent idempotent) {
         // 模板方法模式：构建幂等参数包装器
-        IdempotentParamWrapper idempotentParamWrapper = buildWrapper(joinPoint).setIdempotent(idempotent);
+        IdempotentParamWrapper idempotentParamWrapper =
+                buildWrapper(joinPoint).setIdempotent(idempotent);
         handler(idempotentParamWrapper);
     }
-
 }

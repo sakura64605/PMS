@@ -23,5 +23,4 @@ public abstract class BaseController {
     public <T> CommonResult<T> error(Integer code, String message, String exception) {
         return CommonResult.error(code, message, exception);
     }
-
 }

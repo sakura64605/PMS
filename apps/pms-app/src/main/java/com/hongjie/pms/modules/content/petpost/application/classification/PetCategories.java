@@ -35,9 +35,10 @@ public class PetCategories {
     /** 全部分类（含停用，按 sort 排序），供管理后台展示/编辑 */
     public List<PetCategory> list() {
         checkAdmin();
-        LambdaQueryWrapper<PetCategory> wrapper = new LambdaQueryWrapper<PetCategory>()
-                .orderByAsc(PetCategory::getSort)
-                .orderByAsc(PetCategory::getId);
+        LambdaQueryWrapper<PetCategory> wrapper =
+                new LambdaQueryWrapper<PetCategory>()
+                        .orderByAsc(PetCategory::getSort)
+                        .orderByAsc(PetCategory::getId);
         return petCategoryMapper.selectList(wrapper);
     }
 
@@ -48,12 +49,13 @@ public class PetCategories {
             throw new BusinessException("分类名不能为空");
         }
         int nextId = nextId();
-        PetCategory category = PetCategory.builder()
-                .id(nextId)
-                .name(request.getName().trim())
-                .sort(request.getSort() != null ? request.getSort() : 0)
-                .status(request.getStatus() != null ? request.getStatus() : 1)
-                .build();
+        PetCategory category =
+                PetCategory.builder()
+                        .id(nextId)
+                        .name(request.getName().trim())
+                        .sort(request.getSort() != null ? request.getSort() : 0)
+                        .status(request.getStatus() != null ? request.getStatus() : 1)
+                        .build();
         petCategoryMapper.insert(category);
         log.info("管理员新增物种分类: id={}, name={}", nextId, category.getName());
         return category;
@@ -79,13 +81,18 @@ public class PetCategories {
             existing.setStatus(request.getStatus());
         }
         petCategoryMapper.updateById(existing);
-        log.info("管理员更新物种分类: id={}, name={}, status={}", existing.getId(), existing.getName(), existing.getStatus());
+        log.info(
+                "管理员更新物种分类: id={}, name={}, status={}",
+                existing.getId(),
+                existing.getName(),
+                existing.getStatus());
         return "更新成功";
     }
 
     private int nextId() {
-        List<Object> objs = petCategoryMapper.selectObjs(
-                new QueryWrapper<PetCategory>().select("COALESCE(MAX(id),-1) + 1"));
+        List<Object> objs =
+                petCategoryMapper.selectObjs(
+                        new QueryWrapper<PetCategory>().select("COALESCE(MAX(id),-1) + 1"));
         return objs.isEmpty() ? 0 : ((Number) objs.get(0)).intValue();
     }
 }

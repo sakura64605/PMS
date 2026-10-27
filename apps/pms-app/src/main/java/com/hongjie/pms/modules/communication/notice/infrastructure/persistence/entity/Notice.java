@@ -29,6 +29,5 @@ public class Notice {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
-    @TableLogic
-    private Integer deleted;
+    @TableLogic private Integer deleted;
 }

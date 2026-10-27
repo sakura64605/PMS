@@ -17,5 +17,5 @@ public class SendMessageRequest {
     @Pattern(regexp = "[A-Za-z0-9_-]{16,64}", message = "无效的客户端消息标识")
     private String clientMessageId;
 
-    private Integer messageType = 1;  // 1-文本 2-图片
+    private Integer messageType = 1; // 1-文本 2-图片
 }

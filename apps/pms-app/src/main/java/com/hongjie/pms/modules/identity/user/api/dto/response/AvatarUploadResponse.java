@@ -7,7 +7,6 @@ import lombok.Data;
 @Builder
 public class AvatarUploadResponse {
 
-    private String avatarUrl;      // 头像URL
-    private String message;         // 上传结果消息
-
+    private String avatarUrl; // 头像URL
+    private String message; // 上传结果消息
 }

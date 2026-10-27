@@ -18,5 +18,4 @@ public record NotificationMessage(
         String title,
         String content,
         Long businessId,
-        String link) {
-}
+        String link) {}

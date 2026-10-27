@@ -63,7 +63,12 @@ public class AIAgentController {
      * 发送消息（核心接口）
      * 如果 sessionId 为空，后端自动创建新会话
      */
-    @RedisRateLimit(key = "aiChat", capacity = 10, refillRate = 10, duration = 1, timeUnit = TimeUnit.MINUTES)
+    @RedisRateLimit(
+            key = "aiChat",
+            capacity = 10,
+            refillRate = 10,
+            duration = 1,
+            timeUnit = TimeUnit.MINUTES)
     @PostMapping("/chat")
     public CommonResult<AIAgentResponse> chat(@Valid @RequestBody AIAgentRequest request) {
         return CommonResult.success(conversations.process(UserContext.getUserId(), request));
@@ -88,24 +93,21 @@ public class AIAgentController {
     }
 
     @PostMapping("/transfer")
-    public CommonResult<String> transferToHuman(@RequestParam String sessionId, @RequestParam(required = false) String reason) {
+    public CommonResult<String> transferToHuman(
+            @RequestParam String sessionId, @RequestParam(required = false) String reason) {
         humanTransferService.requestTransfer(sessionId, UserContext.getUserId(), reason);
         return CommonResult.success("已为您转接人工客服，请稍候...");
     }
 
     @PostMapping("/feedback")
-    public CommonResult<String> submitFeedback(@RequestParam String messageId, @RequestParam Integer score) {
+    public CommonResult<String> submitFeedback(
+            @RequestParam String messageId, @RequestParam Integer score) {
         chatSessionService.submitFeedback(messageId, score);
         return CommonResult.success("感谢您的反馈！");
     }
 
     @GetMapping("/suggestions")
     public CommonResult<List<String>> getSuggestions() {
-        return CommonResult.success(List.of(
-                "如何发布领养信息？",
-                "平台有哪些活动？",
-                "怎么报名参加活动？",
-                "如何联系人工客服？"
-        ));
+        return CommonResult.success(List.of("如何发布领养信息？", "平台有哪些活动？", "怎么报名参加活动？", "如何联系人工客服？"));
     }
 }

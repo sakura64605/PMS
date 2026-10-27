@@ -38,6 +38,7 @@ public class CoreMetaObjectHandler implements MetaObjectHandler {
 
     /** 老实现按名字填充的两个属性，作为行为兼容的兜底 */
     private static final String LEGACY_CREATE_TIME = "createTime";
+
     private static final String LEGACY_UPDATE_TIME = "updateTime";
 
     @Override
@@ -70,7 +71,8 @@ public class CoreMetaObjectHandler implements MetaObjectHandler {
      * {@code LocalDateTime} 填当前时间，{@code Long} 填当前登录用户（创建人/更新人）。
      * 取不到值（如 MQ 消费、定时任务场景没有登录上下文）时跳过，不写 null。
      */
-    private void fillAnnotatedFields(MetaObject metaObject, LocalDateTime now, boolean insertPhase) {
+    private void fillAnnotatedFields(
+            MetaObject metaObject, LocalDateTime now, boolean insertPhase) {
         for (TableFieldInfo field : annotatedFields(metaObject, insertPhase)) {
             String property = field.getProperty();
             if (!metaObject.hasSetter(property)) {

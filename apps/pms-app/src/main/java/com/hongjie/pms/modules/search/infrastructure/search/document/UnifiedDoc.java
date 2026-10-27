@@ -12,13 +12,11 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-
-
 public class UnifiedDoc {
 
-    private String id;  // 格式: {type}_{businessId}
+    private String id; // 格式: {type}_{businessId}
 
-    private String type;  // daily, activity, pet
+    private String type; // daily, activity, pet
 
     private Long businessId;
 
@@ -44,9 +42,9 @@ public class UnifiedDoc {
 
     private Integer viewCount;
 
-    private Integer status;  // 1-正常 0-删除
+    private Integer status; // 1-正常 0-删除
 
-    private Integer auditStatus;  // 1-审核通过
+    private Integer auditStatus; // 1-审核通过
 
     private LocalDateTime createTime;
 

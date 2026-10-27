@@ -21,7 +21,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.concurrent.TimeUnit;
 
-
 /**
  * 宠物领养救助信息
  *
@@ -41,7 +40,13 @@ public class PetPostController {
      * @param request
      * @return
      */
-    @RedisRateLimit(key = "postPet", capacity = 10, refillRate = 10, duration = 1, timeUnit = TimeUnit.HOURS, message = "1小时只能发布10条信息")
+    @RedisRateLimit(
+            key = "postPet",
+            capacity = 10,
+            refillRate = 10,
+            duration = 1,
+            timeUnit = TimeUnit.HOURS,
+            message = "1小时只能发布10条信息")
     @Idempotent(key = "#request.title", keyTimeout = 300, message = "发布操作正在处理中，请稍后再试")
     @PostMapping("/post")
     public CommonResult<PetListResponseDto> post(@RequestBody PetPostRequestDto request) {
@@ -54,7 +59,12 @@ public class PetPostController {
     /**
      * 收藏
      */
-    @RedisRateLimit(key = "collectPet", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(
+            key = "collectPet",
+            capacity = 5,
+            refillRate = 5,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
     @PostMapping("/{id}/collect")
     public CommonResult<FavoriteResponseDto> favorite(@PathVariable Long id) {
         log.info("收藏宠物信息: id={}", id);
@@ -74,12 +84,18 @@ public class PetPostController {
         PetListResponseDto response = petPostService.update(request);
         return CommonResult.success(response);
     }
+
     /**
      * 宠物救助/领养信息查询
      * @param request
      * @return
      */
-    @RedisRateLimit(key = "getPetList", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(
+            key = "getPetList",
+            capacity = 30,
+            refillRate = 30,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
     @GetMapping("/list")
     public CommonResult<IPage<PetListResponseDto>> list(PetQueryRequestDto request) {
 
@@ -107,7 +123,12 @@ public class PetPostController {
     /**
      * 我的发布列表
      */
-    @RedisRateLimit(key = "getActivityDetail", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(
+            key = "getActivityDetail",
+            capacity = 30,
+            refillRate = 30,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
     @GetMapping("/my-posts")
     public CommonResult<IPage<PetListResponseDto>> myPosts(PetQueryRequestDto queryDto) {
         queryDto.setUserId(UserContext.getUserId());
@@ -141,8 +162,14 @@ public class PetPostController {
      * 我的收藏列表
      */
     @GetMapping("/favoriteList")
-    @RedisRateLimit(key = "getFavoriteList", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
-    public CommonResult<IPage<PetListResponseDto>> favoriteList(@RequestParam Integer pageNum, @RequestParam Integer pageSize) {
+    @RedisRateLimit(
+            key = "getFavoriteList",
+            capacity = 30,
+            refillRate = 30,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
+    public CommonResult<IPage<PetListResponseDto>> favoriteList(
+            @RequestParam Integer pageNum, @RequestParam Integer pageSize) {
         log.info("我的收藏列表");
         IPage<PetListResponseDto> page = petPostService.favoriteList(pageNum, pageSize);
         return CommonResult.success(page);
@@ -152,13 +179,18 @@ public class PetPostController {
      * 回收站列表
      */
     @GetMapping("/recycle-bin")
-    @RedisRateLimit(key = "getRecycleBinList", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(
+            key = "getRecycleBinList",
+            capacity = 30,
+            refillRate = 30,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
     public CommonResult<IPage<PetListResponseDto>> recycleBin() {
         log.info("回收站列表");
         PetQueryRequestDto queryDto = new PetQueryRequestDto();
         Long userId = UserContext.getUserId();
         queryDto.setUserId(userId);
-        queryDto.setStatus(-1);  // 删除状态
+        queryDto.setStatus(-1); // 删除状态
         queryDto.setOrderBy("creat_time");
         queryDto.setOrder("desc");
         IPage<PetListResponseDto> page = petPostService.list(queryDto);
@@ -180,7 +212,12 @@ public class PetPostController {
      * 待处理列表
      */
     @GetMapping("/pending-list")
-    @RedisRateLimit(key = "getPendingList", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(
+            key = "getPendingList",
+            capacity = 30,
+            refillRate = 30,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
     public CommonResult<IPage<PetListResponseDto>> pendingList() {
         log.info("待处理列表");
         PetQueryRequestDto queryDto = new PetQueryRequestDto();
@@ -189,7 +226,7 @@ public class PetPostController {
             Long userId = UserContext.getUserId();
             queryDto.setUserId(userId);
         }
-        queryDto.setStatus(0);  // 待审核状态
+        queryDto.setStatus(0); // 待审核状态
         queryDto.setOrderBy("creat_time");
         queryDto.setOrder("desc");
         IPage<PetListResponseDto> page = petPostService.list(queryDto);
@@ -199,9 +236,15 @@ public class PetPostController {
     /**
      * 上传图片
      */
-    @RedisRateLimit(key = "uploadImage", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.MINUTES)
+    @RedisRateLimit(
+            key = "uploadImage",
+            capacity = 30,
+            refillRate = 30,
+            duration = 1,
+            timeUnit = TimeUnit.MINUTES)
     @PostMapping("/upload")
-    public CommonResult<AvatarUploadResponse> uploadImage(@RequestParam("file") MultipartFile file) {
+    public CommonResult<AvatarUploadResponse> uploadImage(
+            @RequestParam("file") MultipartFile file) {
         log.info("上传图片");
         AvatarUploadResponse response = petPostService.uploadImage(file);
         return CommonResult.success(response);
@@ -221,13 +264,16 @@ public class PetPostController {
     /**
      * 宠物详情
      */
-    @RedisRateLimit(key = "getPetDetail", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(
+            key = "getPetDetail",
+            capacity = 30,
+            refillRate = 30,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
     @GetMapping("/{id}")
-    public CommonResult<PetDetailDto> detail(
-            @PathVariable Long id) {
+    public CommonResult<PetDetailDto> detail(@PathVariable Long id) {
         Long userId = UserContext.getUserId();
         PetDetailDto detail = petPostService.detail(id, userId);
         return CommonResult.success(detail);
     }
-
 }

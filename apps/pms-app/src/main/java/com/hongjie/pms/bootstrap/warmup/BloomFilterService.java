@@ -34,8 +34,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BloomFilterService {
 
-    @Autowired
-    private UserMapper userMapper;
+    @Autowired private UserMapper userMapper;
 
     private BloomFilter<CharSequence> bloomFilter;
 
@@ -44,11 +43,11 @@ public class BloomFilterService {
     public void init() {
         log.info("初始化用户布隆过滤器...");
 
-        bloomFilter = BloomFilter.create(
-                Funnels.stringFunnel(StandardCharsets.UTF_8),
-                1000000,  // 预期100万用户
-                0.01
-        );
+        bloomFilter =
+                BloomFilter.create(
+                        Funnels.stringFunnel(StandardCharsets.UTF_8),
+                        1000000, // 预期100万用户
+                        0.01);
 
         // 只加载用户ID
         int count = loadUserIds();
@@ -63,8 +62,7 @@ public class BloomFilterService {
 
         while (true) {
             Page<User> page = new Page<>(current, pageSize);
-            LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
-                    .select(User::getId);
+            LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>().select(User::getId);
 
             Page<User> result = userMapper.selectPage(page, wrapper);
 

@@ -20,8 +20,4 @@ import com.hongjie.pms.modules.content.petpost.infrastructure.persistence.entity
  * 属于重构不该做的事。用 {@code null} 表达「未计算」，与老实现逐字段一致。
  */
 public record PetPostWithAuthor(
-        PmsPetPost post,
-        UserSimpleDto author,
-        Boolean favoritedByViewer,
-        Boolean likedByViewer) {
-}
+        PmsPetPost post, UserSimpleDto author, Boolean favoritedByViewer, Boolean likedByViewer) {}

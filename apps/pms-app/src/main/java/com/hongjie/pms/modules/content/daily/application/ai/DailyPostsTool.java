@@ -1,4 +1,5 @@
 package com.hongjie.pms.modules.content.daily.application.ai;
+
 import com.hongjie.pms.ai.contract.CoreQueryTool;
 import com.hongjie.pms.ai.contract.ToolPaging;
 
@@ -24,7 +25,9 @@ public class DailyPostsTool implements CoreQueryTool {
     private final TopicMapper topicMapper;
 
     @Override
-    public String getName() { return "search_daily_posts"; }
+    public String getName() {
+        return "search_daily_posts";
+    }
 
     @Override
     public ToolCall execute(Map<String, Object> args, Long userId) {
@@ -50,8 +53,8 @@ public class DailyPostsTool implements CoreQueryTool {
         wrapper.orderByDesc(DailyPost::getCreateTime);
 
         long total = dailyPostMapper.selectCount(wrapper);
-        List<DailyPost> posts = dailyPostMapper.selectList(
-                wrapper.last("LIMIT " + offset + ", " + pageSize));
+        List<DailyPost> posts =
+                dailyPostMapper.selectList(wrapper.last("LIMIT " + offset + ", " + pageSize));
         int totalPages = total == 0 ? 0 : (int) ((total + pageSize - 1) / pageSize);
 
         StringBuilder result = new StringBuilder();
@@ -60,22 +63,41 @@ public class DailyPostsTool implements CoreQueryTool {
                 result.append("没有找到相关的宠友日记。");
                 if (topicName != null) result.append(" 话题\"").append(topicName).append("\"下暂无内容。");
             } else {
-                result.append("第 ").append(page).append(" 页没有更多日记了（共 ").append(total).append(" 条，已全部展示）。");
+                result.append("第 ")
+                        .append(page)
+                        .append(" 页没有更多日记了（共 ")
+                        .append(total)
+                        .append(" 条，已全部展示）。");
             }
         } else {
             result.append("共找到 ").append(total).append(" 条宠友日记");
             if (totalPages > 1) result.append("（共 ").append(totalPages).append(" 页）");
-            result.append("，当前第 ").append(page).append(" 页，本页 ").append(posts.size()).append(" 条：\n\n");
+            result.append("，当前第 ")
+                    .append(page)
+                    .append(" 页，本页 ")
+                    .append(posts.size())
+                    .append(" 条：\n\n");
 
             for (int i = 0; i < posts.size(); i++) {
                 DailyPost post = posts.get(i);
                 int no = offset + i + 1;
-                String content = post.getContent() != null && post.getContent().length() > 120
-                        ? post.getContent().substring(0, 120) + "..." : post.getContent();
-                result.append(no).append(". ").append(content != null ? content : "[无文字]").append("\n");
-                if (post.getLocation() != null) result.append("   地点：").append(post.getLocation()).append("\n");
-                result.append("   ❤️").append(post.getLikeCount()).append(" 💬").append(post.getCommentCount())
-                        .append(" 👁️").append(post.getViewCount()).append("\n\n");
+                String content =
+                        post.getContent() != null && post.getContent().length() > 120
+                                ? post.getContent().substring(0, 120) + "..."
+                                : post.getContent();
+                result.append(no)
+                        .append(". ")
+                        .append(content != null ? content : "[无文字]")
+                        .append("\n");
+                if (post.getLocation() != null)
+                    result.append("   地点：").append(post.getLocation()).append("\n");
+                result.append("   ❤️")
+                        .append(post.getLikeCount())
+                        .append(" 💬")
+                        .append(post.getCommentCount())
+                        .append(" 👁️")
+                        .append(post.getViewCount())
+                        .append("\n\n");
             }
             ToolPaging.appendPagingFooter(result, page, totalPages, total, pageSize, "条");
         }

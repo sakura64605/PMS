@@ -43,7 +43,8 @@ public class PrivateMessageController {
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
         Long userId = UserContext.getUserId();
-        return CommonResult.success(privateMessageService.getConversationList(userId, pageNum, pageSize));
+        return CommonResult.success(
+                privateMessageService.getConversationList(userId, pageNum, pageSize));
     }
 
     /**
@@ -55,8 +56,9 @@ public class PrivateMessageController {
             @RequestParam(required = false) Long beforeId,
             @RequestParam(required = false) Long afterId,
             @RequestParam(defaultValue = "30") Integer pageSize) {
-        return CommonResult.success(privateMessageService.getMessageHistory(
-                UserContext.getUserId(), conversationId, beforeId, afterId, pageSize));
+        return CommonResult.success(
+                privateMessageService.getMessageHistory(
+                        UserContext.getUserId(), conversationId, beforeId, afterId, pageSize));
     }
 
     /**
@@ -84,7 +86,8 @@ public class PrivateMessageController {
     @GetMapping("/conversation")
     public CommonResult<ConversationDto> getOrCreateConversation(@RequestParam Long otherUserId) {
         Long userId = UserContext.getUserId();
-        ConversationDto conversation = privateMessageService.getOrCreateConversation(userId, otherUserId);
+        ConversationDto conversation =
+                privateMessageService.getOrCreateConversation(userId, otherUserId);
         return CommonResult.success(conversation);
     }
 

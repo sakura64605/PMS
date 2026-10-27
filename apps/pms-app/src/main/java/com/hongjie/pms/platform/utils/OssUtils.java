@@ -35,8 +35,7 @@ public class OssUtils {
             minRequestAmount = 5,
             errorRateThreshold = 0.5,
             openDurationSeconds = 10,
-            fallbackMethod = "fallbackUpload"
-    )
+            fallbackMethod = "fallbackUpload")
     public String uploadAvatar(MultipartFile file, Long userId) {
         // 1. 验证文件
         validateImage(file);
@@ -51,11 +50,9 @@ public class OssUtils {
             String objectName = ossConfig.getBasePath() + fileName;
 
             // 4. 上传到OSS
-            PutObjectRequest putObjectRequest = new PutObjectRequest(
-                    ossConfig.getBucketName(),
-                    objectName,
-                    file.getInputStream()
-            );
+            PutObjectRequest putObjectRequest =
+                    new PutObjectRequest(
+                            ossConfig.getBucketName(), objectName, file.getInputStream());
 
             PutObjectResult result = ossClient.putObject(putObjectRequest);
             log.info("文件上传成功: {}, ETag: {}", objectName, result.getETag());
@@ -87,10 +84,7 @@ public class OssUtils {
      * 删除文件
      * @param fileUrl 文件URL
      */
-    @CircuitBreaker(
-            value = "deleteFile",
-            fallbackMethod = "fallbackDeleteFile"
-    )
+    @CircuitBreaker(value = "deleteFile", fallbackMethod = "fallbackDeleteFile")
     public void deleteFile(String fileUrl) {
         try {
             // 从URL中提取objectName
@@ -145,8 +139,12 @@ public class OssUtils {
         // 检查后缀
         String originalFilename = file.getOriginalFilename();
         if (originalFilename != null) {
-            String suffix = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
-            if (!"jpg".equals(suffix) && !"jpeg".equals(suffix) && !"png".equals(suffix) && !"gif".equals(suffix)) {
+            String suffix =
+                    originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+            if (!"jpg".equals(suffix)
+                    && !"jpeg".equals(suffix)
+                    && !"png".equals(suffix)
+                    && !"gif".equals(suffix)) {
                 throw new IllegalArgumentException("只支持jpg、jpeg、png、gif格式");
             }
         }
@@ -170,5 +168,4 @@ public class OssUtils {
         }
         return fileUrl.substring(ossConfig.getDomain().length() + 1);
     }
-
 }

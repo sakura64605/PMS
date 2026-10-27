@@ -8,7 +8,6 @@ import com.hongjie.pms.shared.core.enums.CodableEnum;
  * <p>与多数表相反，这里「正常」是 1、「删除」是 0。
  */
 public enum CommentStatus implements CodableEnum<Integer> {
-
     DELETED(0, "已删除"),
     NORMAL(1, "正常");
 

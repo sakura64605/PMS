@@ -42,7 +42,8 @@ public class AuditController {
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
         checkAdmin();
-        return CommonResult.success(auditService.getPendingList(targetType, keyword, dateRange, pageNum, pageSize));
+        return CommonResult.success(
+                auditService.getPendingList(targetType, keyword, dateRange, pageNum, pageSize));
     }
 
     /**
@@ -56,7 +57,8 @@ public class AuditController {
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
         checkAdmin();
-        return CommonResult.success(auditService.getHistoryList(targetType, keyword, auditStatus, pageNum, pageSize));
+        return CommonResult.success(
+                auditService.getHistoryList(targetType, keyword, auditStatus, pageNum, pageSize));
     }
 
     /**
@@ -72,7 +74,8 @@ public class AuditController {
      * 批量通过
      */
     @PostMapping("/batch-approve")
-    public CommonResult<String> batchApprove(@RequestParam String targetType, @RequestBody BatchAuditRequest request) {
+    public CommonResult<String> batchApprove(
+            @RequestParam String targetType, @RequestBody BatchAuditRequest request) {
         checkAdmin();
         auditService.batchApprove(request.getIds(), targetType);
         return CommonResult.success("批量审核通过");
@@ -82,7 +85,8 @@ public class AuditController {
      * 批量拒绝
      */
     @PostMapping("/batch-reject")
-    public CommonResult<String> batchReject(@RequestParam String targetType, @Valid @RequestBody BatchAuditRequest request) {
+    public CommonResult<String> batchReject(
+            @RequestParam String targetType, @Valid @RequestBody BatchAuditRequest request) {
         checkAdmin();
         auditService.batchReject(request.getIds(), targetType, request.getRejectReason());
         return CommonResult.success("批量审核拒绝");

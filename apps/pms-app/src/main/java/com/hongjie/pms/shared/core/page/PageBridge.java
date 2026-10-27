@@ -13,8 +13,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
  */
 public final class PageBridge {
 
-    private PageBridge() {
-    }
+    private PageBridge() {}
 
     /** {@code IPage} -> {@link PageResult}（进入新抽象层时用） */
     public static <T> PageResult<T> of(IPage<T> page) {
@@ -35,7 +34,8 @@ public final class PageBridge {
     /**
      * 直接把一份 {@code IPage} 的记录转换后仍以 {@code IPage} 返回 —— 老接口内部做转换时的快捷方式。
      */
-    public static <T, R> IPage<R> convert(IPage<T> source, java.util.function.Function<? super T, ? extends R> mapper) {
+    public static <T, R> IPage<R> convert(
+            IPage<T> source, java.util.function.Function<? super T, ? extends R> mapper) {
         return toIPage(of(source).map(mapper));
     }
 }

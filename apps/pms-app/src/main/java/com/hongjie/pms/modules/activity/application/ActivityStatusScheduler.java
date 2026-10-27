@@ -22,11 +22,13 @@ public class ActivityStatusScheduler {
     public void syncActivityStatus() {
         LocalDateTime now = LocalDateTime.now();
 
-        List<Activity> starting = activityMapper.selectList(new LambdaQueryWrapper<Activity>()
-                .eq(Activity::getStatus, 0)
-                .eq(Activity::getAuditStatus, 1)
-                .eq(Activity::getDeleted, 0)
-                .le(Activity::getStartTime, now));
+        List<Activity> starting =
+                activityMapper.selectList(
+                        new LambdaQueryWrapper<Activity>()
+                                .eq(Activity::getStatus, 0)
+                                .eq(Activity::getAuditStatus, 1)
+                                .eq(Activity::getDeleted, 0)
+                                .le(Activity::getStartTime, now));
         for (Activity activity : starting) {
             try {
                 if (activityMapper.startIfDue(activity.getId(), now) > 0) {
@@ -38,10 +40,12 @@ public class ActivityStatusScheduler {
             }
         }
 
-        List<Activity> ending = activityMapper.selectList(new LambdaQueryWrapper<Activity>()
-                .eq(Activity::getStatus, 1)
-                .eq(Activity::getDeleted, 0)
-                .le(Activity::getEndTime, now));
+        List<Activity> ending =
+                activityMapper.selectList(
+                        new LambdaQueryWrapper<Activity>()
+                                .eq(Activity::getStatus, 1)
+                                .eq(Activity::getDeleted, 0)
+                                .le(Activity::getEndTime, now));
         for (Activity activity : ending) {
             try {
                 if (activityMapper.finishIfDue(activity.getId(), now) > 0) {

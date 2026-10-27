@@ -21,10 +21,15 @@ public interface FeedService {
     /**
      * 发布帖子时推送给粉丝
      */
-    void pushToFans(Long userId, Long postId, String postType, 
-                    String title, List<String> images, 
-                    String posterName, String posterAvatar, 
-                    LocalDateTime createTime);
+    void pushToFans(
+            Long userId,
+            Long postId,
+            String postType,
+            String title,
+            List<String> images,
+            String posterName,
+            String posterAvatar,
+            LocalDateTime createTime);
 
     /**
      * 取消关注时清理收件箱

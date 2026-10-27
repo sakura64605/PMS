@@ -98,11 +98,16 @@ public class NoticeController {
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String keyword) {
-        log.info("公告列表（管理员）：pageNum={}, pageSize={}, status={}, keyword={}", pageNum, pageSize, status, keyword);
+        log.info(
+                "公告列表（管理员）：pageNum={}, pageSize={}, status={}, keyword={}",
+                pageNum,
+                pageSize,
+                status,
+                keyword);
         IPage<NoticeListDto> page = noticeService.listForAdmin(pageNum, pageSize, status, keyword);
         return CommonResult.success(page);
     }
-    
+
     // ========== 用户端接口 ==========
 
     /**

@@ -17,7 +17,8 @@ import java.util.List;
  * <p>用 {@link ObjectProvider} 注入以容忍「暂无处理器」的初始状态（集合型构造参数默认必填）。
  */
 @Component
-public class NotificationHandlerRegistry extends StrategyRegistry<MessageType, NotificationHandler<?>> {
+public class NotificationHandlerRegistry
+        extends StrategyRegistry<MessageType, NotificationHandler<?>> {
 
     /**
      * Spring 装配用。显式标 {@code @Autowired}：本类有两个构造器，

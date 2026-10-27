@@ -33,11 +33,11 @@ public class KnowledgeBaseService {
     private final QdrantVectorStore qdrantVectorStore;
 
     @org.springframework.beans.factory.annotation.Value("${pms.ai.knowledge.sync-on-startup:true}")
-    private boolean syncOnStartup=true;
+    private boolean syncOnStartup = true;
 
     @PostConstruct
     public void init() {
-        if(syncOnStartup)loadKnowledgeToVectorStore();
+        if (syncOnStartup) loadKnowledgeToVectorStore();
     }
 
     /** 全量把启用中的知识同步进 Qdrant（按 docId 幂等 upsert），来源仍是 MySQL */
@@ -49,10 +49,17 @@ public class KnowledgeBaseService {
         long start = System.currentTimeMillis();
         log.info("[知识库] 开始同步 {} 条到 Qdrant ...", knowledgeList.size());
         for (AiKnowledgeBase knowledge : knowledgeList) {
-            qdrantVectorStore.upsert(knowledge.getDocId(), knowledge.getContent(), knowledge.getTitle(), knowledge.getCategory());
+            qdrantVectorStore.upsert(
+                    knowledge.getDocId(),
+                    knowledge.getContent(),
+                    knowledge.getTitle(),
+                    knowledge.getCategory());
         }
-        log.info("[知识库] 同步完成，共 {} 条，Qdrant 当前点数={}（{}ms）",
-                knowledgeList.size(), qdrantVectorStore.count(), System.currentTimeMillis() - start);
+        log.info(
+                "[知识库] 同步完成，共 {} 条，Qdrant 当前点数={}（{}ms）",
+                knowledgeList.size(),
+                qdrantVectorStore.count(),
+                System.currentTimeMillis() - start);
     }
 
     public String searchRelevant(String query) {
@@ -64,9 +71,12 @@ public class KnowledgeBaseService {
         try {
             List<QdrantVectorStore.SearchHit> hits = qdrantVectorStore.search(query, RECALL_TOP_K);
             if (!hits.isEmpty()) {
-                List<String> docIds = hits.stream().map(QdrantVectorStore.SearchHit::docId).toList();
-                List<AiKnowledgeBase> rows = knowledgeBaseMapper.selectList(
-                        new LambdaQueryWrapper<AiKnowledgeBase>().in(AiKnowledgeBase::getDocId, docIds));
+                List<String> docIds =
+                        hits.stream().map(QdrantVectorStore.SearchHit::docId).toList();
+                List<AiKnowledgeBase> rows =
+                        knowledgeBaseMapper.selectList(
+                                new LambdaQueryWrapper<AiKnowledgeBase>()
+                                        .in(AiKnowledgeBase::getDocId, docIds));
 
                 // 按命中顺序（相似度降序）重排
                 Map<String, AiKnowledgeBase> byDocId = new LinkedHashMap<>();
@@ -103,21 +113,24 @@ public class KnowledgeBaseService {
                 }
             }
             if (!validKeywords.isEmpty()) {
-                wrapper.and(w -> {
-                    boolean first = true;
-                    for (String kw : validKeywords) {
-                        if (first) {
-                            w.like(AiKnowledgeBase::getTitle, kw)
-                                    .or()
-                                    .like(AiKnowledgeBase::getContent, kw);
-                            first = false;
-                        } else {
-                            w.or(i -> i.like(AiKnowledgeBase::getTitle, kw)
-                                    .or()
-                                    .like(AiKnowledgeBase::getContent, kw));
-                        }
-                    }
-                });
+                wrapper.and(
+                        w -> {
+                            boolean first = true;
+                            for (String kw : validKeywords) {
+                                if (first) {
+                                    w.like(AiKnowledgeBase::getTitle, kw)
+                                            .or()
+                                            .like(AiKnowledgeBase::getContent, kw);
+                                    first = false;
+                                } else {
+                                    w.or(
+                                            i ->
+                                                    i.like(AiKnowledgeBase::getTitle, kw)
+                                                            .or()
+                                                            .like(AiKnowledgeBase::getContent, kw));
+                                }
+                            }
+                        });
             }
             wrapper.last("LIMIT 3");
             List<AiKnowledgeBase> knowledges = knowledgeBaseMapper.selectList(wrapper);
@@ -166,13 +179,18 @@ public class KnowledgeBaseService {
         qdrantVectorStore.delete(knowledge.getDocId());
         log.info("[知识库] 下架知识 id={} docId={}，已同步 Qdrant 删除", id, knowledge.getDocId());
     }
-    public IPage<AiKnowledgeBase> search(String keyword, String category, Integer pageNum, Integer pageSize) {
+
+    public IPage<AiKnowledgeBase> search(
+            String keyword, String category, Integer pageNum, Integer pageSize) {
         Page<AiKnowledgeBase> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<AiKnowledgeBase> wrapper = new LambdaQueryWrapper<>();
 
         if (keyword != null && !keyword.isEmpty()) {
-            wrapper.and(w -> w.like(AiKnowledgeBase::getTitle, keyword)
-                    .or().like(AiKnowledgeBase::getContent, keyword));
+            wrapper.and(
+                    w ->
+                            w.like(AiKnowledgeBase::getTitle, keyword)
+                                    .or()
+                                    .like(AiKnowledgeBase::getContent, keyword));
         }
         if (category != null && !category.isEmpty()) {
             wrapper.eq(AiKnowledgeBase::getCategory, category);

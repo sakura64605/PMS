@@ -40,9 +40,15 @@ public class UserAuthController extends BaseController {
     /**
      * 登录
      */
-    @RedisRateLimit(key = "login", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.MINUTES)
+    @RedisRateLimit(
+            key = "login",
+            capacity = 5,
+            refillRate = 5,
+            duration = 1,
+            timeUnit = TimeUnit.MINUTES)
     @PostMapping("/login")
-    public CommonResult<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto loginRequestDto) {
+    public CommonResult<LoginResponseDto> login(
+            @Valid @RequestBody LoginRequestDto loginRequestDto) {
         LoginResponseDto response = userService.login(loginRequestDto);
         String message = "登录成功";
         return success(response, message);
@@ -63,16 +69,16 @@ public class UserAuthController extends BaseController {
      * 注册
      */
     @RedisRateLimit(
-            key = "#registerRequestDto.phone",           // 按手机号限流
+            key = "#registerRequestDto.phone", // 按手机号限流
             capacity = 1,
             refillRate = 1,
             duration = 1,
             timeUnit = TimeUnit.DAYS,
             perUser = false,
-            message = "该手机号已注册过，如需帮助请联系客服"
-    )
+            message = "该手机号已注册过，如需帮助请联系客服")
     @PostMapping("/register")
-    public CommonResult<RegisterResponseDto> register(@Valid @RequestBody RegisterRequestDto registerRequestDto) {
+    public CommonResult<RegisterResponseDto> register(
+            @Valid @RequestBody RegisterRequestDto registerRequestDto) {
         RegisterResponseDto response = userService.register(registerRequestDto);
         String message = "注册成功";
         return success(response, message);
@@ -81,9 +87,15 @@ public class UserAuthController extends BaseController {
     /**
      * 修改密码
      */
-    @RedisRateLimit(key = "changePassword", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.DAYS)
+    @RedisRateLimit(
+            key = "changePassword",
+            capacity = 5,
+            refillRate = 5,
+            duration = 1,
+            timeUnit = TimeUnit.DAYS)
     @PostMapping("/changePassword")
-    public CommonResult<String> updatePassword(@Valid @RequestBody ChangePasswordRequestDto changePasswordRequestDto) {
+    public CommonResult<String> updatePassword(
+            @Valid @RequestBody ChangePasswordRequestDto changePasswordRequestDto) {
         Long userId = UserContext.getUserId();
 
         userService.changePassword(userId, changePasswordRequestDto);
@@ -104,15 +116,15 @@ public class UserAuthController extends BaseController {
      * 更新用户信息
      */
     @PutMapping("/update")
-    public CommonResult<UserInfoDto> updateUserInfo(@Valid @RequestBody UserUpdateRequestDto updateDto) {
+    public CommonResult<UserInfoDto> updateUserInfo(
+            @Valid @RequestBody UserUpdateRequestDto updateDto) {
         Long userId = UserContext.getUserId();
         log.info("User profile update: userId={}", userId);
 
         UserInfoDto updatedInfo = userService.updateUserInfo(userId, updateDto);
-        if(updatedInfo == null){
+        if (updatedInfo == null) {
             return CommonResult.error(500, "更新失败");
         }
         return CommonResult.success(updatedInfo, "更新成功");
     }
-
 }

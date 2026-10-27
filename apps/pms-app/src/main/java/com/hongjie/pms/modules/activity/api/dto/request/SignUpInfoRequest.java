@@ -15,5 +15,4 @@ public class SignUpInfoRequest {
     private String phone;
 
     private String remark;
-
 }

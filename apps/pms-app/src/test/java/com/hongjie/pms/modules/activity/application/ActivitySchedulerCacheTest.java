@@ -33,37 +33,59 @@ class ActivitySchedulerCacheTest {
     @InjectMocks com.hongjie.pms.modules.scheduling.application.ScheduledBusinessTasks handler;
 
     Activity activity(int status) {
-        var activity = new Activity(); activity.setId(7L); activity.setStatus(status); activity.setDeleted(0); activity.setAuditStatus(1);
-        activity.setStartTime(LocalDateTime.now().minusHours(1)); activity.setEndTime(LocalDateTime.now().minusMinutes(2));
-        activity.setCurrentPeople(5); activity.setMaxPeople(10); activity.setTitle("fixture"); return activity;
+        var activity = new Activity();
+        activity.setId(7L);
+        activity.setStatus(status);
+        activity.setDeleted(0);
+        activity.setAuditStatus(1);
+        activity.setStartTime(LocalDateTime.now().minusHours(1));
+        activity.setEndTime(LocalDateTime.now().minusMinutes(2));
+        activity.setCurrentPeople(5);
+        activity.setMaxPeople(10);
+        activity.setTitle("fixture");
+        return activity;
     }
-    @Test void scheduledStartAndEndEvictAllRegions() {
-        var start = activity(0); var end = activity(1); end.setId(8L);
+
+    @Test
+    void scheduledStartAndEndEvictAllRegions() {
+        var start = activity(0);
+        var end = activity(1);
+        end.setId(8L);
         when(mapper.selectList(any())).thenReturn(List.of(start), List.of(end));
         when(mapper.startIfDue(eq(7L), any())).thenReturn(1);
         when(mapper.finishIfDue(eq(8L), any())).thenReturn(1);
         scheduler.syncActivityStatus();
-        verify(cache).evictAfterCommit(7L); verify(cache).evictAfterCommit(8L);
+        verify(cache).evictAfterCommit(7L);
+        verify(cache).evictAfterCommit(8L);
         verify(mapper).startIfDue(eq(7L), any());
         verify(mapper).finishIfDue(eq(8L), any());
         verify(mapper, never()).updateById(any(Activity.class));
     }
-    @Test void failedScheduledWritesDoNotEvict() {
+
+    @Test
+    void failedScheduledWritesDoNotEvict() {
         when(mapper.selectList(any())).thenReturn(List.of(activity(0)), List.of());
-        scheduler.syncActivityStatus(); verifyNoInteractions(cache);
+        scheduler.syncActivityStatus();
+        verifyNoInteractions(cache);
     }
-    @Test void delayedStartEvicts() {
+
+    @Test
+    void delayedStartEvicts() {
         when(mapper.startIfDue(eq(7L), any())).thenReturn(1);
-        handler.start(7L); verify(cache).evictAfterCommit(7L);
+        handler.start(7L);
+        verify(cache).evictAfterCommit(7L);
         verify(mapper).startIfDue(eq(7L), any());
         verify(mapper, never()).updateById(any(Activity.class));
     }
-    @Test void delayedStatisticsEvictsEndAndSignupChanges() {
+
+    @Test
+    void delayedStatisticsEvictsEndAndSignupChanges() {
         when(mapper.selectById(7L)).thenReturn(activity(1));
         when(mapper.finishForStatisticsIfDue(eq(7L), any())).thenReturn(1);
         var signup = new ActivitySignup();
         when(signups.selectList(any())).thenReturn(List.of(signup));
-        handler.statistics(7L); verify(cache).evictAfterCommit(7L);
+        handler.statistics(7L);
+        verify(cache).evictAfterCommit(7L);
         verify(mapper).finishForStatisticsIfDue(eq(7L), any());
         verify(mapper, never()).updateById(any(Activity.class));
     }

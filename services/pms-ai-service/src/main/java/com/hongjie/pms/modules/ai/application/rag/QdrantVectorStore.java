@@ -46,8 +46,7 @@ public class QdrantVectorStore {
     private volatile boolean collectionReady = false;
 
     /** 检索命中：docId + 相似度分数 */
-    public record SearchHit(String docId, float score) {
-    }
+    public record SearchHit(String docId, float score) {}
 
     private String baseUrl() {
         return "http://" + host + ":" + port;
@@ -68,12 +67,20 @@ public class QdrantVectorStore {
                     collectionReady = true;
                     return;
                 }
-                log.warn("[Qdrant] collection '{}' 维度不匹配（现有{} vs 模型{}），删除重建", collection, existing, dims);
+                log.warn(
+                        "[Qdrant] collection '{}' 维度不匹配（现有{} vs 模型{}），删除重建",
+                        collection,
+                        existing,
+                        dims);
                 http("DELETE", "/collections/" + collection, null);
             }
             String body = "{\"vectors\":{\"size\":" + dims + ",\"distance\":\"Cosine\"}}";
             HttpResponse<String> put = http("PUT", "/collections/" + collection, body);
-            log.info("[Qdrant] 创建 collection '{}' dims={} → HTTP {}", collection, dims, put.statusCode());
+            log.info(
+                    "[Qdrant] 创建 collection '{}' dims={} → HTTP {}",
+                    collection,
+                    dims,
+                    put.statusCode());
             collectionReady = put.statusCode() == 200;
         } catch (Exception e) {
             log.error("[Qdrant] ensureCollection 失败: {}", e.getMessage(), e);
@@ -101,13 +108,26 @@ public class QdrantVectorStore {
         long start = System.currentTimeMillis();
         try {
             float[] vec = embeddingModel.embed(text).content().vector();
-            String pointId = UUID.nameUUIDFromBytes(docId.getBytes(StandardCharsets.UTF_8)).toString();
-            String body = "{\"points\":[{"
-                    + "\"id\":\"" + pointId + "\","
-                    + "\"vector\":" + floatsToJson(vec) + ","
-                    + "\"payload\":{" + payload(docId, title, category) + "}}]}";
-            HttpResponse<String> resp = http("PUT", "/collections/" + collection + "/points?wait=true", body);
-            log.info("[Qdrant] upsert docId={} → HTTP {}（{}ms）", docId, resp.statusCode(), System.currentTimeMillis() - start);
+            String pointId =
+                    UUID.nameUUIDFromBytes(docId.getBytes(StandardCharsets.UTF_8)).toString();
+            String body =
+                    "{\"points\":[{"
+                            + "\"id\":\""
+                            + pointId
+                            + "\","
+                            + "\"vector\":"
+                            + floatsToJson(vec)
+                            + ","
+                            + "\"payload\":{"
+                            + payload(docId, title, category)
+                            + "}}]}";
+            HttpResponse<String> resp =
+                    http("PUT", "/collections/" + collection + "/points?wait=true", body);
+            log.info(
+                    "[Qdrant] upsert docId={} → HTTP {}（{}ms）",
+                    docId,
+                    resp.statusCode(),
+                    System.currentTimeMillis() - start);
         } catch (Exception e) {
             log.error("[Qdrant] upsert 失败 docId={}: {}", docId, e.getMessage(), e);
         }
@@ -119,8 +139,14 @@ public class QdrantVectorStore {
         long start = System.currentTimeMillis();
         try {
             float[] qvec = embeddingModel.embed(query).content().vector();
-            String body = "{\"vector\":" + floatsToJson(qvec) + ",\"limit\":" + topK + ",\"with_payload\":true}";
-            HttpResponse<String> resp = http("POST", "/collections/" + collection + "/points/search", body);
+            String body =
+                    "{\"vector\":"
+                            + floatsToJson(qvec)
+                            + ",\"limit\":"
+                            + topK
+                            + ",\"with_payload\":true}";
+            HttpResponse<String> resp =
+                    http("POST", "/collections/" + collection + "/points/search", body);
             if (resp.statusCode() != 200) {
                 log.warn("[Qdrant] 检索非200: {} body={}", resp.statusCode(), truncate(resp.body()));
                 return List.of();
@@ -140,10 +166,19 @@ public class QdrantVectorStore {
             }
             StringBuilder sb = new StringBuilder();
             for (SearchHit h : hits) {
-                sb.append(sb.length() > 0 ? ", " : "").append(h.docId()).append("(").append(String.format("%.3f", h.score())).append(")");
+                sb.append(sb.length() > 0 ? ", " : "")
+                        .append(h.docId())
+                        .append("(")
+                        .append(String.format("%.3f", h.score()))
+                        .append(")");
             }
-            log.info("[Qdrant] 检索 query='{}' topK={} 命中{}条 [{}]（{}ms）",
-                    truncate(query), topK, hits.size(), sb, System.currentTimeMillis() - start);
+            log.info(
+                    "[Qdrant] 检索 query='{}' topK={} 命中{}条 [{}]（{}ms）",
+                    truncate(query),
+                    topK,
+                    hits.size(),
+                    sb,
+                    System.currentTimeMillis() - start);
             return hits;
         } catch (Exception e) {
             log.error("[Qdrant] 检索失败 query='{}': {}", truncate(query), e.getMessage(), e);
@@ -154,9 +189,11 @@ public class QdrantVectorStore {
     /** 删除某条知识的向量 */
     public void delete(String docId) {
         try {
-            String pointId = UUID.nameUUIDFromBytes(docId.getBytes(StandardCharsets.UTF_8)).toString();
+            String pointId =
+                    UUID.nameUUIDFromBytes(docId.getBytes(StandardCharsets.UTF_8)).toString();
             String body = "{\"points\":[\"" + pointId + "\"]}";
-            HttpResponse<String> resp = http("POST", "/collections/" + collection + "/points/delete?wait=true", body);
+            HttpResponse<String> resp =
+                    http("POST", "/collections/" + collection + "/points/delete?wait=true", body);
             log.info("[Qdrant] delete docId={} → HTTP {}", docId, resp.statusCode());
         } catch (Exception e) {
             log.error("[Qdrant] delete 失败 docId={}: {}", docId, e.getMessage(), e);
@@ -178,14 +215,17 @@ public class QdrantVectorStore {
     }
 
     private HttpResponse<String> http(String method, String path, String body) throws Exception {
-        HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(timeoutMs)).build();
-        HttpRequest.Builder b = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl() + path))
-                .timeout(Duration.ofMillis(timeoutMs));
+        HttpClient client =
+                HttpClient.newBuilder().connectTimeout(Duration.ofMillis(timeoutMs)).build();
+        HttpRequest.Builder b =
+                HttpRequest.newBuilder()
+                        .uri(URI.create(baseUrl() + path))
+                        .timeout(Duration.ofMillis(timeoutMs));
         if (body == null) {
             b.method(method, HttpRequest.BodyPublishers.noBody());
         } else {
-            b.header("Content-Type", "application/json").method(method, HttpRequest.BodyPublishers.ofString(body));
+            b.header("Content-Type", "application/json")
+                    .method(method, HttpRequest.BodyPublishers.ofString(body));
         }
         return client.send(b.build(), HttpResponse.BodyHandlers.ofString());
     }
@@ -208,7 +248,10 @@ public class QdrantVectorStore {
     }
 
     private static String esc(String s) {
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
     }
 
     private static String truncate(String s) {

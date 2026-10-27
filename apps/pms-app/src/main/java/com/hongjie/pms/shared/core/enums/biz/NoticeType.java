@@ -6,7 +6,6 @@ import com.hongjie.pms.shared.core.enums.CodableEnum;
  * 公告类型，对应 {@code notice.type}：1-系统公告 2-活动通知 3-重要提醒。
  */
 public enum NoticeType implements CodableEnum<Integer> {
-
     SYSTEM(1, "系统公告"),
     ACTIVITY(2, "活动通知"),
     IMPORTANT(3, "重要提醒");

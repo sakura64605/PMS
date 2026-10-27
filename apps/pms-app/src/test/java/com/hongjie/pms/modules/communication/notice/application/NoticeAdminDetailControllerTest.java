@@ -14,22 +14,36 @@ import static org.mockito.Mockito.*;
 class NoticeAdminDetailControllerTest {
     final NoticeMapper mapper = mock(NoticeMapper.class);
     final NoticeAdminDetailController controller = new NoticeAdminDetailController(mapper);
-    @AfterEach void cleanup() { UserContext.clear(); }
-    @Test void anonymousAndOrdinaryUsersCannotReadDraft() {
+
+    @AfterEach
+    void cleanup() {
+        UserContext.clear();
+    }
+
+    @Test
+    void anonymousAndOrdinaryUsersCannotReadDraft() {
         assertThatThrownBy(() -> controller.detail(7L)).isInstanceOf(BusinessException.class);
-        UserContext.setUser(new UserInfo(2L,"user",0,null,null));
+        UserContext.setUser(new UserInfo(2L, "user", 0, null, null));
         assertThatThrownBy(() -> controller.detail(7L)).isInstanceOf(BusinessException.class);
         verifyNoInteractions(mapper);
     }
-    @Test void administratorCanReadUnpublishedBodyWithoutWriting() {
-        UserContext.setUser(new UserInfo(1L,"admin",1,null,null));
-        Notice draft = new Notice(); draft.setId(7L); draft.setStatus(0); draft.setContent("draft body");
+
+    @Test
+    void administratorCanReadUnpublishedBodyWithoutWriting() {
+        UserContext.setUser(new UserInfo(1L, "admin", 1, null, null));
+        Notice draft = new Notice();
+        draft.setId(7L);
+        draft.setStatus(0);
+        draft.setContent("draft body");
         when(mapper.selectById(7L)).thenReturn(draft);
         assertThat(controller.detail(7L).getData()).isSameAs(draft);
-        verify(mapper).selectById(7L); verifyNoMoreInteractions(mapper);
+        verify(mapper).selectById(7L);
+        verifyNoMoreInteractions(mapper);
     }
-    @Test void missingNoticeIsRejected() {
-        UserContext.setUser(new UserInfo(1L,"admin",1,null,null));
+
+    @Test
+    void missingNoticeIsRejected() {
+        UserContext.setUser(new UserInfo(1L, "admin", 1, null, null));
         assertThatThrownBy(() -> controller.detail(99L)).isInstanceOf(BusinessException.class);
     }
 }

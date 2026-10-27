@@ -11,17 +11,15 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class TraceConfig implements WebMvcConfigurer {
-    
+
     /**
      * 注册 Trace 拦截器
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new TraceInterceptor())
-                .addPathPatterns("/**")
-                .order(3);
+        registry.addInterceptor(new TraceInterceptor()).addPathPatterns("/**").order(3);
     }
-    
+
     /**
      * 配置 RestTemplate（自动传递TraceId）
      */

@@ -1,4 +1,5 @@
 package com.hongjie.pms.modules.ai.application.tool;
+
 import com.hongjie.pms.ai.contract.BaseTool;
 import com.hongjie.pms.ai.contract.ToolPaging;
 
@@ -20,7 +21,10 @@ public class ToolRegistry {
     private final Map<String, BaseTool> tools = new ConcurrentHashMap<>();
 
     public ToolRegistry(List<BaseTool> toolList) {
-        for (BaseTool tool : new com.hongjie.pms.shared.core.strategy.StrategyRegistry<String,BaseTool>("AI tools",toolList,tool->List.of(tool.getName())).all()) {
+        for (BaseTool tool :
+                new com.hongjie.pms.shared.core.strategy.StrategyRegistry<String, BaseTool>(
+                                "AI tools", toolList, tool -> List.of(tool.getName()))
+                        .all()) {
             tools.put(tool.getName(), tool);
         }
         log.info("已注册工具: {}", tools.keySet());
@@ -43,15 +47,18 @@ public class ToolRegistry {
         Map<ToolSpecification, ToolExecutor> executors = new HashMap<>();
         for (BaseTool tool : tools.values()) {
             ToolSpecification spec = buildSpec(tool);
-            executors.put(spec, (request, memoryId) -> {
-                try {
-                    ToolCall call = tool.execute(parseArguments(request.arguments()), userId);
-                    return call.getResult() != null ? call.getResult() : "工具执行成功";
-                } catch (Exception e) {
-                    log.warn("工具 {} 执行异常: {}", tool.getName(), e.getMessage(), e);
-                    return "工具执行出错: " + e.getMessage();
-                }
-            });
+            executors.put(
+                    spec,
+                    (request, memoryId) -> {
+                        try {
+                            ToolCall call =
+                                    tool.execute(parseArguments(request.arguments()), userId);
+                            return call.getResult() != null ? call.getResult() : "工具执行成功";
+                        } catch (Exception e) {
+                            log.warn("工具 {} 执行异常: {}", tool.getName(), e.getMessage(), e);
+                            return "工具执行出错: " + e.getMessage();
+                        }
+                    });
         }
         return executors;
     }
@@ -61,10 +68,7 @@ public class ToolRegistry {
         BaseTool tool = tools.get(toolName);
         if (tool == null) {
             log.warn("未找到工具: {}", toolName);
-            return ToolCall.builder()
-                    .name(toolName)
-                    .result("工具不存在: " + toolName)
-                    .build();
+            return ToolCall.builder().name(toolName).result("工具不存在: " + toolName).build();
         }
         return tool.execute(parseArguments(argumentsJson), userId);
     }
@@ -89,9 +93,8 @@ public class ToolRegistry {
 
     private ToolSpecification buildSpec(BaseTool tool) {
         Map<String, Object> rawParams = tool.getParameters();
-        ToolSpecification.Builder builder = ToolSpecification.builder()
-                .name(tool.getName())
-                .description(tool.getDescription());
+        ToolSpecification.Builder builder =
+                ToolSpecification.builder().name(tool.getName()).description(tool.getDescription());
 
         if (rawParams != null) {
             @SuppressWarnings("unchecked")

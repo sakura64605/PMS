@@ -12,14 +12,14 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class CacheUpdateProducer {
-    
+
     private final RocketMQTemplate rocketMQTemplate;
     private final org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
     private final com.hongjie.pms.platform.utils.RedisScanUtil redisScanUtil;
-    
+
     private static final String TOPIC = "cache-update-topic";
     private static final String TAG = "cache";
-    
+
     /**
      * 发送缓存清除消息
      */
@@ -30,10 +30,10 @@ public class CacheUpdateProducer {
         message.setCacheKey(cacheKey);
         message.setAllEntries(false);
         message.setTimestamp(System.currentTimeMillis());
-        
+
         send(message);
     }
-    
+
     /**
      * 发送清除整个缓存区域的消息
      */
@@ -43,7 +43,7 @@ public class CacheUpdateProducer {
         message.setCacheName(cacheName);
         message.setAllEntries(true);
         message.setTimestamp(System.currentTimeMillis());
-        
+
         send(message);
     }
 
@@ -55,7 +55,7 @@ public class CacheUpdateProducer {
             sendEvict(cacheName, cacheKey);
         }
     }
-    
+
     /**
      * 发送延迟清除消息（延迟双删）
      */
@@ -67,10 +67,10 @@ public class CacheUpdateProducer {
         message.setAllEntries(false);
         message.setDelayMillis(delayMillis);
         message.setTimestamp(System.currentTimeMillis());
-        
+
         sendDelayed(message, delayMillis);
     }
-    
+
     private void send(CacheUpdateMessage message) {
         try {
             String json = JSON.toJSONString(message);
@@ -83,7 +83,7 @@ public class CacheUpdateProducer {
             handleLocalEvict(message);
         }
     }
-    
+
     private void sendDelayed(CacheUpdateMessage message, long delayMillis) {
         try {
             String json = JSON.toJSONString(message);
@@ -96,16 +96,16 @@ public class CacheUpdateProducer {
             log.error("发送延迟缓存更新消息失败", e);
         }
     }
-    
+
     private int getDelayLevel(long delayMillis) {
-        if (delayMillis <= 1000) return 1;      // 1s
-        if (delayMillis <= 5000) return 2;      // 5s
-        if (delayMillis <= 10000) return 3;     // 10s
-        if (delayMillis <= 30000) return 4;     // 30s
-        if (delayMillis <= 60000) return 5;     // 1m
+        if (delayMillis <= 1000) return 1; // 1s
+        if (delayMillis <= 5000) return 2; // 5s
+        if (delayMillis <= 10000) return 3; // 10s
+        if (delayMillis <= 30000) return 4; // 30s
+        if (delayMillis <= 60000) return 5; // 1m
         return 5;
     }
-    
+
     /**
      * 降级处理：直接清除本地缓存
      */

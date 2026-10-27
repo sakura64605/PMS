@@ -8,7 +8,7 @@ import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface AiChatMessageMapper extends BaseMapper<AiChatMessage> {
-    
+
     @Update("UPDATE ai_chat_message SET feedback = #{feedback} WHERE message_id = #{messageId}")
     void updateFeedback(@Param("messageId") String messageId, @Param("feedback") Integer feedback);
 }

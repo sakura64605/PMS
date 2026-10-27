@@ -35,5 +35,4 @@ public class UserSimpleDto {
      * 是否关注
      */
     private Boolean isFollow;
-
 }

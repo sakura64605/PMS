@@ -21,8 +21,7 @@ import java.lang.reflect.Method;
 @Order(2)
 public class CircuitBreakerAspect {
 
-    @Autowired
-    private CircuitBreakerManager breakerManager;
+    @Autowired private CircuitBreakerManager breakerManager;
 
     @PostConstruct
     public void init() {
@@ -30,7 +29,8 @@ public class CircuitBreakerAspect {
     }
 
     @Around("@annotation(circuitBreaker)")
-    public Object around(ProceedingJoinPoint point, CircuitBreaker circuitBreaker) throws Throwable {
+    public Object around(ProceedingJoinPoint point, CircuitBreaker circuitBreaker)
+            throws Throwable {
         log.info("CircuitBreakerAspect被触发");
         MethodSignature signature = (MethodSignature) point.getSignature();
         String resourceName = circuitBreaker.value();
@@ -53,9 +53,10 @@ public class CircuitBreakerAspect {
         // 3. 设置降级方法
         String fallbackMethodName = circuitBreaker.fallbackMethod();
         if (!fallbackMethodName.isEmpty()) {
-            breaker.withFallback(e -> {
-                return invokeFallbackMethod(point, fallbackMethodName, e);
-            });
+            breaker.withFallback(
+                    e -> {
+                        return invokeFallbackMethod(point, fallbackMethodName, e);
+                    });
         }
 
         // 4. 执行
@@ -67,14 +68,14 @@ public class CircuitBreakerAspect {
                         throw new Exception(ex);
                     }
                 },
-                Object.class
-        );
+                Object.class);
     }
 
     /**
      * 调用降级方法
      */
-    private Object invokeFallbackMethod(ProceedingJoinPoint point, String fallbackMethodName, Exception e) {
+    private Object invokeFallbackMethod(
+            ProceedingJoinPoint point, String fallbackMethodName, Exception e) {
         MethodSignature signature = (MethodSignature) point.getSignature();
         Method method = signature.getMethod();
         Object target = point.getTarget();
@@ -82,7 +83,9 @@ public class CircuitBreakerAspect {
 
         try {
             // 方式1：查找相同参数类型的降级方法
-            Method fallbackMethod = target.getClass().getDeclaredMethod(fallbackMethodName, method.getParameterTypes());
+            Method fallbackMethod =
+                    target.getClass()
+                            .getDeclaredMethod(fallbackMethodName, method.getParameterTypes());
             fallbackMethod.setAccessible(true);
             return fallbackMethod.invoke(target, args);
 
@@ -90,10 +93,12 @@ public class CircuitBreakerAspect {
             // 方式2：查找带异常参数的降级方法
             try {
                 Class<?>[] paramTypes = new Class[method.getParameterCount() + 1];
-                System.arraycopy(method.getParameterTypes(), 0, paramTypes, 0, method.getParameterCount());
+                System.arraycopy(
+                        method.getParameterTypes(), 0, paramTypes, 0, method.getParameterCount());
                 paramTypes[paramTypes.length - 1] = Exception.class;
 
-                Method fallbackWithEx = target.getClass().getDeclaredMethod(fallbackMethodName, paramTypes);
+                Method fallbackWithEx =
+                        target.getClass().getDeclaredMethod(fallbackMethodName, paramTypes);
                 fallbackWithEx.setAccessible(true);
 
                 Object[] newArgs = new Object[args.length + 1];

@@ -38,7 +38,8 @@ public class RedisConfig {
 
         // 序列化时包含类型信息（用于反序列化时知道具体类型）
         org.springframework.data.redis.serializer.RedisSerializer<Object> genericSerializer =
-                new com.hongjie.pms.platform.cache.serialization.CompatibleRedisSerializer(objectMapper, JsonTypeInfo.As.PROPERTY);
+                new com.hongjie.pms.platform.cache.serialization.CompatibleRedisSerializer(
+                        objectMapper, JsonTypeInfo.As.PROPERTY);
 
         // String 序列化器
         StringRedisSerializer stringSerializer = new StringRedisSerializer();

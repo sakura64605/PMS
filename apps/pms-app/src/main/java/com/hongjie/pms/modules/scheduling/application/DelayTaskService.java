@@ -11,8 +11,7 @@ import java.time.LocalDateTime;
 @Service
 public class DelayTaskService {
 
-    @Autowired
-    private DelayTaskMapper delayTaskMapper;
+    @Autowired private DelayTaskMapper delayTaskMapper;
 
     @Transactional
     public void addTask(String taskType, Long businessId, LocalDateTime executeTime) {

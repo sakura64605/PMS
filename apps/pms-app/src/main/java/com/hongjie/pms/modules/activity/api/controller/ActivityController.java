@@ -37,10 +37,17 @@ public class ActivityController {
     /**
      * 创建活动
      */
-    @RedisRateLimit(key = "postActivity", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.HOURS, message = "1小时只能发布5条活动")
+    @RedisRateLimit(
+            key = "postActivity",
+            capacity = 5,
+            refillRate = 5,
+            duration = 1,
+            timeUnit = TimeUnit.HOURS,
+            message = "1小时只能发布5条活动")
     @Idempotent(key = "#request.title", keyTimeout = 300, message = "创建活动操作正在处理中，请稍后再试")
     @PostMapping("/post")
-    public CommonResult<ActivityPostRespDto> postActivity(@RequestBody @Valid ActivityRequestDto request) {
+    public CommonResult<ActivityPostRespDto> postActivity(
+            @RequestBody @Valid ActivityRequestDto request) {
         ActivityPostRespDto activityListDto = activityService.postActivity(request);
         return CommonResult.success(activityListDto);
     }
@@ -50,7 +57,8 @@ public class ActivityController {
      */
     @Idempotent(key = "#id", keyTimeout = 300, message = "更新活动操作正在处理中，请稍后再试")
     @PostMapping("/update/{id}")
-    public CommonResult<String> updateActivity(@PathVariable Long id, @RequestBody @Valid ActivityRequestDto activityRequestDto) {
+    public CommonResult<String> updateActivity(
+            @PathVariable Long id, @RequestBody @Valid ActivityRequestDto activityRequestDto) {
         if (activityRequestDto.getId() != null && !id.equals(activityRequestDto.getId()))
             throw new BusinessException(ErrorCode.PARAM_ERROR);
         activityRequestDto.setId(id);
@@ -71,7 +79,12 @@ public class ActivityController {
     /**
      * 获取活动详情
      */
-    @RedisRateLimit(key = "getActivityDetail", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(
+            key = "getActivityDetail",
+            capacity = 30,
+            refillRate = 30,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
     @GetMapping("/detail/{id}")
     public CommonResult<ActivityDetailRespDto> getActivityDetail(@PathVariable Long id) {
         ActivityDetailRespDto activityDetail = activityService.getActivityDetail(id);
@@ -79,7 +92,8 @@ public class ActivityController {
             return CommonResult.error(503, "服务繁忙，请稍后再试");
         }
         // 检查是否是降级后的默认对象
-        if ("活动信息暂时不可用".equals(activityDetail.getTitle()) && "系统繁忙，请稍后再试".equals(activityDetail.getContent())) {
+        if ("活动信息暂时不可用".equals(activityDetail.getTitle())
+                && "系统繁忙，请稍后再试".equals(activityDetail.getContent())) {
             return CommonResult.error(503, "服务繁忙，请稍后再试");
         }
         return CommonResult.success(activityDetail);
@@ -88,9 +102,15 @@ public class ActivityController {
     /**
      * 获取回收站列表
      */
-    @RedisRateLimit(key = "getRecycleBinList", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(
+            key = "getRecycleBinList",
+            capacity = 30,
+            refillRate = 30,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
     @GetMapping("/recycle-bin")
-    public CommonResult<IPage<ActivityListRespDto>> getRecycleBinList(ActivityListRequestDto request) {
+    public CommonResult<IPage<ActivityListRespDto>> getRecycleBinList(
+            ActivityListRequestDto request) {
         log.info("获取回收站列表");
         IPage<ActivityListRespDto> activityList = activityService.getRecycleBinList(request);
         return CommonResult.success(activityList);
@@ -110,9 +130,8 @@ public class ActivityController {
      * 查看报名人
      */
     @PostMapping("/signUpList/{id}")
-    public CommonResult<IPage<SignUpResponse>> getSignUpList(@PathVariable Long id,
-                                                             @RequestParam int pageNum,
-                                                             @RequestParam int pageSize) {
+    public CommonResult<IPage<SignUpResponse>> getSignUpList(
+            @PathVariable Long id, @RequestParam int pageNum, @RequestParam int pageSize) {
         log.info("查看报名人");
         IPage<SignUpResponse> signUpList = activityService.getSignUpList(id, pageNum, pageSize);
         return CommonResult.success(signUpList);
@@ -121,9 +140,15 @@ public class ActivityController {
     /**
      * 获取活动列表
      */
-    @RedisRateLimit(key = "getActivityList", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(
+            key = "getActivityList",
+            capacity = 30,
+            refillRate = 30,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
     @GetMapping("/list")
-    public CommonResult<IPage<ActivityListRespDto>> getActivityList(ActivityListRequestDto request) {
+    public CommonResult<IPage<ActivityListRespDto>> getActivityList(
+            ActivityListRequestDto request) {
         log.info("获取活动列表");
         request.setAuditStatus(1);
         IPage<ActivityListRespDto> activityList = activityService.getActivityList(request);
@@ -133,7 +158,12 @@ public class ActivityController {
     /**
      * 报名活动
      */
-    @RedisRateLimit(key = "signUp", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(
+            key = "signUp",
+            capacity = 5,
+            refillRate = 5,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
     @Idempotent(key = "#request.activityId", keyTimeout = 300, message = "报名操作正在处理中，请稍后再试")
     @PostMapping("/signUp")
     public CommonResult<String> signUp(@RequestBody @Valid SignUpInfoRequest request) {
@@ -156,7 +186,12 @@ public class ActivityController {
     /**
      * 取消报名
      */
-    @RedisRateLimit(key = "cancelSignUp", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(
+            key = "cancelSignUp",
+            capacity = 5,
+            refillRate = 5,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
     @Idempotent(key = "#id", keyTimeout = 300, message = "取消报名操作正在处理中，请稍后再试")
     @PostMapping("/cancelSignUp/{id}")
     public CommonResult<String> cancelSignUp(@PathVariable Long id) {
@@ -168,9 +203,15 @@ public class ActivityController {
     /**
      * 获取我的活动列表
      */
-    @RedisRateLimit(key = "getMyActivityList", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(
+            key = "getMyActivityList",
+            capacity = 30,
+            refillRate = 30,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
     @GetMapping("/myActivity")
-    public CommonResult<IPage<ActivityListRespDto>> getMyActivityList(ActivityListRequestDto request) {
+    public CommonResult<IPage<ActivityListRespDto>> getMyActivityList(
+            ActivityListRequestDto request) {
         log.info("获取我的活动列表");
         Long userId = UserContext.getUserId();
         if (userId == null) throw new BusinessException(ErrorCode.UNAUTHORIZED);

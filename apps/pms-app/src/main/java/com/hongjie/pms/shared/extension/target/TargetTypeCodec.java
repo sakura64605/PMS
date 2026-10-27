@@ -48,9 +48,10 @@ public class TargetTypeCodec {
     public String write(BizTargetType type, LegacyDialect dialect) {
         List<String> literals = literals(type, dialect);
         if (literals.size() > 1) {
-            throw new IllegalStateException(String.format(
-                    "%s 方言下 %s 对应多个字面量 %s，需结合业务类型判定，请使用三参 write 重载",
-                    dialect, type, literals));
+            throw new IllegalStateException(
+                    String.format(
+                            "%s 方言下 %s 对应多个字面量 %s，需结合业务类型判定，请使用三参 write 重载",
+                            dialect, type, literals));
         }
         return literals.get(0);
     }
@@ -72,8 +73,9 @@ public class TargetTypeCodec {
                 return wanted;
             }
         }
-        throw new IllegalStateException(String.format(
-                "无法为 %s / %s / %s 确定 %s 方言字面量", type, petPostType, literals, dialect));
+        throw new IllegalStateException(
+                String.format(
+                        "无法为 %s / %s / %s 确定 %s 方言字面量", type, petPostType, literals, dialect));
     }
 
     /** 该方言下此类型认可的全部字面量，用于拼查询条件（如 {@code target_type IN (...)}） */
@@ -83,8 +85,7 @@ public class TargetTypeCodec {
 
     private List<String> literals(BizTargetType type, LegacyDialect dialect) {
         if (!dialect.supports(type)) {
-            throw new IllegalStateException(
-                    String.format("%s 方言不支持目标类型 %s", dialect, type));
+            throw new IllegalStateException(String.format("%s 方言不支持目标类型 %s", dialect, type));
         }
         return dialect.literalsFor(type);
     }

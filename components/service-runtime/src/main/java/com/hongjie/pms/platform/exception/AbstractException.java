@@ -16,6 +16,8 @@ public abstract class AbstractException extends RuntimeException {
     public AbstractException(String message, Throwable throwable, IErrorCode errorCode) {
         super(message, throwable);
         this.errorCode = errorCode.code();
-        this.errorMessage = Optional.ofNullable(StringUtils.hasLength(message) ? message : null).orElse(errorCode.message());
+        this.errorMessage =
+                Optional.ofNullable(StringUtils.hasLength(message) ? message : null)
+                        .orElse(errorCode.message());
     }
 }

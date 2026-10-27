@@ -24,8 +24,8 @@ import com.hongjie.pms.shared.core.page.PageResult;
  * @param <M> Mapper 类型
  * @param <E> 实体类型；刻意不加 {@code Identifiable} 之类上界，理由见 {@link BaseService}
  */
-public abstract class AbstractBaseService<M extends BaseMapper<E>, E>
-        extends ServiceImpl<M, E> implements BaseService<E> {
+public abstract class AbstractBaseService<M extends BaseMapper<E>, E> extends ServiceImpl<M, E>
+        implements BaseService<E> {
 
     @Override
     public E requireById(Long id) {

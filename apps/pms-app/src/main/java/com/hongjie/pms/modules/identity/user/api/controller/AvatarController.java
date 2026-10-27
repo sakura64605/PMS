@@ -27,18 +27,24 @@ public class AvatarController {
     /**
      * 上传头像
      */
-    @RedisRateLimit(key = "uploadAvatar", capacity = 30, refillRate = 30, duration = 1, timeUnit = TimeUnit.MINUTES)
+    @RedisRateLimit(
+            key = "uploadAvatar",
+            capacity = 30,
+            refillRate = 30,
+            duration = 1,
+            timeUnit = TimeUnit.MINUTES)
     @PostMapping("/upload")
-    public CommonResult<AvatarUploadResponse> uploadAvatar(@RequestParam("file") MultipartFile file) {
+    public CommonResult<AvatarUploadResponse> uploadAvatar(
+            @RequestParam("file") MultipartFile file) {
         AvatarUploadResponse response = avatarService.uploadAvatar(file);
         return CommonResult.success(response);
     }
 
-//    @PostMapping("/update")
-//    public CommonResult<String> updateAvatar(String avatarUrl) {
-//        avatarService.updateAvatar(avatarUrl);
-//        return CommonResult.success("更新成功");
-//    }
+    //    @PostMapping("/update")
+    //    public CommonResult<String> updateAvatar(String avatarUrl) {
+    //        avatarService.updateAvatar(avatarUrl);
+    //        return CommonResult.success("更新成功");
+    //    }
 
     /**
      * 查看历史头像
@@ -46,7 +52,7 @@ public class AvatarController {
     @GetMapping("/historyAvatar")
     public CommonResult<List<AvatarHistory>> historyAvatar() {
         List<AvatarHistory> historyAvatar = avatarService.historyAvatar();
-        if(historyAvatar == null || historyAvatar.isEmpty()){
+        if (historyAvatar == null || historyAvatar.isEmpty()) {
             return CommonResult.error(500, "获取历史头像失败");
         }
         return CommonResult.success(historyAvatar);

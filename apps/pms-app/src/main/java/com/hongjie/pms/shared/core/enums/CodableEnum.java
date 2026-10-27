@@ -38,7 +38,8 @@ public interface CodableEnum<C extends Serializable> extends IEnum<C> {
      *
      * @return 匹配的枚举；未匹配返回 {@code null}（调用方可用 {@code Optional} 包装或走 {@link #descOf}）
      */
-    static <C extends Serializable, E extends Enum<E> & CodableEnum<C>> E of(Class<E> type, C code) {
+    static <C extends Serializable, E extends Enum<E> & CodableEnum<C>> E of(
+            Class<E> type, C code) {
         for (E candidate : type.getEnumConstants()) {
             if (Objects.equals(candidate.getCode(), code)) {
                 return candidate;
@@ -48,7 +49,8 @@ public interface CodableEnum<C extends Serializable> extends IEnum<C> {
     }
 
     /** 按业务码取文案，未匹配时返回兜底文案（避免调用方到处判空） */
-    static <C extends Serializable, E extends Enum<E> & CodableEnum<C>> String descOf(Class<E> type, C code, String fallback) {
+    static <C extends Serializable, E extends Enum<E> & CodableEnum<C>> String descOf(
+            Class<E> type, C code, String fallback) {
         E matched = of(type, code);
         return matched == null ? fallback : matched.getDesc();
     }

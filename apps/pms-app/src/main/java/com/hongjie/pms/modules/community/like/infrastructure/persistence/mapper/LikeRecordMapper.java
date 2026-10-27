@@ -20,14 +20,15 @@ public interface LikeRecordMapper extends BaseMapper<LikeRecord> {
      * @return 点赞记录列表
      */
     @Select({
-            "<script>",
-            "SELECT * FROM like_record WHERE user_id = #{userId} AND target_type = #{targetType} AND target_id IN",
-            "<foreach collection='targetIds' item='id' open='(' separator=',' close=')'>",
-            "#{id}",
-            "</foreach>",
-            "</script>"
+        "<script>",
+        "SELECT * FROM like_record WHERE user_id = #{userId} AND target_type = #{targetType} AND target_id IN",
+        "<foreach collection='targetIds' item='id' open='(' separator=',' close=')'>",
+        "#{id}",
+        "</foreach>",
+        "</script>"
     })
-    List<LikeRecord> selectByUserAndTargetIds(@Param("userId") Long userId,
-                                               @Param("targetIds") List<Long> targetIds,
-                                               @Param("targetType") String targetType);
+    List<LikeRecord> selectByUserAndTargetIds(
+            @Param("userId") Long userId,
+            @Param("targetIds") List<Long> targetIds,
+            @Param("targetType") String targetType);
 }

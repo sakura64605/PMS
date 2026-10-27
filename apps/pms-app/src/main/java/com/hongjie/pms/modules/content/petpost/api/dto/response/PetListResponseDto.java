@@ -28,6 +28,7 @@ public class PetListResponseDto {
 
     /** Public card preview, capped at 200 characters. */
     private String content;
+
     private String address;
 
     /**
@@ -93,6 +94,6 @@ public class PetListResponseDto {
     private Integer shareCount;
     private Integer commentCount;
     private Integer likeCount;
-//    private Boolean isCollected; // 当前用户是否收藏
-//    private Boolean isLiked;     // 当前用户是否点赞
+    //    private Boolean isCollected; // 当前用户是否收藏
+    //    private Boolean isLiked;     // 当前用户是否点赞
 }

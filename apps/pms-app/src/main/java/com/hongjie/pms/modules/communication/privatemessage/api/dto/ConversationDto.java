@@ -10,8 +10,8 @@ import java.time.LocalDateTime;
 public class ConversationDto {
 
     private Long conversationId;
-    private UserSimpleDto otherUser;      // 对方用户信息
-    private String lastMessage;           // 最后一条消息
+    private UserSimpleDto otherUser; // 对方用户信息
+    private String lastMessage; // 最后一条消息
     private LocalDateTime lastMessageTime;
-    private Integer unreadCount;          // 当前用户未读数
+    private Integer unreadCount; // 当前用户未读数
 }

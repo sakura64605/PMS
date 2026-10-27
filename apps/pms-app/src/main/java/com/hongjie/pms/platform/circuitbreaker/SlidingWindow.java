@@ -77,12 +77,8 @@ public class SlidingWindow {
             stat.maxResponseTime = Math.max(stat.maxResponseTime, bucket.maxResponseTime);
         }
 
-        stat.errorRate = stat.totalCount > 0
-                ? (double) stat.failureCount / stat.totalCount
-                : 0.0;
-        stat.avgResponseTime = stat.totalCount > 0
-                ? stat.totalResponseTime / stat.totalCount
-                : 0;
+        stat.errorRate = stat.totalCount > 0 ? (double) stat.failureCount / stat.totalCount : 0.0;
+        stat.avgResponseTime = stat.totalCount > 0 ? stat.totalResponseTime / stat.totalCount : 0;
 
         return stat;
     }
@@ -108,8 +104,14 @@ public class SlidingWindow {
 
         @Override
         public String toString() {
-            return String.format("总请求=%d, 成功=%d, 失败=%d, 错误率=%.2f%%, 平均耗时=%dms, 最大耗时=%dms",
-                    totalCount, successCount, failureCount, errorRate * 100, avgResponseTime, maxResponseTime);
+            return String.format(
+                    "总请求=%d, 成功=%d, 失败=%d, 错误率=%.2f%%, 平均耗时=%dms, 最大耗时=%dms",
+                    totalCount,
+                    successCount,
+                    failureCount,
+                    errorRate * 100,
+                    avgResponseTime,
+                    maxResponseTime);
         }
     }
 }

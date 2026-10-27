@@ -7,8 +7,7 @@ public class EmailUtils {
 
     // 更严谨的邮箱正则
     private static final String EMAIL_REGEX =
-            "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@" +
-                    "(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
+            "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@" + "(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
 
     // 备用简单版（您的版本）
     private static final String SIMPLE_EMAIL_REGEX =
@@ -78,9 +77,7 @@ public class EmailUtils {
             return name.charAt(0) + "***@" + domain;
         }
 
-        String maskedName = name.charAt(0) +
-                "***" +
-                name.charAt(name.length() - 1);
+        String maskedName = name.charAt(0) + "***" + name.charAt(name.length() - 1);
         return maskedName + "@" + domain;
     }
 }

@@ -11,5 +11,4 @@ public class CommentLikeTypes {
     public static final String DAILY = "daily";
 
     public static final String COMMENT_REPLY = "comment_reply";
-
 }

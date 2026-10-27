@@ -15,10 +15,9 @@ public class CommentRespDto {
     private UserSimpleDto user;
     private String content;
     private Integer likeCount;
-    private Boolean isLiked;      // 当前用户是否点赞
+    private Boolean isLiked; // 当前用户是否点赞
     private LocalDateTime createTime;
     private UserSimpleDto replyTo;
     private Long parentId;
-    private List<CommentRespDto> replies;  // 子评论列表
-
+    private List<CommentRespDto> replies; // 子评论列表
 }

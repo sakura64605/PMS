@@ -52,7 +52,11 @@ public class ActivityAuditHandler implements AuditTargetHandler {
             } else if (AuditStatus.REJECTED.getCode().equals(auditStatus)) {
                 activity.setStatus(3);
                 messageService.sendAuditRejectNotification(
-                        activity.getUserId(), activity.getTitle(), activity.getId(), "activity", rejectReason);
+                        activity.getUserId(),
+                        activity.getTitle(),
+                        activity.getId(),
+                        "activity",
+                        rejectReason);
             }
             activityMapper.updateById(activity);
             activityCache.evictAfterCommit(targetId);

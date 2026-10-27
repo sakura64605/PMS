@@ -5,5 +5,4 @@ import com.hongjie.pms.modules.content.petpost.infrastructure.persistence.entity
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface FavoriteRecordMapper extends BaseMapper<FavoriteRecord> {
-}
+public interface FavoriteRecordMapper extends BaseMapper<FavoriteRecord> {}

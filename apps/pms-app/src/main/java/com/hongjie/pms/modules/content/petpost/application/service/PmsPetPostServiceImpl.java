@@ -113,7 +113,8 @@ public class PmsPetPostServiceImpl implements PetPostService {
     private final FeedService feedService;
     private final AuditService auditService;
     private final ApplicationEventPublisher eventPublisher;
-    private final com.hongjie.pms.modules.governance.audit.application.AuditCommandService auditCommands;
+    private final com.hongjie.pms.modules.governance.audit.application.AuditCommandService
+            auditCommands;
 
     // ==================== 发布 / 修改 ====================
 
@@ -133,9 +134,10 @@ public class PmsPetPostServiceImpl implements PetPostService {
         post.setPetAgeText(request.getPetAge());
         post.setPetBreed(request.getPetType());
         // 物种分类：前端显式传则用之，否则按品种推导（复用老的分类器，行为不变）
-        post.setPetCategory(request.getPetCategory() != null
-                ? request.getPetCategory()
-                : PetCategoryClassifier.classify(request.getPetType()));
+        post.setPetCategory(
+                request.getPetCategory() != null
+                        ? request.getPetCategory()
+                        : PetCategoryClassifier.classify(request.getPetType()));
         post.setPetName(request.getPetName());
         post.setContactPhone(request.getContactPhone());
         post.setContactWechat(request.getContactWechat());
@@ -153,17 +155,25 @@ public class PmsPetPostServiceImpl implements PetPostService {
         if (postType != null) {
             User publisher = userMapper.selectById(userId);
             // 审核类型码沿用 PostType（写的是 audit_record.target_type 的历史方言 adopt/help）
-            String auditTargetType = postType == PetPostType.ADOPT
-                    ? PostType.ADOPT.getCode()
-                    : PostType.HELP.getCode();
+            String auditTargetType =
+                    postType == PetPostType.ADOPT
+                            ? PostType.ADOPT.getCode()
+                            : PostType.HELP.getCode();
             auditService.submit(auditTargetType, post.getId());
-            feedService.pushToFans(userId, post.getId(), auditTargetType,
-                    post.getTitle(), post.getImages(),
-                    publisher.getUserName(), publisher.getAvatar(), post.getCreateTime());
+            feedService.pushToFans(
+                    userId,
+                    post.getId(),
+                    auditTargetType,
+                    post.getTitle(),
+                    post.getImages(),
+                    publisher.getUserName(),
+                    publisher.getAvatar(),
+                    post.getCreateTime());
         }
 
         // 迁移期适配：老事件只接受老实体，两者指向同一张表，投影后语义一致
-        eventPublisher.publishEvent(new PetPostPublishedEvent(this, converter.toLegacyEntity(post)));
+        eventPublisher.publishEvent(
+                new PetPostPublishedEvent(this, converter.toLegacyEntity(post)));
 
         return converter.toView(new PetPostWithAuthor(post, null, false, false));
     }
@@ -173,8 +183,11 @@ public class PmsPetPostServiceImpl implements PetPostService {
     public PetListResponseDto update(PetPostRequestDto request) {
         Long userId = UserContext.getUserId();
 
-        PmsPetPost post = petPostMapper.selectOne(new LambdaQueryWrapper<PmsPetPost>()
-                .eq(PmsPetPost::getId, request.getId()).last("FOR UPDATE"));
+        PmsPetPost post =
+                petPostMapper.selectOne(
+                        new LambdaQueryWrapper<PmsPetPost>()
+                                .eq(PmsPetPost::getId, request.getId())
+                                .last("FOR UPDATE"));
         if (post == null || !post.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.PET_NOT_FOUND);
         }
@@ -234,10 +247,7 @@ public class PmsPetPostServiceImpl implements PetPostService {
         try {
             String url = ossUtils.uploadAvatar(file, userId);
             log.info("图片上传成功: {}", url);
-            return AvatarUploadResponse.builder()
-                    .avatarUrl(url)
-                    .message("图片上传成功")
-                    .build();
+            return AvatarUploadResponse.builder().avatarUrl(url).message("图片上传成功").build();
         } catch (Exception e) {
             log.error("图片上传失败: {}", e.getMessage(), e);
             throw new BusinessException(ErrorCode.UPLOAD_FAIL);
@@ -252,11 +262,11 @@ public class PmsPetPostServiceImpl implements PetPostService {
             minRequestAmount = 5,
             errorRateThreshold = 0.5,
             openDurationSeconds = 10,
-            fallbackMethod = "fallbackGetPetList"
-    )
+            fallbackMethod = "fallbackGetPetList")
     @Override
     public IPage<PetListResponseDto> list(PetQueryRequestDto queryDto) {
-        PageQuery pageQuery = PageQuery.of(asLong(queryDto.getPageNum()), asLong(queryDto.getPageSize()));
+        PageQuery pageQuery =
+                PageQuery.of(asLong(queryDto.getPageNum()), asLong(queryDto.getPageSize()));
         Page<PmsPetPost> page = pageQuery.toPage();
 
         IPage<PmsPetPost> postPage = petPostMapper.selectPage(page, buildWrapper(queryDto));
@@ -265,15 +275,18 @@ public class PmsPetPostServiceImpl implements PetPostService {
         }
 
         Enrichment enrichment = enrich(postPage.getRecords());
-        return PageBridge.toIPage(PageBridge.of(postPage)
-                .map(post -> converter.toView(enrichment.of(post))));
+        return PageBridge.toIPage(
+                PageBridge.of(postPage).map(post -> converter.toView(enrichment.of(post))));
     }
 
     /** 熔断降级：返回空页，与老实现一致 */
     public IPage<PetListResponseDto> fallbackGetPetList(PetQueryRequestDto queryDto) {
-        log.warn("宠物列表熔断降级: pageNum={}, pageSize={}", queryDto.getPageNum(), queryDto.getPageSize());
-        return PageBridge.toIPage(PageResult.empty(
-                PageQuery.of(asLong(queryDto.getPageNum()), asLong(queryDto.getPageSize()))));
+        log.warn(
+                "宠物列表熔断降级: pageNum={}, pageSize={}", queryDto.getPageNum(), queryDto.getPageSize());
+        return PageBridge.toIPage(
+                PageResult.empty(
+                        PageQuery.of(
+                                asLong(queryDto.getPageNum()), asLong(queryDto.getPageSize()))));
     }
 
     public IPage<PetListResponseDto> fallbackGetPetList(PetQueryRequestDto queryDto, Exception e) {
@@ -287,8 +300,7 @@ public class PmsPetPostServiceImpl implements PetPostService {
             minRequestAmount = 5,
             errorRateThreshold = 0.5,
             openDurationSeconds = 10,
-            fallbackMethod = "fallbackGetPetDetail"
-    )
+            fallbackMethod = "fallbackGetPetDetail")
     @Override
     public PetDetailDto detail(Long id, Long currentUserId) {
         String cacheKey = detailCacheKey(id);
@@ -297,12 +309,15 @@ public class PmsPetPostServiceImpl implements PetPostService {
         // 修复：老实现先调 post.getAuditStatus() 再判 null，帖子不存在时抛 NPE（500）
         Guard.requireFound(post, ErrorCode.PET_NOT_FOUND, id);
         // 修复：老实现不检查删除态，知道 id 就能读到已删除的帖子
-        Guard.requireTrue(!PetPostStatus.DELETED.getCode().equals(post.getStatus()),
-                ErrorCode.PET_NOT_FOUND, "帖子不存在: " + id);
+        Guard.requireTrue(
+                !PetPostStatus.DELETED.getCode().equals(post.getStatus()),
+                ErrorCode.PET_NOT_FOUND,
+                "帖子不存在: " + id);
 
         AuditStatus auditStatus = CodableEnum.of(AuditStatus.class, post.getAuditStatus());
-        boolean canPreview = currentUserId != null &&
-                (post.getUserId().equals(currentUserId) || UserContext.isAdmin());
+        boolean canPreview =
+                currentUserId != null
+                        && (post.getUserId().equals(currentUserId) || UserContext.isAdmin());
         if (!canPreview && auditStatus == AuditStatus.REJECTED) {
             throw new BusinessException(ErrorCode.AUDIT_REJECT);
         }
@@ -313,7 +328,8 @@ public class PmsPetPostServiceImpl implements PetPostService {
         boolean publicDetail = auditStatus == AuditStatus.APPROVED;
         if (publicDetail) {
             PetDetailDto cached = distributedCache.get(cacheKey, PetDetailDto.class);
-            if (cached != null && java.util.Objects.equals(cached.getUpdateTime(), post.getUpdateTime())) {
+            if (cached != null
+                    && java.util.Objects.equals(cached.getUpdateTime(), post.getUpdateTime())) {
                 cached.setAuditStatus(post.getAuditStatus());
                 cached.setStatus(post.getStatus());
                 cached.setLikeCount(post.getLikeCount());
@@ -328,7 +344,8 @@ public class PmsPetPostServiceImpl implements PetPostService {
         UserSimpleDto author = loadAuthor(post.getUserId(), currentUserId);
 
         // 浏览计数：仅对已发布的、且不是自己发的帖子累加（与老实现一致）
-        if (publicDetail && PetPostStatus.PUBLISHED.getCode().equals(post.getStatus())
+        if (publicDetail
+                && PetPostStatus.PUBLISHED.getCode().equals(post.getStatus())
                 && !post.getUserId().equals(currentUserId)) {
             petPostMapper.incrementViewCount(id);
         }
@@ -336,7 +353,9 @@ public class PmsPetPostServiceImpl implements PetPostService {
         // 互动状态先留 null（与老实现一致：匿名访问时不计算），登录后再由 fillViewerState 填充
         PetDetailDto detail = converter.toDetail(new PetPostWithAuthor(post, author, null, null));
         fillViewerState(detail, id, currentUserId);
-        if (publicDetail) distributedCache.put(cacheKey, detail, DETAIL_CACHE_SECONDS, java.util.concurrent.TimeUnit.SECONDS);
+        if (publicDetail)
+            distributedCache.put(
+                    cacheKey, detail, DETAIL_CACHE_SECONDS, java.util.concurrent.TimeUnit.SECONDS);
         return detail;
     }
 
@@ -362,35 +381,48 @@ public class PmsPetPostServiceImpl implements PetPostService {
         Long userId = UserContext.getUserId();
         PageQuery pageQuery = PageQuery.of(asLong(pageNum), asLong(pageSize));
 
-        IPage<FavoriteRecord> favoritePage = favoriteRecordMapper.selectPage(
-                pageQuery.toPage(),
-                new LambdaQueryWrapper<FavoriteRecord>()
-                        .eq(FavoriteRecord::getUserId, userId)
-                        .orderByDesc(FavoriteRecord::getCreateTime));
+        IPage<FavoriteRecord> favoritePage =
+                favoriteRecordMapper.selectPage(
+                        pageQuery.toPage(),
+                        new LambdaQueryWrapper<FavoriteRecord>()
+                                .eq(FavoriteRecord::getUserId, userId)
+                                .orderByDesc(FavoriteRecord::getCreateTime));
 
         if (favoritePage.getRecords().isEmpty()) {
             return PageBridge.toIPage(PageResult.empty(pageQuery));
         }
 
-        List<Long> postIds = favoritePage.getRecords().stream()
-                .map(FavoriteRecord::getTargetId)
-                .toList();
+        List<Long> postIds =
+                favoritePage.getRecords().stream().map(FavoriteRecord::getTargetId).toList();
 
         // 按收藏记录的顺序返回：一条收藏对应一篇帖子，用 Map 找回原对象
-        Map<Long, PmsPetPost> postMap = petPostMapper.selectBatchIds(postIds).stream()
-                .collect(Collectors.toMap(PmsPetPost::getId, post -> post));
-        Map<Long, UserSimpleDto> authorMap = loadAuthors(
-                postMap.values().stream().map(PmsPetPost::getUserId).distinct().toList());
+        Map<Long, PmsPetPost> postMap =
+                petPostMapper.selectBatchIds(postIds).stream()
+                        .collect(Collectors.toMap(PmsPetPost::getId, post -> post));
+        Map<Long, UserSimpleDto> authorMap =
+                loadAuthors(
+                        postMap.values().stream().map(PmsPetPost::getUserId).distinct().toList());
 
-        List<PetListResponseDto> records = favoritePage.getRecords().stream()
-                .map(record -> postMap.get(record.getTargetId()))
-                .filter(java.util.Objects::nonNull)
-                .map(post -> converter.toView(new PetPostWithAuthor(
-                        post, authorMap.get(post.getUserId()), true, false)))
-                .toList();
+        List<PetListResponseDto> records =
+                favoritePage.getRecords().stream()
+                        .map(record -> postMap.get(record.getTargetId()))
+                        .filter(java.util.Objects::nonNull)
+                        .map(
+                                post ->
+                                        converter.toView(
+                                                new PetPostWithAuthor(
+                                                        post,
+                                                        authorMap.get(post.getUserId()),
+                                                        true,
+                                                        false)))
+                        .toList();
 
-        return PageBridge.toIPage(PageResult.of(
-                records, favoritePage.getTotal(), favoritePage.getCurrent(), favoritePage.getSize()));
+        return PageBridge.toIPage(
+                PageResult.of(
+                        records,
+                        favoritePage.getTotal(),
+                        favoritePage.getCurrent(),
+                        favoritePage.getSize()));
     }
 
     // ==================== 状态流转 ====================
@@ -481,12 +513,15 @@ public class PmsPetPostServiceImpl implements PetPostService {
         requirePost(id);
 
         Long userId = UserContext.getUserId();
-        String targetType = targetTypeCodec.write(BizTargetType.PET_POST, LegacyDialect.INTERACTION);
+        String targetType =
+                targetTypeCodec.write(BizTargetType.PET_POST, LegacyDialect.INTERACTION);
 
-        FavoriteRecord existing = favoriteRecordMapper.selectOne(new QueryWrapper<FavoriteRecord>()
-                .eq("user_id", userId)
-                .eq("target_id", id)
-                .eq("target_type", targetType));
+        FavoriteRecord existing =
+                favoriteRecordMapper.selectOne(
+                        new QueryWrapper<FavoriteRecord>()
+                                .eq("user_id", userId)
+                                .eq("target_id", id)
+                                .eq("target_type", targetType));
 
         if (existing != null) {
             favoriteRecordMapper.deleteById(existing);
@@ -494,12 +529,13 @@ public class PmsPetPostServiceImpl implements PetPostService {
             return FavoriteResponseDto.builder().isFavorited(false).build();
         }
 
-        favoriteRecordMapper.insert(FavoriteRecord.builder()
-                .userId(userId)
-                .targetId(id)
-                .targetType(targetType)
-                .createTime(LocalDateTime.now())
-                .build());
+        favoriteRecordMapper.insert(
+                FavoriteRecord.builder()
+                        .userId(userId)
+                        .targetId(id)
+                        .targetType(targetType)
+                        .createTime(LocalDateTime.now())
+                        .build());
         log.info("收藏成功: postId={}", id);
         return FavoriteResponseDto.builder().isFavorited(true).build();
     }
@@ -530,8 +566,11 @@ public class PmsPetPostServiceImpl implements PetPostService {
         }
         if (StringUtils.hasText(query.getKeyword())) {
             String keyword = query.getKeyword();
-            wrapper.and(w -> w.like(PmsPetPost::getTitle, keyword)
-                    .or().like(PmsPetPost::getContent, keyword));
+            wrapper.and(
+                    w ->
+                            w.like(PmsPetPost::getTitle, keyword)
+                                    .or()
+                                    .like(PmsPetPost::getContent, keyword));
         }
         if (query.getAuditStatus() != null) {
             wrapper.eq(PmsPetPost::getAuditStatus, query.getAuditStatus());
@@ -553,17 +592,20 @@ public class PmsPetPostServiceImpl implements PetPostService {
      * 例如公开列表包含「已下架」看起来可疑，但前端可能依赖它做展示，
      * 改动它属于产品决策而非重构。
      */
-    private void applyStatusScope(LambdaQueryWrapper<PmsPetPost> wrapper, PetQueryRequestDto query) {
+    private void applyStatusScope(
+            LambdaQueryWrapper<PmsPetPost> wrapper, PetQueryRequestDto query) {
         if (query.getStatus() != null) {
             wrapper.eq(PmsPetPost::getStatus, query.getStatus());
         } else if (query.getUserId() != null) {
-            wrapper.in(PmsPetPost::getStatus,
+            wrapper.in(
+                    PmsPetPost::getStatus,
                     PetPostStatus.PENDING_AUDIT.getCode(),
                     PetPostStatus.PUBLISHED.getCode(),
                     PetPostStatus.COMPLETED.getCode(),
                     PetPostStatus.OFFLINE.getCode());
         } else {
-            wrapper.in(PmsPetPost::getStatus,
+            wrapper.in(
+                    PmsPetPost::getStatus,
                     PetPostStatus.PUBLISHED.getCode(),
                     PetPostStatus.COMPLETED.getCode(),
                     PetPostStatus.OFFLINE.getCode());
@@ -596,27 +638,38 @@ public class PmsPetPostServiceImpl implements PetPostService {
 
     private Enrichment enrich(List<PmsPetPost> posts) {
         Long viewerId = UserContext.getUserId();
-        Map<Long, UserSimpleDto> authors = loadAuthors(
-                posts.stream().map(PmsPetPost::getUserId).distinct().toList());
+        Map<Long, UserSimpleDto> authors =
+                loadAuthors(posts.stream().map(PmsPetPost::getUserId).distinct().toList());
 
         if (viewerId == null) {
             return new Enrichment(authors, Collections.emptySet(), Collections.emptySet());
         }
 
         List<Long> postIds = posts.stream().map(PmsPetPost::getId).toList();
-        String targetType = targetTypeCodec.write(BizTargetType.PET_POST, LegacyDialect.INTERACTION);
+        String targetType =
+                targetTypeCodec.write(BizTargetType.PET_POST, LegacyDialect.INTERACTION);
 
-        Set<Long> favorited = favoriteRecordMapper.selectList(new LambdaQueryWrapper<FavoriteRecord>()
-                        .eq(FavoriteRecord::getUserId, viewerId)
-                        .eq(FavoriteRecord::getTargetType, targetType)
-                        .in(FavoriteRecord::getTargetId, postIds))
-                .stream().map(FavoriteRecord::getTargetId).collect(Collectors.toSet());
+        Set<Long> favorited =
+                favoriteRecordMapper
+                        .selectList(
+                                new LambdaQueryWrapper<FavoriteRecord>()
+                                        .eq(FavoriteRecord::getUserId, viewerId)
+                                        .eq(FavoriteRecord::getTargetType, targetType)
+                                        .in(FavoriteRecord::getTargetId, postIds))
+                        .stream()
+                        .map(FavoriteRecord::getTargetId)
+                        .collect(Collectors.toSet());
 
-        Set<Long> liked = likeRecordMapper.selectList(new LambdaQueryWrapper<LikeRecord>()
-                        .eq(LikeRecord::getUserId, viewerId)
-                        .eq(LikeRecord::getTargetType, targetType)
-                        .in(LikeRecord::getTargetId, postIds))
-                .stream().map(LikeRecord::getTargetId).collect(Collectors.toSet());
+        Set<Long> liked =
+                likeRecordMapper
+                        .selectList(
+                                new LambdaQueryWrapper<LikeRecord>()
+                                        .eq(LikeRecord::getUserId, viewerId)
+                                        .eq(LikeRecord::getTargetType, targetType)
+                                        .in(LikeRecord::getTargetId, postIds))
+                        .stream()
+                        .map(LikeRecord::getTargetId)
+                        .collect(Collectors.toSet());
 
         return new Enrichment(authors, favorited, liked);
     }
@@ -637,9 +690,11 @@ public class PmsPetPostServiceImpl implements PetPostService {
         UserSimpleDto dto = toSimpleDto(user);
         // 与老实现一致：只在确实关注时置 true，未关注时保持 null
         if (currentUserId != null) {
-            Follow follow = followMapper.selectOne(new LambdaQueryWrapper<Follow>()
-                    .eq(Follow::getFollowerId, currentUserId)
-                    .eq(Follow::getFollowingId, authorId));
+            Follow follow =
+                    followMapper.selectOne(
+                            new LambdaQueryWrapper<Follow>()
+                                    .eq(Follow::getFollowerId, currentUserId)
+                                    .eq(Follow::getFollowingId, authorId));
             if (follow != null) {
                 dto.setIsFollow(true);
             }
@@ -663,15 +718,22 @@ public class PmsPetPostServiceImpl implements PetPostService {
         if (currentUserId == null) {
             return;
         }
-        String targetType = targetTypeCodec.write(BizTargetType.PET_POST, LegacyDialect.INTERACTION);
-        detail.setIsLiked(likeRecordMapper.selectCount(new LambdaQueryWrapper<LikeRecord>()
-                .eq(LikeRecord::getUserId, currentUserId)
-                .eq(LikeRecord::getTargetId, postId)
-                .eq(LikeRecord::getTargetType, targetType)) > 0);
-        detail.setIsFavorite(favoriteRecordMapper.selectCount(new LambdaQueryWrapper<FavoriteRecord>()
-                .eq(FavoriteRecord::getUserId, currentUserId)
-                .eq(FavoriteRecord::getTargetId, postId)
-                .eq(FavoriteRecord::getTargetType, targetType)) > 0);
+        String targetType =
+                targetTypeCodec.write(BizTargetType.PET_POST, LegacyDialect.INTERACTION);
+        detail.setIsLiked(
+                likeRecordMapper.selectCount(
+                                new LambdaQueryWrapper<LikeRecord>()
+                                        .eq(LikeRecord::getUserId, currentUserId)
+                                        .eq(LikeRecord::getTargetId, postId)
+                                        .eq(LikeRecord::getTargetType, targetType))
+                        > 0);
+        detail.setIsFavorite(
+                favoriteRecordMapper.selectCount(
+                                new LambdaQueryWrapper<FavoriteRecord>()
+                                        .eq(FavoriteRecord::getUserId, currentUserId)
+                                        .eq(FavoriteRecord::getTargetId, postId)
+                                        .eq(FavoriteRecord::getTargetType, targetType))
+                        > 0);
     }
 
     private void deleteFromOss(List<String> images) {
@@ -708,9 +770,8 @@ public class PmsPetPostServiceImpl implements PetPostService {
     }
 
     /** 已装配好的关联数据，避免逐条查询 */
-    private record Enrichment(Map<Long, UserSimpleDto> authors,
-                              Set<Long> favoritedIds,
-                              Set<Long> likedIds) {
+    private record Enrichment(
+            Map<Long, UserSimpleDto> authors, Set<Long> favoritedIds, Set<Long> likedIds) {
 
         PetPostWithAuthor of(PmsPetPost post) {
             return new PetPostWithAuthor(

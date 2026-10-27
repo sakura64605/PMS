@@ -16,7 +16,8 @@ public interface UserInboxMapper extends BaseMapper<UserInbox> {
      * @param readTime 阅读时间
      * @return 更新成功的条数
      */
-    int batchMarkAsReadList(@Param("ids") List<Long> ids, @Param("readTime") LocalDateTime readTime);
+    int batchMarkAsReadList(
+            @Param("ids") List<Long> ids, @Param("readTime") LocalDateTime readTime);
 
     /**
      * 批量标记消息为已读（使用 CASE WHEN，性能更好）
@@ -31,5 +32,6 @@ public interface UserInboxMapper extends BaseMapper<UserInbox> {
      * @param expireTime 过期时间
      * @return 删除条数
      */
-    int batchDeleteOldReadMessages(@Param("userId") Long userId, @Param("expireTime") LocalDateTime expireTime);
+    int batchDeleteOldReadMessages(
+            @Param("userId") Long userId, @Param("expireTime") LocalDateTime expireTime);
 }

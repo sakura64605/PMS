@@ -36,7 +36,7 @@ public class TokenUsageTracker {
         private int inputTokens;
         private int outputTokens;
         private int totalTokens;
-        private int llmCalls;   // 本次请求触发的 LLM 调用总次数（判断 ReAct 是否真正迭代的关键）
+        private int llmCalls; // 本次请求触发的 LLM 调用总次数（判断 ReAct 是否真正迭代的关键）
         private int toolRounds; // 其中"工具决策轮"次数：该次响应请求了工具调用
 
         public int inputTokens() {

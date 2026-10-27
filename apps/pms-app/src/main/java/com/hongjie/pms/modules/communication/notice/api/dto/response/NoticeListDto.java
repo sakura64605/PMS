@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-@NoArgsConstructor  // 添加这个
+@NoArgsConstructor // 添加这个
 @AllArgsConstructor // 添加这个
 public class NoticeListDto {
     private Long id;
@@ -20,5 +20,5 @@ public class NoticeListDto {
     private Integer isTop;
     private LocalDateTime publishTime;
     private LocalDateTime expireTime;
-    private Boolean isRead;        // 当前用户是否已读
+    private Boolean isRead; // 当前用户是否已读
 }

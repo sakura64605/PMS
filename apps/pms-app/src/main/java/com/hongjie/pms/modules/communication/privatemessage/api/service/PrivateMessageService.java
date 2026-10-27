@@ -21,9 +21,11 @@ public interface PrivateMessageService {
     /**
      * 获取聊天记录
      */
-    IPage<MessageDto> getMessageList(Long userId, Long conversationId, Integer pageNum, Integer pageSize);
+    IPage<MessageDto> getMessageList(
+            Long userId, Long conversationId, Integer pageNum, Integer pageSize);
 
-    MessageCursorPage getMessageHistory(Long userId, Long conversationId, Long beforeId, Long afterId, Integer pageSize);
+    MessageCursorPage getMessageHistory(
+            Long userId, Long conversationId, Long beforeId, Long afterId, Integer pageSize);
 
     /**
      * 获取未读消息总数

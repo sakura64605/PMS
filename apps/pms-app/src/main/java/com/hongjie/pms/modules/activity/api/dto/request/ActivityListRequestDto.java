@@ -28,5 +28,4 @@ public class ActivityListRequestDto {
     private String order;
 
     private String location;
-
 }

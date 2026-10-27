@@ -21,7 +21,8 @@ public interface TopicMapper extends BaseMapper<Topic> {
     /**
      * 搜索话题
      */
-    @Select("SELECT * FROM topic WHERE status = 1 AND name LIKE CONCAT('%', #{keyword}, '%') LIMIT #{limit}")
+    @Select(
+            "SELECT * FROM topic WHERE status = 1 AND name LIKE CONCAT('%', #{keyword}, '%') LIMIT #{limit}")
     List<Topic> searchTopics(@Param("keyword") String keyword, @Param("limit") int limit);
 
     /**

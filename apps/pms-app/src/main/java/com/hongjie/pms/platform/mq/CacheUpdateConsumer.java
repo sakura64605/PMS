@@ -16,10 +16,9 @@ import org.springframework.stereotype.Component;
 @RocketMQMessageListener(
         topic = "cache-update-topic",
         selectorExpression = "cache",
-        consumerGroup = "cache-update-consumer-group"
-)
+        consumerGroup = "cache-update-consumer-group")
 public class CacheUpdateConsumer implements RocketMQListener<String> {
-    
+
     private final RedisTemplate<String, Object> redisTemplate;
     private final RedisScanUtil redisScanUtil;
 
@@ -28,12 +27,12 @@ public class CacheUpdateConsumer implements RocketMQListener<String> {
         try {
             CacheUpdateMessage msg = JSON.parseObject(message, CacheUpdateMessage.class);
             log.debug("收到缓存更新消息: {}", msg);
-            
+
             // 延迟处理
             if (msg.getDelayMillis() != null && msg.getDelayMillis() > 0) {
                 Thread.sleep(msg.getDelayMillis());
             }
-            
+
             if ("EVICT".equals(msg.getOperation())) {
                 if (msg.isAllEntries()) {
                     // 清除整个缓存区域（使用 SCAN 替代 keys()，避免阻塞 Redis）

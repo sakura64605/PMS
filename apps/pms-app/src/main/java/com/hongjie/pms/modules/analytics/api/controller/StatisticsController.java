@@ -55,22 +55,33 @@ public class StatisticsController {
                 return CommonResult.success(statisticsService.getDailyStatistics(date));
 
             case "weekly":
-                LocalDate weekDate = queryDto.getDate() != null ? queryDto.getDate() : calendar.today();
+                LocalDate weekDate =
+                        queryDto.getDate() != null ? queryDto.getDate() : calendar.today();
                 return CommonResult.success(statisticsService.getWeeklyStatistics(weekDate));
 
             case "monthly":
-                String month = queryDto.getMonth() != null ? queryDto.getMonth()
-                        : calendar.today().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+                String month =
+                        queryDto.getMonth() != null
+                                ? queryDto.getMonth()
+                                : calendar.today().format(DateTimeFormatter.ofPattern("yyyy-MM"));
                 return CommonResult.success(statisticsService.getMonthlyStatistics(month));
 
             case "yearly":
-                int year = queryDto.getYear() != null ? queryDto.getYear() : calendar.today().getYear();
+                int year =
+                        queryDto.getYear() != null
+                                ? queryDto.getYear()
+                                : calendar.today().getYear();
                 return CommonResult.success(statisticsService.getYearlyStatistics(year));
 
             case "range":
-                LocalDate startDate = queryDto.getStartDate() != null ? queryDto.getStartDate() : calendar.today().minusDays(7);
-                LocalDate endDate = queryDto.getEndDate() != null ? queryDto.getEndDate() : calendar.today();
-                return CommonResult.success(statisticsService.getRangeStatistics(startDate, endDate));
+                LocalDate startDate =
+                        queryDto.getStartDate() != null
+                                ? queryDto.getStartDate()
+                                : calendar.today().minusDays(7);
+                LocalDate endDate =
+                        queryDto.getEndDate() != null ? queryDto.getEndDate() : calendar.today();
+                return CommonResult.success(
+                        statisticsService.getRangeStatistics(startDate, endDate));
 
             default:
                 throw new BusinessException(ErrorCode.PARAM_ERROR, "不支持的统计类型: " + type);

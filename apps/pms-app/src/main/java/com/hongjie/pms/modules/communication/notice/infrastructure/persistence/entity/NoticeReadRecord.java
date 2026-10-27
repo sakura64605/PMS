@@ -10,10 +10,10 @@ public class NoticeReadRecord {
 
     @TableId(type = IdType.AUTO)
     private Long id;
-    
+
     private Long noticeId;
     private Long userId;
-    
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime readTime;
 }

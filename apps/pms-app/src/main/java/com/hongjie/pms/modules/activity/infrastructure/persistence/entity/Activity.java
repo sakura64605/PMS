@@ -109,5 +109,4 @@ public class Activity {
      * 删除状态
      */
     private Integer deleted;
-
 }

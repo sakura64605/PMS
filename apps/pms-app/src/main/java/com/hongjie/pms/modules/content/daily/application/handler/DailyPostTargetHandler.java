@@ -51,6 +51,7 @@ public class DailyPostTargetHandler implements Commentable {
     }
 
     private DailyPost load(Long targetId) {
-        return Guard.requireFound(dailyPostMapper.selectById(targetId), ErrorCode.NOT_FOUND, targetId);
+        return Guard.requireFound(
+                dailyPostMapper.selectById(targetId), ErrorCode.NOT_FOUND, targetId);
     }
 }

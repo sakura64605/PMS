@@ -37,7 +37,11 @@ public class PetPostDtoConverter implements EntityConverter<PetPostWithAuthor, P
                 .id(post.getId())
                 .type(post.getType())
                 .title(post.getTitle())
-                .content(post.getContent() == null ? null : post.getContent().substring(0, Math.min(200, post.getContent().length())))
+                .content(
+                        post.getContent() == null
+                                ? null
+                                : post.getContent()
+                                        .substring(0, Math.min(200, post.getContent().length())))
                 .address(post.getAddress())
                 .petName(post.getPetName())
                 .petType(post.getPetBreed())
@@ -87,7 +91,6 @@ public class PetPostDtoConverter implements EntityConverter<PetPostWithAuthor, P
                 .isFavorite(source.favoritedByViewer())
                 .build();
     }
-
 
     /**
      * 新模型 -> 老实体投影。

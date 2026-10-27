@@ -11,9 +11,9 @@ import lombok.RequiredArgsConstructor;
 @EnableWebSocket
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketConfigurer {
-    
+
     private final WebSocketHandler webSocketHandler;
-    
+
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         // 消息通知 WebSocket
@@ -22,7 +22,5 @@ public class WebSocketConfig implements WebSocketConfigurer {
         registry.addHandler(webSocketHandler, "/pet-system/ws")
                 .setAllowedOriginPatterns("*")
                 .withSockJS();
-
-
     }
 }

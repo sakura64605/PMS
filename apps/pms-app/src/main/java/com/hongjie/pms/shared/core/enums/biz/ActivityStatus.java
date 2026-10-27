@@ -6,7 +6,6 @@ import com.hongjie.pms.shared.core.enums.CodableEnum;
  * 活动状态，对应 {@code activity.status}：0-报名中 1-进行中 2-已结束 3-已下架。
  */
 public enum ActivityStatus implements CodableEnum<Integer> {
-
     SIGNUP_OPEN(0, "报名中"),
     ONGOING(1, "进行中"),
     FINISHED(2, "已结束"),

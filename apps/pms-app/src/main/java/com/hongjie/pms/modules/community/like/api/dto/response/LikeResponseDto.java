@@ -6,6 +6,6 @@ import lombok.Data;
 @Data
 @Builder
 public class LikeResponseDto {
-    private Boolean isLiked;    // 当前是否点赞
-    private Integer likeCount;  // 最新点赞数
+    private Boolean isLiked; // 当前是否点赞
+    private Integer likeCount; // 最新点赞数
 }

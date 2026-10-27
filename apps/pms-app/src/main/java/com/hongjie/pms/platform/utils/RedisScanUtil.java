@@ -44,17 +44,23 @@ public class RedisScanUtil {
     public Set<String> scanKeys(String pattern, long batchSize) {
         Set<String> keys = new HashSet<>();
         try {
-            ScanOptions options = ScanOptions.scanOptions()
-                    .match(pattern)
-                    .count(batchSize)
-                    .build();
+            ScanOptions options = ScanOptions.scanOptions().match(pattern).count(batchSize).build();
 
-            redisTemplate.execute((RedisCallback<Void>) connection -> {
-                try (var cursor = connection.keyCommands().scan(options)) {
-                    cursor.forEachRemaining(key -> keys.add(new String((byte[]) key, java.nio.charset.StandardCharsets.UTF_8)));
-                }
-                return null;
-            });
+            redisTemplate.execute(
+                    (RedisCallback<Void>)
+                            connection -> {
+                                try (var cursor = connection.keyCommands().scan(options)) {
+                                    cursor.forEachRemaining(
+                                            key ->
+                                                    keys.add(
+                                                            new String(
+                                                                    (byte[]) key,
+                                                                    java.nio.charset
+                                                                            .StandardCharsets
+                                                                            .UTF_8)));
+                                }
+                                return null;
+                            });
         } catch (Exception e) {
             log.error("SCAN扫描key失败, pattern={}", pattern, e);
             throw new IllegalStateException("Redis cache scan failed: " + pattern, e);

@@ -10,7 +10,7 @@ import java.util.List;
 public class DailyPostPublishedEvent extends ApplicationEvent {
     private final DailyPost dailyPost;
     private final List<Long> topicIds;
-    
+
     public DailyPostPublishedEvent(Object source, DailyPost dailyPost, List<Long> topicIds) {
         super(source);
         this.dailyPost = dailyPost;

@@ -12,12 +12,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PetCategoryAdminController {
     private final PetCategories categories;
+
     @GetMapping("/list")
-    public CommonResult<List<PetCategory>> list() { return CommonResult.success(categories.list()); }
+    public CommonResult<List<PetCategory>> list() {
+        return CommonResult.success(categories.list());
+    }
+
     @PostMapping("/create")
     public CommonResult<PetCategory> create(@RequestBody PetCategory request) {
         return CommonResult.success(categories.create(request));
     }
+
     @PutMapping("/update")
     public CommonResult<String> update(@RequestBody PetCategory request) {
         return CommonResult.success(categories.update(request));

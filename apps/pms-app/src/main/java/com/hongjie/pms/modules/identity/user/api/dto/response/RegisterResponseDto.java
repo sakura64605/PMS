@@ -56,5 +56,4 @@ public class RegisterResponseDto {
      * 角色
      */
     private Integer role;
-
 }

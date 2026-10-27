@@ -1,4 +1,3 @@
 package com.hongjie.pms.platform.idempotent.handler;
 
-public interface IdempotentSpELService extends IdempotentExecuteHandler {
-}
+public interface IdempotentSpELService extends IdempotentExecuteHandler {}

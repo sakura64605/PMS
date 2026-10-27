@@ -104,17 +104,22 @@ public class CircuitBreaker {
             case ERROR_RATE:
                 if (stat.errorRate >= config.getErrorRateThreshold()) {
                     shouldOpen = true;
-                    reason = String.format("错误率=%.2f%% >= 阈值=%.2f%%",
-                        stat.errorRate * 100, config.getErrorRateThreshold() * 100);
+                    reason =
+                            String.format(
+                                    "错误率=%.2f%% >= 阈值=%.2f%%",
+                                    stat.errorRate * 100, config.getErrorRateThreshold() * 100);
                 }
                 break;
             case SLOW_CALL_RATIO:
-                long slowCount = stat.maxResponseTime > config.getSlowCallMs() ? stat.totalCount : 0;
+                long slowCount =
+                        stat.maxResponseTime > config.getSlowCallMs() ? stat.totalCount : 0;
                 double slowRatio = stat.totalCount > 0 ? (double) slowCount / stat.totalCount : 0;
                 if (slowRatio >= config.getSlowCallRatioThreshold()) {
                     shouldOpen = true;
-                    reason = String.format("慢调用比例=%.2f%% >= 阈值=%.2f%%",
-                        slowRatio * 100, config.getSlowCallRatioThreshold() * 100);
+                    reason =
+                            String.format(
+                                    "慢调用比例=%.2f%% >= 阈值=%.2f%%",
+                                    slowRatio * 100, config.getSlowCallRatioThreshold() * 100);
                 }
                 break;
         }

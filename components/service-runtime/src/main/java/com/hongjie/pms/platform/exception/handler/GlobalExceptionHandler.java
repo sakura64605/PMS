@@ -67,41 +67,47 @@ public class GlobalExceptionHandler {
     // ==================== 参数校验异常 ====================
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public CommonResult<Void> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
-        String message = e.getBindingResult().getFieldErrors().stream()
-                .map(FieldError::getDefaultMessage)
-                .collect(Collectors.joining("; "));
+    public CommonResult<Void> handleMethodArgumentNotValidException(
+            MethodArgumentNotValidException e) {
+        String message =
+                e.getBindingResult().getFieldErrors().stream()
+                        .map(FieldError::getDefaultMessage)
+                        .collect(Collectors.joining("; "));
         log.warn("参数校验失败: {}", message);
         return CommonResult.error(ErrorCode.PARAM_ERROR.getCode(), message);
     }
 
     @ExceptionHandler(BindException.class)
     public CommonResult<Void> handleBindException(BindException e) {
-        String message = e.getBindingResult().getFieldErrors().stream()
-                .map(FieldError::getDefaultMessage)
-                .collect(Collectors.joining("; "));
+        String message =
+                e.getBindingResult().getFieldErrors().stream()
+                        .map(FieldError::getDefaultMessage)
+                        .collect(Collectors.joining("; "));
         log.warn("参数绑定失败: {}", message);
         return CommonResult.error(ErrorCode.PARAM_ERROR.getCode(), message);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
     public CommonResult<Void> handleConstraintViolationException(ConstraintViolationException e) {
-        String message = e.getConstraintViolations().stream()
-                .map(ConstraintViolation::getMessage)
-                .collect(Collectors.joining("; "));
+        String message =
+                e.getConstraintViolations().stream()
+                        .map(ConstraintViolation::getMessage)
+                        .collect(Collectors.joining("; "));
         log.warn("约束校验失败: {}", message);
         return CommonResult.error(ErrorCode.PARAM_ERROR.getCode(), message);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public CommonResult<Void> handleMissingServletRequestParameterException(MissingServletRequestParameterException e) {
+    public CommonResult<Void> handleMissingServletRequestParameterException(
+            MissingServletRequestParameterException e) {
         String message = "请填写完整信息";
         log.warn("缺少必要参数: {}", e.getParameterName());
         return CommonResult.error(ErrorCode.PARAM_ERROR.getCode(), message);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public CommonResult<Void> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+    public CommonResult<Void> handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException e) {
         log.warn("请求体解析失败: {}", e.getMessage());
         return CommonResult.error(ErrorCode.PARAM_ERROR.getCode(), "参数格式错误，请检查后重试");
     }
@@ -109,13 +115,17 @@ public class GlobalExceptionHandler {
     // ==================== 请求方式异常 ====================
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public CommonResult<Void> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) {
+    public CommonResult<Void> handleHttpRequestMethodNotSupportedException(
+            HttpRequestMethodNotSupportedException e) {
         log.warn("请求方法不支持: {}", e.getMessage());
-        return CommonResult.error(ErrorCode.METHOD_NOT_ALLOWED.getCode(), "请求方法不支持，请使用 " + String.join(", ", e.getSupportedMethods()));
+        return CommonResult.error(
+                ErrorCode.METHOD_NOT_ALLOWED.getCode(),
+                "请求方法不支持，请使用 " + String.join(", ", e.getSupportedMethods()));
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
-    public CommonResult<Void> handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException e) {
+    public CommonResult<Void> handleHttpMediaTypeNotSupportedException(
+            HttpMediaTypeNotSupportedException e) {
         log.warn("不支持的媒体类型: {}", e.getMessage());
         return CommonResult.error(ErrorCode.MEDIA_TYPE_NOT_SUPPORTED.getCode(), "不支持的媒体类型");
     }
@@ -129,9 +139,12 @@ public class GlobalExceptionHandler {
     // ==================== 文件上传异常 ====================
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public CommonResult<Void> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
+    public CommonResult<Void> handleMaxUploadSizeExceededException(
+            MaxUploadSizeExceededException e) {
         log.warn("文件大小超限: {}", e.getMessage());
-        return CommonResult.error(ErrorCode.FILE_TOO_LARGE.getCode(), "文件大小不能超过" + e.getMaxUploadSize() / 1024 / 1024 + "MB");
+        return CommonResult.error(
+                ErrorCode.FILE_TOO_LARGE.getCode(),
+                "文件大小不能超过" + e.getMaxUploadSize() / 1024 / 1024 + "MB");
     }
 
     // ==================== 数据库异常 ====================

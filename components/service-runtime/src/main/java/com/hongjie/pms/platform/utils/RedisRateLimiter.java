@@ -19,35 +19,37 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 public class RedisRateLimiter {
-    
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
-    @Autowired
-    private LuaScriptLoader luaScriptLoader;
+
+    @Autowired private RedisTemplate<String, Object> redisTemplate;
+    @Autowired private LuaScriptLoader luaScriptLoader;
     private RedisScript<Long> tokenBucketScript;
 
-
-    
     @PostConstruct
     public void init() {
 
         tokenBucketScript = luaScriptLoader.getAdvancedTokenBucketScript();
-
     }
-    
+
     /**
      * 尝试获取令牌
-     * 
+     *
      * @param key 限流key
      * @param capacity 桶容量
      * @param refillRate 每秒填充速率
      * @return true-获取成功，false-被限流
      */
-    public boolean tryAcquire(String key, int capacity, int refillRate, int duration, TimeUnit timeUnit) {
+    public boolean tryAcquire(
+            String key, int capacity, int refillRate, int duration, TimeUnit timeUnit) {
         return tryAcquire(key, capacity, refillRate, duration, timeUnit, 1);
     }
 
-    public boolean tryAcquire(String key, int capacity, int refillRate, int duration, TimeUnit timeUnit, int requested) {
+    public boolean tryAcquire(
+            String key,
+            int capacity,
+            int refillRate,
+            int duration,
+            TimeUnit timeUnit,
+            int requested) {
         try {
             long now = System.currentTimeMillis() / 1000;
 
@@ -72,16 +74,17 @@ public class RedisRateLimiter {
 
             List<String> keys = Arrays.asList(key);
 
-            Long result = redisTemplate.execute(
-                    tokenBucketScript,
-                    keys,
-                    capacity,      // ARGV[1]: 桶容量
-                    refillRate,      // ARGV[2]: count = capacity
-                    duration,      // ARGV[3]: 时间窗口长度
-                    timeUnitCode,  // ARGV[4]: 时间单位
-                    now,           // ARGV[5]: 当前时间
-                    requested      // ARGV[6]: 请求令牌数
-            );
+            Long result =
+                    redisTemplate.execute(
+                            tokenBucketScript,
+                            keys,
+                            capacity, // ARGV[1]: 桶容量
+                            refillRate, // ARGV[2]: count = capacity
+                            duration, // ARGV[3]: 时间窗口长度
+                            timeUnitCode, // ARGV[4]: 时间单位
+                            now, // ARGV[5]: 当前时间
+                            requested // ARGV[6]: 请求令牌数
+                            );
 
             return result != null && result == 1L;
 
@@ -90,7 +93,7 @@ public class RedisRateLimiter {
             return true;
         }
     }
-    
+
     /**
      * 获取当前令牌数（用于监控）
      */
@@ -101,7 +104,7 @@ public class RedisRateLimiter {
         }
         return Long.valueOf(tokens.toString());
     }
-    
+
     /**
      * 获取桶容量（用于监控）
      */
@@ -109,7 +112,7 @@ public class RedisRateLimiter {
         // 可以从Redis获取，或者从配置读取
         return null;
     }
-    
+
     /**
      * 删除限流key（用于测试）
      */

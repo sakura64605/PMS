@@ -44,6 +44,4 @@ public class ActivityListRespDto {
     private Integer viewCount;
     private Integer likeCount;
     private Integer commentCount;
-
-
 }

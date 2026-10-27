@@ -13,6 +13,7 @@ public class Comment {
 
     @TableId(type = IdType.AUTO)
     private Long id;
+
     private Long userId;
     private String targetType;
     private Long targetId;
@@ -22,5 +23,4 @@ public class Comment {
     private Integer likeCount;
     private Integer status;
     private LocalDateTime createTime;
-
 }

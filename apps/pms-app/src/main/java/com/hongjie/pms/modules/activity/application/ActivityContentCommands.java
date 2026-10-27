@@ -42,7 +42,8 @@ public class ActivityContentCommands {
         validate(request, now);
         User user = users.selectById(actor);
         if (user == null) throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        if (!Objects.equals(user.getStatus(), 1)) throw new BusinessException(ErrorCode.USER_DISABLED);
+        if (!Objects.equals(user.getStatus(), 1))
+            throw new BusinessException(ErrorCode.USER_DISABLED);
         Activity activity = content(request);
         activity.setUserId(actor);
         activity.setStatus(ActivityStatus.SIGNUP_OPEN.getCode());
@@ -59,14 +60,29 @@ public class ActivityContentCommands {
         audits.submit("activity", activity.getId());
         schedules.replace(activity.getId(), activity.getStartTime(), activity.getEndTime(), now);
         // This projection is a database write and must roll back with the activity.
-        feed.pushToFans(actor, activity.getId(), "activity", activity.getTitle(), activity.getImages(),
-                user.getUserName(), user.getAvatar(), now);
+        feed.pushToFans(
+                actor,
+                activity.getId(),
+                "activity",
+                activity.getTitle(),
+                activity.getImages(),
+                user.getUserName(),
+                user.getAvatar(),
+                now);
         cache.evictAfterCommit(activity.getId());
         events.publishEvent(new ActivityContentChanged(activity.getId()));
         return ActivityPostRespDto.builder()
-                .id(activity.getId()).userId(actor).title(activity.getTitle()).content(activity.getContent())
-                .images(activity.getImages()).location(activity.getLocation()).maxPeople(activity.getMaxPeople())
-                .status(activity.getStatus()).startTime(activity.getStartTime()).endTime(activity.getEndTime()).build();
+                .id(activity.getId())
+                .userId(actor)
+                .title(activity.getTitle())
+                .content(activity.getContent())
+                .images(activity.getImages())
+                .location(activity.getLocation())
+                .maxPeople(activity.getMaxPeople())
+                .status(activity.getStatus())
+                .startTime(activity.getStartTime())
+                .endTime(activity.getEndTime())
+                .build();
     }
 
     @Transactional
@@ -74,8 +90,11 @@ public class ActivityContentCommands {
         Long actor = actor();
         if (request == null || request.getId() == null || request.getId() <= 0)
             throw new BusinessException(ErrorCode.PARAM_ERROR);
-        Activity current = activities.selectOne(new LambdaQueryWrapper<Activity>()
-                .eq(Activity::getId, request.getId()).last("FOR UPDATE"));
+        Activity current =
+                activities.selectOne(
+                        new LambdaQueryWrapper<Activity>()
+                                .eq(Activity::getId, request.getId())
+                                .last("FOR UPDATE"));
         if (current == null || !Objects.equals(current.getDeleted(), 0))
             throw new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND);
         if (!Objects.equals(current.getUserId(), actor)
@@ -83,7 +102,8 @@ public class ActivityContentCommands {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         LocalDateTime now = LocalDateTime.now();
         if (Objects.equals(current.getStatus(), ActivityStatus.FINISHED.getCode())
-                || current.getEndTime() == null || !current.getEndTime().isAfter(now))
+                || current.getEndTime() == null
+                || !current.getEndTime().isAfter(now))
             throw new BusinessException(ErrorCode.ACTIVITY_ENDED, "活动已结束，无法修改");
         // Preserve the existing future-start editing contract.
         validate(request, now);
@@ -91,7 +111,8 @@ public class ActivityContentCommands {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "人数上限不能小于已报名人数");
         boolean changed = changed(current, request);
         if (!changed) {
-            if (Objects.equals(current.getAuditStatus(), 0)) audits.ensurePending("activity", current.getId());
+            if (Objects.equals(current.getAuditStatus(), 0))
+                audits.ensurePending("activity", current.getId());
             return;
         }
         Activity change = content(request);
@@ -99,9 +120,13 @@ public class ActivityContentCommands {
         change.setAuditStatus(0);
         change.setStatus(ActivityStatus.SIGNUP_OPEN.getCode());
         change.setUpdateTime(now);
-        if (activities.update(change, new LambdaUpdateWrapper<Activity>().eq(Activity::getId, current.getId())
-                .eq(Activity::getDeleted, 0).ne(Activity::getStatus, ActivityStatus.FINISHED.getCode())) != 1)
-            throw new BusinessException(ErrorCode.DB_ERROR);
+        if (activities.update(
+                        change,
+                        new LambdaUpdateWrapper<Activity>()
+                                .eq(Activity::getId, current.getId())
+                                .eq(Activity::getDeleted, 0)
+                                .ne(Activity::getStatus, ActivityStatus.FINISHED.getCode()))
+                != 1) throw new BusinessException(ErrorCode.DB_ERROR);
         // Reuse an open round; otherwise append one, preserving completed decisions.
         audits.ensurePending("activity", current.getId());
         if (!Objects.equals(current.getStartTime(), request.getStartTime())
@@ -122,6 +147,7 @@ public class ActivityContentCommands {
         row.setEndTime(request.getEndTime());
         return row;
     }
+
     private boolean changed(Activity row, ActivityRequestDto request) {
         return !Objects.equals(row.getTitle(), request.getTitle())
                 || !Objects.equals(row.getContent(), request.getContent())
@@ -131,19 +157,33 @@ public class ActivityContentCommands {
                 || !Objects.equals(row.getStartTime(), request.getStartTime())
                 || !Objects.equals(row.getEndTime(), request.getEndTime());
     }
-    private List<String> images(List<String> values) { return values == null ? List.of() : List.copyOf(values); }
+
+    private List<String> images(List<String> values) {
+        return values == null ? List.of() : List.copyOf(values);
+    }
+
     private Long actor() {
         Long actor = UserContext.getUserId();
         if (actor == null) throw new BusinessException(ErrorCode.UNAUTHORIZED);
         return actor;
     }
+
     private void validate(ActivityRequestDto request, LocalDateTime now) {
-        if (request == null || !StringUtils.hasText(request.getTitle()) || request.getTitle().length() > 100
-                || !StringUtils.hasText(request.getContent()) || !StringUtils.hasText(request.getLocation())
-                || request.getLocation().length() > 200 || request.getMaxPeople() == null || request.getMaxPeople() < 1
-                || request.getStartTime() == null || request.getEndTime() == null
-                || !request.getStartTime().isAfter(now) || !request.getEndTime().isAfter(request.getStartTime())
-                || request.getImages() != null && request.getImages().stream().anyMatch(value -> !StringUtils.hasText(value)))
+        if (request == null
+                || !StringUtils.hasText(request.getTitle())
+                || request.getTitle().length() > 100
+                || !StringUtils.hasText(request.getContent())
+                || !StringUtils.hasText(request.getLocation())
+                || request.getLocation().length() > 200
+                || request.getMaxPeople() == null
+                || request.getMaxPeople() < 1
+                || request.getStartTime() == null
+                || request.getEndTime() == null
+                || !request.getStartTime().isAfter(now)
+                || !request.getEndTime().isAfter(request.getStartTime())
+                || request.getImages() != null
+                        && request.getImages().stream()
+                                .anyMatch(value -> !StringUtils.hasText(value)))
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请检查活动内容、人数与起止时间");
     }
 }

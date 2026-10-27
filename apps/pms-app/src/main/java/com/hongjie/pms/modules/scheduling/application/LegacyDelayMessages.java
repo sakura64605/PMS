@@ -23,19 +23,28 @@ public class LegacyDelayMessages {
 
     @Transactional
     public void accept(DelayMessageDto message) {
-        if (message == null || message.getType() == null || !TYPES.contains(message.getType())
-                || message.getBusinessId() == null || message.getBusinessId() <= 0) {
+        if (message == null
+                || message.getType() == null
+                || !TYPES.contains(message.getType())
+                || message.getBusinessId() == null
+                || message.getBusinessId() <= 0) {
             throw new IllegalArgumentException("Invalid legacy activity task");
         }
         Long id = message.getBusinessId();
         // Same lock ordering as ScheduledTaskWorker: business row before task row.
         if (locks.lockActivity(id) == null) return;
         Activity activity = activities.selectById(id);
-        LocalDateTime time = "ACTIVITY_REMIND".equals(message.getType())
-                ? activity.getStartTime().minusMinutes(30) : activity.getEndTime().plusMinutes(1);
-        Long existing = tasks.selectCount(new LambdaQueryWrapper<DelayTask>()
-                .eq(DelayTask::getTaskType, message.getType()).eq(DelayTask::getBusinessId, id)
-                .eq(DelayTask::getExecuteTime, time).in(DelayTask::getStatus, 0, 1));
+        LocalDateTime time =
+                "ACTIVITY_REMIND".equals(message.getType())
+                        ? activity.getStartTime().minusMinutes(30)
+                        : activity.getEndTime().plusMinutes(1);
+        Long existing =
+                tasks.selectCount(
+                        new LambdaQueryWrapper<DelayTask>()
+                                .eq(DelayTask::getTaskType, message.getType())
+                                .eq(DelayTask::getBusinessId, id)
+                                .eq(DelayTask::getExecuteTime, time)
+                                .in(DelayTask::getStatus, 0, 1));
         if (existing > 0) return;
         DelayTask task = new DelayTask();
         task.setTaskType(message.getType());

@@ -25,9 +25,10 @@ public class InboxCleanupTask {
 
         LocalDateTime expireTime = LocalDateTime.now().minusDays(30);
 
-        LambdaQueryWrapper<UserInbox> wrapper = new LambdaQueryWrapper<UserInbox>()
-                .eq(UserInbox::getIsRead, 1)
-                .lt(UserInbox::getCreateTime, expireTime);
+        LambdaQueryWrapper<UserInbox> wrapper =
+                new LambdaQueryWrapper<UserInbox>()
+                        .eq(UserInbox::getIsRead, 1)
+                        .lt(UserInbox::getCreateTime, expireTime);
 
         int deletedCount = userInboxMapper.delete(wrapper);
 

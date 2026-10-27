@@ -51,7 +51,8 @@ public class DailyPostController {
      * 记录用户行为（前端埋点）
      */
     @PostMapping("/action")
-    public CommonResult<Void> recordAction(@RequestParam Long targetId, @RequestParam String actionType) {
+    public CommonResult<Void> recordAction(
+            @RequestParam Long targetId, @RequestParam String actionType) {
         Long userId = UserContext.getUserId();
         dailyRecommendService.recordAction(userId, targetId, actionType);
         return CommonResult.success();
@@ -86,7 +87,8 @@ public class DailyPostController {
      * 获取热门话题
      */
     @GetMapping("/topics/hot")
-    public CommonResult<List<Topic>> getHotTopics(@RequestParam(defaultValue = "10") Integer limit) {
+    public CommonResult<List<Topic>> getHotTopics(
+            @RequestParam(defaultValue = "10") Integer limit) {
         return CommonResult.success(topicService.getHotTopics(limit));
     }
 
@@ -102,7 +104,8 @@ public class DailyPostController {
      * 创建话题
      */
     @PostMapping("/topics/create")
-    public CommonResult<Topic> createTopic(@RequestParam String name, @RequestParam String description) {
+    public CommonResult<Topic> createTopic(
+            @RequestParam String name, @RequestParam String description) {
         return CommonResult.success(topicService.createTopic(name, description));
     }
 }

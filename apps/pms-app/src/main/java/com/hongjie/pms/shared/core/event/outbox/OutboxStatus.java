@@ -6,7 +6,6 @@ import com.hongjie.pms.shared.core.enums.CodableEnum;
  * 发件箱记录投递状态，对应 {@code pms_domain_event.status}：0-待投递 1-已投递 2-失败。
  */
 public enum OutboxStatus implements CodableEnum<Integer> {
-
     PENDING(0, "待投递"),
     SENT(1, "已投递"),
     FAILED(2, "失败");

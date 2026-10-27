@@ -9,7 +9,6 @@ import com.hongjie.pms.shared.core.enums.CodableEnum;
  * 同一数字在不同限界上下文语义相反，这正是本方案不为状态建统一取值域的原因。
  */
 public enum NoticeStatus implements CodableEnum<Integer> {
-
     DRAFT(0, "草稿"),
     PUBLISHED(1, "已发布"),
     OFFLINE(2, "已下线");

@@ -10,5 +10,4 @@ package com.hongjie.pms.shared.extension.target;
  *
  * <p>将来若要加收藏数统计，方法加在这里即可，所有实现类会在编译期被强制补上。
  */
-public interface Favorable extends TargetHandler {
-}
+public interface Favorable extends TargetHandler {}

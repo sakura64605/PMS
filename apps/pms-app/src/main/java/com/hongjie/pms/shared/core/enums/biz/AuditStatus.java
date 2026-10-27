@@ -14,7 +14,6 @@ import com.hongjie.pms.shared.core.enums.CodableEnum;
  * 一篇帖子可以「审核通过」但业务上「已下架」，这两个字段必须分开推进。
  */
 public enum AuditStatus implements CodableEnum<Integer> {
-
     PENDING(0, "待审核"),
     APPROVED(1, "审核通过"),
     REJECTED(2, "审核拒绝");

@@ -9,10 +9,9 @@ import java.time.LocalDateTime;
 @Data
 @TableName("big_v_config")
 public class BigVConfig {
-    
-    @TableId
-    private Long userId;
+
+    @TableId private Long userId;
     private Integer fansCount;
-    private Integer usePullMode;  // 1-拉模式 0-推模式
+    private Integer usePullMode; // 1-拉模式 0-推模式
     private LocalDateTime updateTime;
 }

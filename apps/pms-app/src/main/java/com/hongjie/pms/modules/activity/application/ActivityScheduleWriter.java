@@ -26,10 +26,18 @@ public class ActivityScheduleWriter {
         scheduler.addTask("ACTIVITY_START", id, start);
         scheduler.addTask("ACTIVITY_STATISTICS", id, end.plusMinutes(1));
     }
+
     @Transactional(propagation = Propagation.MANDATORY)
     public void cancel(Long id) {
-        tasks.delete(new LambdaQueryWrapper<DelayTask>()
-                .eq(DelayTask::getBusinessId, id).eq(DelayTask::getStatus, 0)
-                .in(DelayTask::getTaskType, List.of("ACTIVITY_REMIND", "ACTIVITY_START", "ACTIVITY_STATISTICS")));
+        tasks.delete(
+                new LambdaQueryWrapper<DelayTask>()
+                        .eq(DelayTask::getBusinessId, id)
+                        .eq(DelayTask::getStatus, 0)
+                        .in(
+                                DelayTask::getTaskType,
+                                List.of(
+                                        "ACTIVITY_REMIND",
+                                        "ACTIVITY_START",
+                                        "ACTIVITY_STATISTICS")));
     }
 }

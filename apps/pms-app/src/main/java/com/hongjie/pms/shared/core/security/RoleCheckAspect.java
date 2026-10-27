@@ -21,25 +21,29 @@ import org.springframework.stereotype.Component;
 public class RoleCheckAspect {
 
     @Around("@annotation(requireRole)")
-    public Object checkMethodRole(ProceedingJoinPoint pjp, RequireRole requireRole) throws Throwable {
+    public Object checkMethodRole(ProceedingJoinPoint pjp, RequireRole requireRole)
+            throws Throwable {
         verifyRole(requireRole);
         return pjp.proceed();
     }
 
     @Around("@within(requireRole)")
-    public Object checkClassRole(ProceedingJoinPoint pjp, RequireRole requireRole) throws Throwable {
+    public Object checkClassRole(ProceedingJoinPoint pjp, RequireRole requireRole)
+            throws Throwable {
         verifyRole(requireRole);
         return pjp.proceed();
     }
 
     @Around("@annotation(requireLogin)")
-    public Object checkMethodLogin(ProceedingJoinPoint pjp, RequireLogin requireLogin) throws Throwable {
+    public Object checkMethodLogin(ProceedingJoinPoint pjp, RequireLogin requireLogin)
+            throws Throwable {
         verifyLogin();
         return pjp.proceed();
     }
 
     @Around("@within(requireLogin)")
-    public Object checkClassLogin(ProceedingJoinPoint pjp, RequireLogin requireLogin) throws Throwable {
+    public Object checkClassLogin(ProceedingJoinPoint pjp, RequireLogin requireLogin)
+            throws Throwable {
         verifyLogin();
         return pjp.proceed();
     }

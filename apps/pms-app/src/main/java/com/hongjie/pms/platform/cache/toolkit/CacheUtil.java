@@ -18,9 +18,10 @@ public final class CacheUtil {
      * @return
      */
     public static String buildKey(String... keys) {
-        String[] processedKeys = Arrays.stream(keys)
-                .map(key -> (key == null || key.isEmpty()) ? "0" : key)
-                .toArray(String[]::new);
+        String[] processedKeys =
+                Arrays.stream(keys)
+                        .map(key -> (key == null || key.isEmpty()) ? "0" : key)
+                        .toArray(String[]::new);
         return Joiner.on(SPLICING_OPERATOR).join(processedKeys);
     }
 
@@ -31,6 +32,7 @@ public final class CacheUtil {
      * @return
      */
     public static boolean isNullOrBlank(Object cacheVal) {
-        return cacheVal == null || (cacheVal instanceof String && Strings.isNullOrEmpty((String) cacheVal));
+        return cacheVal == null
+                || (cacheVal instanceof String && Strings.isNullOrEmpty((String) cacheVal));
     }
 }

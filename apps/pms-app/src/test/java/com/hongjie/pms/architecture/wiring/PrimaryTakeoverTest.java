@@ -61,62 +61,74 @@ class PrimaryTakeoverTest {
     @Test
     @DisplayName("PetPostController 注入的是新实现（@Primary 生效）")
     void petPostControllerReceivesNewImplementation() {
-        runWith(PetPostSlice.class, context -> {
-            assertThat(context.getBean(PetPostService.class))
-                    .as("按接口取 Bean 时应得到新实现")
-                    .isInstanceOf(PmsPetPostServiceImpl.class);
+        runWith(
+                PetPostSlice.class,
+                context -> {
+                    assertThat(context.getBean(PetPostService.class))
+                            .as("按接口取 Bean 时应得到新实现")
+                            .isInstanceOf(PmsPetPostServiceImpl.class);
 
-            Object injected = ReflectionTestUtils.getField(
-                    context.getBean(PetPostController.class), "petPostService");
-            assertThat(injected)
-                    .as("控制器字段里实际持有的实例")
-                    .isInstanceOf(PmsPetPostServiceImpl.class);
-        });
+                    Object injected =
+                            ReflectionTestUtils.getField(
+                                    context.getBean(PetPostController.class), "petPostService");
+                    assertThat(injected)
+                            .as("控制器字段里实际持有的实例")
+                            .isInstanceOf(PmsPetPostServiceImpl.class);
+                });
     }
 
     @Test
     @DisplayName("CommentController 注入的是新实现（@Primary 生效）")
     void commentControllerReceivesNewImplementation() {
-        runWith(CommentSlice.class, context -> {
-            assertThat(context.getBean(CommentService.class))
-                    .isInstanceOf(PmsCommentServiceImpl.class);
+        runWith(
+                CommentSlice.class,
+                context -> {
+                    assertThat(context.getBean(CommentService.class))
+                            .isInstanceOf(PmsCommentServiceImpl.class);
 
-            Object injected = ReflectionTestUtils.getField(
-                    context.getBean(CommentController.class), "commentService");
-            assertThat(injected).isInstanceOf(PmsCommentServiceImpl.class);
-        });
+                    Object injected =
+                            ReflectionTestUtils.getField(
+                                    context.getBean(CommentController.class), "commentService");
+                    assertThat(injected).isInstanceOf(PmsCommentServiceImpl.class);
+                });
     }
 
     @Test
     @DisplayName("NoticeController 注入的是新实现（@Primary 生效）")
     void noticeControllerReceivesNewImplementation() {
-        runWith(NoticeSlice.class, context -> {
-            assertThat(context.getBean(NoticeService.class))
-                    .isInstanceOf(PmsNoticeServiceImpl.class);
+        runWith(
+                NoticeSlice.class,
+                context -> {
+                    assertThat(context.getBean(NoticeService.class))
+                            .isInstanceOf(PmsNoticeServiceImpl.class);
 
-            Object injected = ReflectionTestUtils.getField(
-                    context.getBean(NoticeController.class), "noticeService");
-            assertThat(injected).isInstanceOf(PmsNoticeServiceImpl.class);
-            org.mockito.Mockito.verifyNoInteractions(context.getBean(RedissonClient.class));
-        });
+                    Object injected =
+                            ReflectionTestUtils.getField(
+                                    context.getBean(NoticeController.class), "noticeService");
+                    assertThat(injected).isInstanceOf(PmsNoticeServiceImpl.class);
+                    org.mockito.Mockito.verifyNoInteractions(context.getBean(RedissonClient.class));
+                });
     }
 
     @Test
-    @DisplayName("Missing migrated implementations must fail rather than silently enable reference code")
+    @DisplayName(
+            "Missing migrated implementations must fail rather than silently enable reference code")
     void missingNewImplementationDoesNotFallBackToLegacy() {
-        new ApplicationContextRunner().withUserConfiguration(MissingImplementationSlice.class)
+        new ApplicationContextRunner()
+                .withUserConfiguration(MissingImplementationSlice.class)
                 .run(context -> assertThat(context).hasFailed());
     }
 
     private void runWith(Class<?> userConfiguration, Consumer<ApplicationContext> assertions) {
         new ApplicationContextRunner()
                 .withUserConfiguration(userConfiguration)
-                .run(context -> {
-                    assertThat(context)
-                            .as("切片上下文应能正常启动（这里失败即说明真实启动也会因装配问题失败）")
-                            .hasNotFailed();
-                    assertions.accept(context);
-                });
+                .run(
+                        context -> {
+                            assertThat(context)
+                                    .as("切片上下文应能正常启动（这里失败即说明真实启动也会因装配问题失败）")
+                                    .hasNotFailed();
+                            assertions.accept(context);
+                        });
     }
 
     // ==================== 切片配置 ====================
@@ -187,7 +199,8 @@ class PrimaryTakeoverTest {
 
         @Bean
         com.hongjie.pms.modules.governance.audit.application.AuditCommandService auditCommands() {
-            return mock(com.hongjie.pms.modules.governance.audit.application.AuditCommandService.class);
+            return mock(
+                    com.hongjie.pms.modules.governance.audit.application.AuditCommandService.class);
         }
 
         @Bean
@@ -271,25 +284,35 @@ class PrimaryTakeoverTest {
 
     /** petpost 模块的完整装配：老实现 + 新实现 + 控制器 */
     @Configuration(proxyBeanMethods = false)
-    @Import({Mocks.class,PmsPetPostServiceImpl.class,PetPostController.class})
-    static class PetPostSlice {
-    }
+    @Import({Mocks.class, PmsPetPostServiceImpl.class, PetPostController.class})
+    static class PetPostSlice {}
 
     /** comment 模块的完整装配：老实现 + 新实现 + 控制器 + 策略族 */
     @Configuration(proxyBeanMethods = false)
-    @Import({Mocks.class,PmsCommentServiceImpl.class,CommentController.class,DomainEventPublisher.class,PetPostTargetHandler.class,ActivityTargetHandler.class,DailyPostTargetHandler.class,TargetHandlerRegistry.class})
-    static class CommentSlice {
-    }
+    @Import({
+        Mocks.class,
+        PmsCommentServiceImpl.class,
+        CommentController.class,
+        DomainEventPublisher.class,
+        PetPostTargetHandler.class,
+        ActivityTargetHandler.class,
+        DailyPostTargetHandler.class,
+        TargetHandlerRegistry.class
+    })
+    static class CommentSlice {}
 
     /** notice 模块的完整装配：老实现 + 新实现 + 控制器 */
     @Configuration(proxyBeanMethods = false)
-    @Import({Mocks.class,PmsNoticeServiceImpl.class,NoticeController.class,DomainEventPublisher.class})
-    static class NoticeSlice {
-    }
+    @Import({
+        Mocks.class,
+        PmsNoticeServiceImpl.class,
+        NoticeController.class,
+        DomainEventPublisher.class
+    })
+    static class NoticeSlice {}
 
     /** 仅注册已停用的参考类时，运行接线必须失败。 */
     @Configuration(proxyBeanMethods = false)
-    @Import({Mocks.class,PetPostController.class,CommentController.class})
-    static class MissingImplementationSlice {
-    }
+    @Import({Mocks.class, PetPostController.class, CommentController.class})
+    static class MissingImplementationSlice {}
 }

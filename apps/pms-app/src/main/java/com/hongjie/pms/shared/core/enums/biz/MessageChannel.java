@@ -13,7 +13,6 @@ import com.hongjie.pms.shared.core.enums.CodableEnum;
  * 以及 {@link com.hongjie.pms.shared.core.enums.BizTargetType}（互动目标轴）三者彼此正交。
  */
 public enum MessageChannel implements CodableEnum<String> {
-
     INBOX("inbox", "站内信"),
     PRIVATE("private", "私信"),
     NOTICE("notice", "系统公告"),

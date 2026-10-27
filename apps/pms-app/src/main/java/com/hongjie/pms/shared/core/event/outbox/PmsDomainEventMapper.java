@@ -10,5 +10,4 @@ import org.apache.ibatis.annotations.Mapper;
  * 加 {@code LambdaUpdateWrapper} 表达，不需要写 XML。
  */
 @Mapper
-public interface PmsDomainEventMapper extends BaseMapper<PmsDomainEvent> {
-}
+public interface PmsDomainEventMapper extends BaseMapper<PmsDomainEvent> {}

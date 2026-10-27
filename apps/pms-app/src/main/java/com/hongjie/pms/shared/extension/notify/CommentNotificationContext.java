@@ -24,5 +24,5 @@ public record CommentNotificationContext(
         String targetTitle,
         String commentContent,
         Long businessId,
-        String link) implements NotificationContext {
-}
+        String link)
+        implements NotificationContext {}

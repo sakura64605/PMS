@@ -36,6 +36,7 @@ public @interface RedisRateLimit {
      */
     String message() default "请求过于频繁，请稍后再试";
 
-    int duration() default 1;           // 时间窗口
-    TimeUnit timeUnit() default TimeUnit.SECONDS;  // 时间单位
+    int duration() default 1; // 时间窗口
+
+    TimeUnit timeUnit() default TimeUnit.SECONDS; // 时间单位
 }

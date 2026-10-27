@@ -23,7 +23,7 @@ public final class IdempotentContext {
 
     public static void put(String key, Object value) {
         Map<String, Object> context = get();
-        if (CollUtil.isEmpty(context)){
+        if (CollUtil.isEmpty(context)) {
             context = new HashMap<>();
         }
         context.put(key, value);
@@ -42,5 +42,4 @@ public final class IdempotentContext {
     public static void clean() {
         CONTEXT.remove();
     }
-
 }

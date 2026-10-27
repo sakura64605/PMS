@@ -14,7 +14,7 @@ public class UserInbox {
     private Long userId;
     private Long postId;
 
-    private String postType;  // 存枚举的 code: "pet" / "activity"
+    private String postType; // 存枚举的 code: "pet" / "activity"
 
     private Long posterId;
     private String posterName;

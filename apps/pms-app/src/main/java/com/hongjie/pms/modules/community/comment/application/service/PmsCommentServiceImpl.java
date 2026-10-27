@@ -127,8 +127,9 @@ public class PmsCommentServiceImpl implements CommentService {
 
         // 唯一的自增点
         target.incrementCommentCount(request.getTargetId());
-        eventPublisher.publish(new com.hongjie.pms.modules.community.comment.api.event.CommentCreatedEvent(
-                comment.getId(), targetType, comment.getTargetId()));
+        eventPublisher.publish(
+                new com.hongjie.pms.modules.community.comment.api.event.CommentCreatedEvent(
+                        comment.getId(), targetType, comment.getTargetId()));
 
         notifyContentOwner(comment, targetType, target, authorId);
         notifyParentCommentAuthor(comment, targetType, target, authorId);
@@ -142,57 +143,65 @@ public class PmsCommentServiceImpl implements CommentService {
             minRequestAmount = 5,
             errorRateThreshold = 0.5,
             openDurationSeconds = 10,
-            fallbackMethod = "fallbackGetCommentList"
-    )
+            fallbackMethod = "fallbackGetCommentList")
     @Override
-    public IPage<CommentRespDto> getCommentList(String targetType, Long targetId,
-                                                Integer pageNum, Integer pageSize) {
+    public IPage<CommentRespDto> getCommentList(
+            String targetType, Long targetId, Integer pageNum, Integer pageSize) {
         Guard.requireNotNull(targetId, ErrorCode.PARAM_ERROR, "目标 ID 不能为空");
         BizTargetType type = BizTargetType.resolve(targetType);
         PageQuery pageQuery = PageQuery.of(asLong(pageNum), asLong(pageSize));
 
         // 1. 顶级评论分页
-        IPage<Comment> commentPage = commentMapper.selectPage(pageQuery.toPage(),
-                new LambdaQueryWrapper<Comment>()
-                        .in(Comment::getTargetType, acceptTargetTypes(type, targetType))
-                        .eq(Comment::getTargetId, targetId)
-                        .eq(Comment::getStatus, CommentStatus.NORMAL.getCode())
-                        .eq(Comment::getParentId, TOP_LEVEL_PARENT_ID)
-                        .orderByDesc(Comment::getCreateTime));
+        IPage<Comment> commentPage =
+                commentMapper.selectPage(
+                        pageQuery.toPage(),
+                        new LambdaQueryWrapper<Comment>()
+                                .in(Comment::getTargetType, acceptTargetTypes(type, targetType))
+                                .eq(Comment::getTargetId, targetId)
+                                .eq(Comment::getStatus, CommentStatus.NORMAL.getCode())
+                                .eq(Comment::getParentId, TOP_LEVEL_PARENT_ID)
+                                .orderByDesc(Comment::getCreateTime));
 
         if (commentPage.getRecords().isEmpty()) {
             return PageBridge.toIPage(PageResult.empty(pageQuery));
         }
 
         // 2. 逐层取回全部子孙评论，再按 parentId 分组
-        List<Comment> allReplies = loadAllReplies(commentPage.getRecords(), type, targetType, targetId, 1);
-        Map<Long, List<Comment>> repliesByParent = allReplies.stream()
-                .collect(Collectors.groupingBy(Comment::getParentId));
+        List<Comment> allReplies =
+                loadAllReplies(commentPage.getRecords(), type, targetType, targetId, 1);
+        Map<Long, List<Comment>> repliesByParent =
+                allReplies.stream().collect(Collectors.groupingBy(Comment::getParentId));
 
         // 3. 一次性查好作者/被回复人，以及当前用户的点赞集合
-        CommentTreeContext context = new CommentTreeContext(
-                repliesByParent,
-                loadUsers(collectUserIds(commentPage.getRecords(), allReplies)),
-                loadLikedCommentIds(commentPage.getRecords(), allReplies));
+        CommentTreeContext context =
+                new CommentTreeContext(
+                        repliesByParent,
+                        loadUsers(collectUserIds(commentPage.getRecords(), allReplies)),
+                        loadLikedCommentIds(commentPage.getRecords(), allReplies));
 
         // 4. 递归装配
-        List<CommentRespDto> records = commentPage.getRecords().stream()
-                .map(comment -> converter.toView(comment, context))
-                .toList();
+        List<CommentRespDto> records =
+                commentPage.getRecords().stream()
+                        .map(comment -> converter.toView(comment, context))
+                        .toList();
 
-        return PageBridge.toIPage(PageResult.of(
-                records, commentPage.getTotal(), commentPage.getCurrent(), commentPage.getSize()));
+        return PageBridge.toIPage(
+                PageResult.of(
+                        records,
+                        commentPage.getTotal(),
+                        commentPage.getCurrent(),
+                        commentPage.getSize()));
     }
 
-    public IPage<CommentRespDto> fallbackGetCommentList(String targetType, Long targetId,
-                                                        Integer pageNum, Integer pageSize) {
+    public IPage<CommentRespDto> fallbackGetCommentList(
+            String targetType, Long targetId, Integer pageNum, Integer pageSize) {
         log.warn("评论列表熔断降级: targetType={}, targetId={}", targetType, targetId);
-        return PageBridge.toIPage(PageResult.empty(
-                PageQuery.of(asLong(pageNum), asLong(pageSize))));
+        return PageBridge.toIPage(
+                PageResult.empty(PageQuery.of(asLong(pageNum), asLong(pageSize))));
     }
 
-    public IPage<CommentRespDto> fallbackGetCommentList(String targetType, Long targetId,
-                                                        Integer pageNum, Integer pageSize, Exception e) {
+    public IPage<CommentRespDto> fallbackGetCommentList(
+            String targetType, Long targetId, Integer pageNum, Integer pageSize, Exception e) {
         log.error("评论列表熔断降级: error={}", e.getMessage());
         return fallbackGetCommentList(targetType, targetId, pageNum, pageSize);
     }
@@ -200,23 +209,24 @@ public class PmsCommentServiceImpl implements CommentService {
     // ==================== 通知 ====================
 
     /** 通知被评论内容的作者（自己评论自己的内容不发） */
-    private void notifyContentOwner(Comment comment, BizTargetType targetType,
-                                    Commentable target, Long authorId) {
+    private void notifyContentOwner(
+            Comment comment, BizTargetType targetType, Commentable target, Long authorId) {
         Long ownerId = target.ownerId(comment.getTargetId());
         if (ownerId == null || ownerId.equals(authorId)) {
             return;
         }
-        eventPublisher.publish(new CommentNotificationEvent(
-                comment.getId(),
-                authorId,
-                targetType,
-                comment.getTargetId(),
-                // businessId 取帖子 id —— 与老实现一致
-                comment.getTargetId(),
-                ownerId,
-                target.title(comment.getTargetId()),
-                comment.getContent(),
-                target.detailLink(comment.getTargetId())));
+        eventPublisher.publish(
+                new CommentNotificationEvent(
+                        comment.getId(),
+                        authorId,
+                        targetType,
+                        comment.getTargetId(),
+                        // businessId 取帖子 id —— 与老实现一致
+                        comment.getTargetId(),
+                        ownerId,
+                        target.title(comment.getTargetId()),
+                        comment.getContent(),
+                        target.detailLink(comment.getTargetId())));
     }
 
     /**
@@ -225,8 +235,8 @@ public class PmsCommentServiceImpl implements CommentService {
      * <p>目标类型传 {@code PET_COMMENT}，让通知处理器落到「有人评论了你」这一分支 ——
      * 与老实现把 {@code comment_reply} 兜进 {@code default} 的行为一致。
      */
-    private void notifyParentCommentAuthor(Comment comment, BizTargetType targetType,
-                                           Commentable target, Long authorId) {
+    private void notifyParentCommentAuthor(
+            Comment comment, BizTargetType targetType, Commentable target, Long authorId) {
         Long parentId = comment.getParentId();
         if (parentId == null || parentId.equals(TOP_LEVEL_PARENT_ID)) {
             return;
@@ -236,18 +246,19 @@ public class PmsCommentServiceImpl implements CommentService {
             return;
         }
         String link = target.detailLink(comment.getTargetId()) + "?commentId=" + comment.getId();
-        eventPublisher.publish(new CommentNotificationEvent(
-                comment.getId(),
-                authorId,
-                BizTargetType.PET_COMMENT,
-                comment.getTargetId(),
-                // businessId 取被回复评论的 id —— 老实现如此，语义上可疑但保持原样，
-                // 因为它会写进用户可见的消息记录，改动属于产品决策（见事件类注释）
-                parentId,
-                parent.getUserId(),
-                null,
-                "回复了你的评论：" + comment.getContent(),
-                link));
+        eventPublisher.publish(
+                new CommentNotificationEvent(
+                        comment.getId(),
+                        authorId,
+                        BizTargetType.PET_COMMENT,
+                        comment.getTargetId(),
+                        // businessId 取被回复评论的 id —— 老实现如此，语义上可疑但保持原样，
+                        // 因为它会写进用户可见的消息记录，改动属于产品决策（见事件类注释）
+                        parentId,
+                        parent.getUserId(),
+                        null,
+                        "回复了你的评论：" + comment.getContent(),
+                        link));
     }
 
     // ==================== 内部方法 ====================
@@ -270,8 +281,9 @@ public class PmsCommentServiceImpl implements CommentService {
      * 只匹配其中一个会让部分历史评论凭空消失。
      */
     private Set<String> acceptTargetTypes(BizTargetType type, String rawTargetType) {
-        Set<String> accepted = new LinkedHashSet<>(
-                targetTypeCodec.acceptedValues(type, LegacyDialect.INTERACTION));
+        Set<String> accepted =
+                new LinkedHashSet<>(
+                        targetTypeCodec.acceptedValues(type, LegacyDialect.INTERACTION));
         if (StringUtils.hasText(rawTargetType)) {
             accepted.add(rawTargetType.trim());
         }
@@ -279,8 +291,12 @@ public class PmsCommentServiceImpl implements CommentService {
     }
 
     /** 逐层取回子孙评论；{@code depth} 上限用于在数据成环时兜底 */
-    private List<Comment> loadAllReplies(List<Comment> parents, BizTargetType type,
-                                         String rawTargetType, Long targetId, int depth) {
+    private List<Comment> loadAllReplies(
+            List<Comment> parents,
+            BizTargetType type,
+            String rawTargetType,
+            Long targetId,
+            int depth) {
         if (parents.isEmpty()) {
             return Collections.emptyList();
         }
@@ -290,12 +306,14 @@ public class PmsCommentServiceImpl implements CommentService {
         }
 
         List<Long> parentIds = parents.stream().map(Comment::getId).toList();
-        List<Comment> replies = commentMapper.selectList(new LambdaQueryWrapper<Comment>()
-                .in(Comment::getTargetType, acceptTargetTypes(type, rawTargetType))
-                .eq(Comment::getTargetId, targetId)
-                .eq(Comment::getStatus, CommentStatus.NORMAL.getCode())
-                .in(Comment::getParentId, parentIds)
-                .orderByAsc(Comment::getCreateTime));
+        List<Comment> replies =
+                commentMapper.selectList(
+                        new LambdaQueryWrapper<Comment>()
+                                .in(Comment::getTargetType, acceptTargetTypes(type, rawTargetType))
+                                .eq(Comment::getTargetId, targetId)
+                                .eq(Comment::getStatus, CommentStatus.NORMAL.getCode())
+                                .in(Comment::getParentId, parentIds)
+                                .orderByAsc(Comment::getCreateTime));
 
         if (replies.isEmpty()) {
             return Collections.emptyList();
@@ -310,12 +328,13 @@ public class PmsCommentServiceImpl implements CommentService {
     private List<Long> collectUserIds(List<Comment> topLevel, List<Comment> replies) {
         Set<Long> ids = new LinkedHashSet<>();
         topLevel.forEach(comment -> ids.add(comment.getUserId()));
-        replies.forEach(comment -> {
-            ids.add(comment.getUserId());
-            if (comment.getReplyTo() != null) {
-                ids.add(comment.getReplyTo());
-            }
-        });
+        replies.forEach(
+                comment -> {
+                    ids.add(comment.getUserId());
+                    if (comment.getReplyTo() != null) {
+                        ids.add(comment.getReplyTo());
+                    }
+                });
         ids.remove(null);
         return List.copyOf(ids);
     }
@@ -342,11 +361,16 @@ public class PmsCommentServiceImpl implements CommentService {
             return Collections.emptySet();
         }
 
-        return likeRecordMapper.selectList(new LambdaQueryWrapper<LikeRecord>()
-                        .eq(LikeRecord::getUserId, viewerId)
-                        .in(LikeRecord::getTargetType,
-                                targetTypeCodec.acceptedValues(BizTargetType.PET_COMMENT, LegacyDialect.INTERACTION))
-                        .in(LikeRecord::getTargetId, commentIds))
+        return likeRecordMapper
+                .selectList(
+                        new LambdaQueryWrapper<LikeRecord>()
+                                .eq(LikeRecord::getUserId, viewerId)
+                                .in(
+                                        LikeRecord::getTargetType,
+                                        targetTypeCodec.acceptedValues(
+                                                BizTargetType.PET_COMMENT,
+                                                LegacyDialect.INTERACTION))
+                                .in(LikeRecord::getTargetId, commentIds))
                 .stream()
                 .map(LikeRecord::getTargetId)
                 .filter(Objects::nonNull)

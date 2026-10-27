@@ -64,13 +64,21 @@ public class JWTUtils {
      * @return JWT令牌
      */
     public String generateToken(String userName, Integer role, Long userId, String credential) {
-        Map<String,Object> claims = new HashMap<>();
-        claims.put("userName", userName); claims.put("role", role); claims.put("userId", userId);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userName", userName);
+        claims.put("role", role);
+        claims.put("userId", userId);
         claims.put("credentialVersion", credential);
         return createToken(claims);
     }
-    public String getCredentialVersion(String token) { return parseToken(token).get("credentialVersion", String.class); }
-    public Date getExpiration(String token) { return parseToken(token).getExpiration(); }
+
+    public String getCredentialVersion(String token) {
+        return parseToken(token).get("credentialVersion", String.class);
+    }
+
+    public Date getExpiration(String token) {
+        return parseToken(token).getExpiration();
+    }
 
     private String createToken(Map<String, Object> claims) {
         Date now = new Date();
@@ -116,7 +124,7 @@ public class JWTUtils {
      * @return Claims
      */
     private Claims parseToken(String token) {
-        try{
+        try {
             // 去除Bearer前缀
             if (token != null && token.startsWith(tokenPrefix)) {
                 token = token.substring(tokenPrefix.length());
@@ -150,9 +158,9 @@ public class JWTUtils {
         Object userIdObj = claims.get("userId");
 
         if (userIdObj instanceof Integer) {
-            return ((Integer) userIdObj).longValue();  // Integer → Long
+            return ((Integer) userIdObj).longValue(); // Integer → Long
         } else if (userIdObj instanceof Long) {
-            return (Long) userIdObj;                    // Long → Long
+            return (Long) userIdObj; // Long → Long
         } else {
             log.error("userId类型错误: {}", userIdObj.getClass());
             return null;

@@ -58,20 +58,24 @@ public class TableOutboxStore implements OutboxStore {
 
     @Override
     public void markSent(String eventId) {
-        mapper.update(null, new LambdaUpdateWrapper<PmsDomainEvent>()
-                .eq(PmsDomainEvent::getEventId, eventId)
-                .set(PmsDomainEvent::getStatus, OutboxStatus.SENT.getCode())
-                .set(PmsDomainEvent::getSentAt, LocalDateTime.now()));
+        mapper.update(
+                null,
+                new LambdaUpdateWrapper<PmsDomainEvent>()
+                        .eq(PmsDomainEvent::getEventId, eventId)
+                        .set(PmsDomainEvent::getStatus, OutboxStatus.SENT.getCode())
+                        .set(PmsDomainEvent::getSentAt, LocalDateTime.now()));
     }
 
     @Override
     public void markFailed(String eventId, String reason) {
         // 重试次数与下次重试时间的退避计算放在兜底重投任务里统一处理，
         // 这里只记录失败状态与原因，避免在两处各写一套退避策略。
-        mapper.update(null, new LambdaUpdateWrapper<PmsDomainEvent>()
-                .eq(PmsDomainEvent::getEventId, eventId)
-                .set(PmsDomainEvent::getStatus, OutboxStatus.FAILED.getCode())
-                .set(PmsDomainEvent::getLastError, truncate(reason)));
+        mapper.update(
+                null,
+                new LambdaUpdateWrapper<PmsDomainEvent>()
+                        .eq(PmsDomainEvent::getEventId, eventId)
+                        .set(PmsDomainEvent::getStatus, OutboxStatus.FAILED.getCode())
+                        .set(PmsDomainEvent::getLastError, truncate(reason)));
 
         log.warn("事件投递失败: eventId={}, reason={}", eventId, reason);
     }

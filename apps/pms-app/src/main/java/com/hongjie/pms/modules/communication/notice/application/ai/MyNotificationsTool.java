@@ -1,4 +1,5 @@
 package com.hongjie.pms.modules.communication.notice.application.ai;
+
 import com.hongjie.pms.ai.contract.CoreQueryTool;
 import com.hongjie.pms.ai.contract.ToolPaging;
 
@@ -25,7 +26,9 @@ public class MyNotificationsTool implements CoreQueryTool {
     private final NoticeReadRecordMapper readRecordMapper;
 
     @Override
-    public String getName() { return "my_notifications"; }
+    public String getName() {
+        return "my_notifications";
+    }
 
     @Override
     public ToolCall execute(Map<String, Object> args, Long userId) {
@@ -39,15 +42,16 @@ public class MyNotificationsTool implements CoreQueryTool {
                 .orderByDesc(Notice::getCreateTime);
 
         long total = noticeMapper.selectCount(wrapper);
-        List<Notice> notices = noticeMapper.selectList(
-                wrapper.last("LIMIT " + offset + ", " + pageSize));
+        List<Notice> notices =
+                noticeMapper.selectList(wrapper.last("LIMIT " + offset + ", " + pageSize));
         int totalPages = total == 0 ? 0 : (int) ((total + pageSize - 1) / pageSize);
 
         // 统计本页未读数量
         int unreadCount = 0;
         for (Notice notice : notices) {
             LambdaQueryWrapper<NoticeReadRecord> readWrapper = new LambdaQueryWrapper<>();
-            readWrapper.eq(NoticeReadRecord::getNoticeId, notice.getId())
+            readWrapper
+                    .eq(NoticeReadRecord::getNoticeId, notice.getId())
                     .eq(NoticeReadRecord::getUserId, userId);
             if (readRecordMapper.selectCount(readWrapper) == 0) {
                 unreadCount++;
@@ -59,12 +63,19 @@ public class MyNotificationsTool implements CoreQueryTool {
             if (total == 0) {
                 result.append("您当前没有系统通知。");
             } else {
-                result.append("第 ").append(page).append(" 页没有更多通知了（共 ").append(total).append(" 条，已全部展示）。");
+                result.append("第 ")
+                        .append(page)
+                        .append(" 页没有更多通知了（共 ")
+                        .append(total)
+                        .append(" 条，已全部展示）。");
             }
         } else {
             result.append("共 ").append(total).append(" 条通知");
             if (totalPages > 1) result.append("（共 ").append(totalPages).append(" 页）");
-            result.append("，当前第 ").append(page).append(" 页，本页 ").append(unreadCount)
+            result.append("，当前第 ")
+                    .append(page)
+                    .append(" 页，本页 ")
+                    .append(unreadCount)
                     .append(" 条未读：\n\n");
 
             DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM-dd HH:mm");

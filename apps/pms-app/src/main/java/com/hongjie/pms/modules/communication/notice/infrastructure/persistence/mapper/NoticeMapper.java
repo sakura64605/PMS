@@ -10,13 +10,15 @@ import java.util.List;
 
 @Mapper
 public interface NoticeMapper extends BaseMapper<Notice> {
-    
-    @Select("SELECT COUNT(*) FROM notice WHERE status = 1 AND publish_time <= NOW() " +
-            "AND (expire_time IS NULL OR expire_time > NOW())")
+
+    @Select(
+            "SELECT COUNT(*) FROM notice WHERE status = 1 AND publish_time <= NOW() "
+                    + "AND (expire_time IS NULL OR expire_time > NOW())")
     int countPublished();
-    
-    @Select("SELECT * FROM notice WHERE status = 1 AND publish_time <= NOW() " +
-            "AND (expire_time IS NULL OR expire_time > NOW()) " +
-            "ORDER BY is_top DESC, priority DESC, publish_time DESC")
+
+    @Select(
+            "SELECT * FROM notice WHERE status = 1 AND publish_time <= NOW() "
+                    + "AND (expire_time IS NULL OR expire_time > NOW()) "
+                    + "ORDER BY is_top DESC, priority DESC, publish_time DESC")
     List<Notice> getPublishedNotices();
 }

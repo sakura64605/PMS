@@ -5,5 +5,4 @@ import com.hongjie.pms.modules.governance.report.infrastructure.persistence.enti
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface ReportRecordMapper extends BaseMapper<ReportRecord> {
-}
+public interface ReportRecordMapper extends BaseMapper<ReportRecord> {}

@@ -17,15 +17,34 @@ public class PmsJobActions {
     private final StatisticsService statistics;
     private final RedissonClient redisson;
 
-    public void dueTasks() { due.execute(); }
-    public void activityStatus() { guarded("activity-status", activities::syncActivityStatus); }
-    public void inboxCleanup() { guarded("inbox-cleanup", inbox::cleanupOldReadMessages); }
-    public void dailyStatistics() { guarded("statistics", statistics::generateDailyStatistics); }
-    public void statisticsCompensation() { guarded("statistics", statistics::compensateMissingStatistics); }
+    public void dueTasks() {
+        due.execute();
+    }
+
+    public void activityStatus() {
+        guarded("activity-status", activities::syncActivityStatus);
+    }
+
+    public void inboxCleanup() {
+        guarded("inbox-cleanup", inbox::cleanupOldReadMessages);
+    }
+
+    public void dailyStatistics() {
+        guarded("statistics", statistics::generateDailyStatistics);
+    }
+
+    public void statisticsCompensation() {
+        guarded("statistics", statistics::compensateMissingStatistics);
+    }
+
     private void guarded(String name, Runnable action) {
         var lock = redisson.getLock("pms:scheduled:" + name);
-        if (!lock.tryLock()) throw new IllegalStateException("Scheduled job already running: " + name);
-        try { action.run(); }
-        finally { if (lock.isHeldByCurrentThread()) lock.unlock(); }
+        if (!lock.tryLock())
+            throw new IllegalStateException("Scheduled job already running: " + name);
+        try {
+            action.run();
+        } finally {
+            if (lock.isHeldByCurrentThread()) lock.unlock();
+        }
     }
 }

@@ -11,8 +11,8 @@ import java.util.List;
 public class AuditListDto {
 
     private Long id;
-    private String targetType;      // adopt / help / activity
-    private String targetTypeDesc;  // 领养 / 救助 / 活动
+    private String targetType; // adopt / help / activity
+    private String targetTypeDesc; // 领养 / 救助 / 活动
     private String title;
     private String content;
     private List<String> images;

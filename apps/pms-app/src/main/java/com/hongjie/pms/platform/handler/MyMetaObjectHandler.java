@@ -30,7 +30,7 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
         // 判断是否需要跳过更新时间
         if (UpdateTimeContext.shouldSkip()) {
             log.debug("跳过 updateTime 自动填充");
-            return;  // 直接返回，不填充
+            return; // 直接返回，不填充
         }
 
         this.strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
@@ -42,5 +42,4 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
         this.setFieldValByName("createTime", LocalDateTime.now(), metaObject);
         this.setFieldValByName("updateTime", LocalDateTime.now(), metaObject);
     }
-
 }

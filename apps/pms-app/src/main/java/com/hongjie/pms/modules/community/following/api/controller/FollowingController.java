@@ -27,9 +27,11 @@ public class FollowingController {
      * 获取关注列表
      */
     @GetMapping("/following/list")
-    public CommonResult<IPage<UserSimpleDto>> listFollowing(@RequestParam int pageNum, @RequestParam int pageSize) {
+    public CommonResult<IPage<UserSimpleDto>> listFollowing(
+            @RequestParam int pageNum, @RequestParam int pageSize) {
         log.info("获取关注列表");
-        IPage<UserSimpleDto> page = followService.listFollowing(UserContext.getUserId(), pageNum, pageSize);
+        IPage<UserSimpleDto> page =
+                followService.listFollowing(UserContext.getUserId(), pageNum, pageSize);
         return CommonResult.success(page);
     }
 
@@ -37,15 +39,22 @@ public class FollowingController {
      * 获取粉丝列表
      */
     @GetMapping("/follower/list")
-    public CommonResult<IPage<UserSimpleDto>> listFollower(@RequestParam int pageNum, @RequestParam int pageSize) {
-        IPage<UserSimpleDto> page = followService.listFollower(UserContext.getUserId(), pageNum, pageSize);
+    public CommonResult<IPage<UserSimpleDto>> listFollower(
+            @RequestParam int pageNum, @RequestParam int pageSize) {
+        IPage<UserSimpleDto> page =
+                followService.listFollower(UserContext.getUserId(), pageNum, pageSize);
         return CommonResult.success(page);
     }
 
     /**
      * 关注用户
      */
-    @RedisRateLimit(key = "followUser", capacity = 5, refillRate = 5, duration = 1, timeUnit = TimeUnit.SECONDS)
+    @RedisRateLimit(
+            key = "followUser",
+            capacity = 5,
+            refillRate = 5,
+            duration = 1,
+            timeUnit = TimeUnit.SECONDS)
     @PostMapping("/follow")
     public CommonResult<String> followUser(@RequestParam Long userId) {
         Long currentUserId = UserContext.getUserId();
@@ -53,5 +62,4 @@ public class FollowingController {
         followService.followUser(currentUserId, userId);
         return CommonResult.success("关注成功");
     }
-
 }

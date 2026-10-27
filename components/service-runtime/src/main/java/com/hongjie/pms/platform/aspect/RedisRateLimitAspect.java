@@ -28,12 +28,11 @@ import java.lang.reflect.Method;
 @Component
 @Order(1)
 public class RedisRateLimitAspect {
-    
-    @Autowired
-    private RedisRateLimiter redisRateLimiter;
-    
+
+    @Autowired private RedisRateLimiter redisRateLimiter;
+
     private final SpelExpressionParser spelParser = new SpelExpressionParser();
-    
+
     @Around("@annotation(rateLimit)")
     public Object around(ProceedingJoinPoint point, RedisRateLimit rateLimit) throws Throwable {
 
@@ -41,40 +40,45 @@ public class RedisRateLimitAspect {
 
         // 构建限流key
         String key = buildKey(point, rateLimit);
-        
+
         // 尝试获取令牌
-        boolean acquired = redisRateLimiter.tryAcquire(
-            key,
-            rateLimit.capacity(),
-            rateLimit.refillRate(),
-            rateLimit.duration(),
-            rateLimit.timeUnit()
-        );
-        
+        boolean acquired =
+                redisRateLimiter.tryAcquire(
+                        key,
+                        rateLimit.capacity(),
+                        rateLimit.refillRate(),
+                        rateLimit.duration(),
+                        rateLimit.timeUnit());
+
         if (!acquired) {
             String requestUri = getRequestUri();
-            log.warn("Redis限流拦截 - key: {}, capacity: {}, refillRate: {}/s, uri: {}", 
-                key, rateLimit.capacity(), rateLimit.refillRate(), requestUri);
+            log.warn(
+                    "Redis限流拦截 - key: {}, capacity: {}, refillRate: {}/s, uri: {}",
+                    key,
+                    rateLimit.capacity(),
+                    rateLimit.refillRate(),
+                    requestUri);
             throw new RateLimitException(rateLimit.message(), requestUri, key);
         }
-        
+
         log.debug("Redis限流放行 - key: {}, 剩余令牌: {}", key, redisRateLimiter.getCurrentTokens(key));
         return point.proceed();
     }
-    
+
     /**
      * 构建限流key
      */
     private String buildKey(ProceedingJoinPoint point, RedisRateLimit rateLimit) {
         StringBuilder keyBuilder = new StringBuilder("rate_limit:token_bucket:");
-        
+
         // 添加类名和方法名
         MethodSignature signature = (MethodSignature) point.getSignature();
         Method method = signature.getMethod();
-        keyBuilder.append(method.getDeclaringClass().getSimpleName())
-                  .append(":")
-                  .append(method.getName());
-        
+        keyBuilder
+                .append(method.getDeclaringClass().getSimpleName())
+                .append(":")
+                .append(method.getName());
+
         // 解析SpEL表达式
         if (StringUtils.hasText(rateLimit.key())) {
             String spelValue = parseSpelExpression(rateLimit.key(), point, signature);
@@ -82,7 +86,7 @@ public class RedisRateLimitAspect {
                 keyBuilder.append(":").append(spelValue);
             }
         }
-        
+
         // 添加用户标识
         if (rateLimit.perUser()) {
             Long userId = getCurrentUserId();
@@ -92,29 +96,31 @@ public class RedisRateLimitAspect {
                 keyBuilder.append(":ip:").append(getClientIp());
             }
         }
-        
+
         return keyBuilder.toString();
     }
-    
+
     /**
      * 解析SpEL表达式
      */
-    private String parseSpelExpression(String spel, ProceedingJoinPoint point, MethodSignature signature) {
+    private String parseSpelExpression(
+            String spel, ProceedingJoinPoint point, MethodSignature signature) {
         try {
             EvaluationContext context = new StandardEvaluationContext();
             String[] paramNames = signature.getParameterNames();
             Object[] args = point.getArgs();
-            
+
             for (int i = 0; i < paramNames.length; i++) {
                 context.setVariable(paramNames[i], args[i]);
                 context.setVariable("p" + i, args[i]);
             }
-            
-            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+
+            ServletRequestAttributes attributes =
+                    (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes != null) {
                 context.setVariable("request", attributes.getRequest());
             }
-            
+
             Expression expression = spelParser.parseExpression(spel);
             Object value = expression.getValue(context);
             return value != null ? value.toString() : "";
@@ -123,7 +129,7 @@ public class RedisRateLimitAspect {
             return "";
         }
     }
-    
+
     private Long getCurrentUserId() {
         try {
             return SecurityUtils.getCurrentUserId();
@@ -131,11 +137,12 @@ public class RedisRateLimitAspect {
             return null;
         }
     }
-    
+
     private String getClientIp() {
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        ServletRequestAttributes attributes =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) return "unknown";
-        
+
         HttpServletRequest request = attributes.getRequest();
         String ip = request.getHeader("X-Forwarded-For");
         if (ip == null || ip.isEmpty()) ip = request.getHeader("X-Real-IP");
@@ -143,9 +150,10 @@ public class RedisRateLimitAspect {
         if (ip != null && ip.contains(",")) ip = ip.split(",")[0];
         return ip != null ? ip : "unknown";
     }
-    
+
     private String getRequestUri() {
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        ServletRequestAttributes attributes =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes != null) {
             HttpServletRequest request = attributes.getRequest();
             return request.getMethod() + " " + request.getRequestURI();

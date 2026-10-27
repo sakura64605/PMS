@@ -28,15 +28,18 @@ public interface PmsPetPostMapper extends BaseMapper<PmsPetPost> {
     @Update("UPDATE pet_post SET like_count = like_count + 1 WHERE id = #{id} AND status <> -1")
     void incrementLikeCount(@Param("id") Long id);
 
-    @Update("UPDATE pet_post SET like_count = like_count - 1 "
-            + "WHERE id = #{id} AND like_count > 0 AND status <> -1")
+    @Update(
+            "UPDATE pet_post SET like_count = like_count - 1 "
+                    + "WHERE id = #{id} AND like_count > 0 AND status <> -1")
     void decrementLikeCount(@Param("id") Long id);
 
-    @Update("UPDATE pet_post SET comment_count = comment_count + 1 WHERE id = #{id} AND status <> -1")
+    @Update(
+            "UPDATE pet_post SET comment_count = comment_count + 1 WHERE id = #{id} AND status <> -1")
     void incrementCommentCount(@Param("id") Long id);
 
-    @Update("UPDATE pet_post SET comment_count = comment_count - 1 "
-            + "WHERE id = #{id} AND comment_count > 0 AND status <> -1")
+    @Update(
+            "UPDATE pet_post SET comment_count = comment_count - 1 "
+                    + "WHERE id = #{id} AND comment_count > 0 AND status <> -1")
     void decrementCommentCount(@Param("id") Long id);
 
     @Update("UPDATE pet_post SET view_count = view_count + 1 WHERE id = #{id} AND status <> -1")

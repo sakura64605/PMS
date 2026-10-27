@@ -36,18 +36,23 @@ public class CommentNotificationListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onCommentNotification(CommentNotificationEvent event) {
         try {
-            notificationFacade.notify(MessageType.COMMENT, new CommentNotificationContext(
-                    event.getReceiverId(),
-                    event.getAuthorId(),
-                    event.getTargetType(),
-                    event.getTargetTitle(),
-                    event.getContent(),
-                    event.getBusinessId(),
-                    event.getLink()));
+            notificationFacade.notify(
+                    MessageType.COMMENT,
+                    new CommentNotificationContext(
+                            event.getReceiverId(),
+                            event.getAuthorId(),
+                            event.getTargetType(),
+                            event.getTargetTitle(),
+                            event.getContent(),
+                            event.getBusinessId(),
+                            event.getLink()));
         } catch (Exception e) {
             // 事务已提交，通知失败不能反向影响已成功的结果；留给兜底重投任务处理
-            log.error("评论通知发送失败: commentId={}, receiverId={}",
-                    event.getCommentId(), event.getReceiverId(), e);
+            log.error(
+                    "评论通知发送失败: commentId={}, receiverId={}",
+                    event.getCommentId(),
+                    event.getReceiverId(),
+                    e);
         }
     }
 }

@@ -13,5 +13,4 @@ public class PasswordConfig {
         // 强度默认为10，可以设置为4-31之间的数，越大越安全但越慢
         return new BCryptPasswordEncoder(10);
     }
-
 }

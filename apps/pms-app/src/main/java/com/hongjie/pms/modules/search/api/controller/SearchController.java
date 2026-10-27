@@ -55,11 +55,17 @@ public class SearchController {
             @RequestParam(defaultValue = "relevance") String sortBy) {
 
         Long userId = UserContext.getUserId();
-        log.info("全局搜索: keyword={}, pageNum={}, pageSize={}, types={}, sortBy={}, userId={}",
-                keyword, pageNum, pageSize, types, sortBy, userId);
+        log.info(
+                "全局搜索: keyword={}, pageNum={}, pageSize={}, types={}, sortBy={}, userId={}",
+                keyword,
+                pageNum,
+                pageSize,
+                types,
+                sortBy,
+                userId);
 
-        UnifiedSearchResponse response = unifiedSearchService.search(
-                keyword, pageNum, pageSize, types, sortBy, userId);
+        UnifiedSearchResponse response =
+                unifiedSearchService.search(keyword, pageNum, pageSize, types, sortBy, userId);
 
         return CommonResult.success(response);
     }

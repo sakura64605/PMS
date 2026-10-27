@@ -12,6 +12,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class CommentCacheListener {
     private final DistributedCache cache;
     private final RedisScanUtil scan;
+
     @TransactionalEventListener
     public void created(CommentCreatedEvent event) {
         switch (event.getTargetType()) {
@@ -21,7 +22,9 @@ public class CommentCacheListener {
                 cache.delete("activity:fallback_" + event.getTargetId());
                 scan.scanAndDelete("activityList_*");
             }
-            default -> { /* Daily snapshots are invalidated by their own module. */ }
+            default -> {
+                /* Daily snapshots are invalidated by their own module. */
+            }
         }
     }
 }

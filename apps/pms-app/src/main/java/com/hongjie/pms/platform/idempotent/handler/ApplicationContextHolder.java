@@ -47,7 +47,8 @@ public class ApplicationContextHolder implements ApplicationContextAware {
     /**
      * Find whether the bean has annotations.
      */
-    public static <A extends Annotation> A findAnnotationOnBean(String beanName, Class<A> annotationType) {
+    public static <A extends Annotation> A findAnnotationOnBean(
+            String beanName, Class<A> annotationType) {
         return CONTEXT.findAnnotationOnBean(beanName, annotationType);
     }
 

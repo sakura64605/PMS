@@ -9,7 +9,6 @@ import com.hongjie.pms.shared.core.enums.CodableEnum;
  * 老代码里全是 {@code setStatus(1)} / {@code getStatus() == 2} 这类魔法值，v2 一律走本枚举。
  */
 public enum PetPostStatus implements CodableEnum<Integer> {
-
     DELETED(-1, "已删除"),
     PENDING_AUDIT(0, "待审核"),
     PUBLISHED(1, "已发布"),
