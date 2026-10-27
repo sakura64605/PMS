@@ -64,6 +64,16 @@ class PetPostDtoConverterTest {
         return post;
     }
 
+    @Test
+    void publicCardPreviewHasLocationAndBoundedDescription() {
+        var post=samplePost();post.setContent("长".repeat(300));
+        var dto=converter.toView(new PetPostWithAuthor(post,AUTHOR,false,false));
+        assertThat(dto.getContent()).hasSize(200);
+        assertThat(dto.getAddress()).isEqualTo("杭州市西湖区");
+        post.setContent(null);
+        assertThat(converter.toView(new PetPostWithAuthor(post,AUTHOR,false,false)).getContent()).isNull();
+    }
+
     @Nested
     @DisplayName("列表视图")
     class ListView {

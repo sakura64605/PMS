@@ -23,6 +23,7 @@ const {default:Admin}=await server.ssrLoadModule('/src/admin.tsx');
 dom.window.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
 dom.window.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');};
 const {MySignups}=await server.ssrLoadModule('/src/mySignups.tsx');
+const {Home,dashboardGreeting}=await server.ssrLoadModule('/src/dashboard.tsx');
 const {Detail,Editor}=await server.ssrLoadModule('/src/content.tsx');
 let root,host,calls,current,mounts,unmounts;
 let frames=new Map(),frameSequence=0,scrolls=0;
@@ -573,4 +574,54 @@ test('my registrations cancels via authenticated endpoint and refreshes both cou
 });
 test('my registrations retains unavailable history but hides invalid actions',async()=>{
  await renderSignups();await signupData([signupFixture(9,{available:false,canCancel:false})]);assert.ok(host.textContent.includes('活动暂不可查看'));assert.equal([...host.querySelectorAll('button')].some(b=>b.textContent==='取消报名'),false);assert.equal(host.querySelector('a[href="/pets/activity/9"]'),null);
+});
+
+async function renderDashboard(user={userId:1,nickname:'原型宠友'}) {await act(async()=>root.render(React.createElement(AppContext.Provider,{value:{...context(0),user}},React.createElement(Home))));}
+async function dashboardReplies(){
+ const fixtures=[
+ ['/notice/list?',{total:1,records:[{id:11,title:'真实公告',type:2,priority:2,isTop:1,isRead:false,publishTime:'2026-10-27T08:00:00'}]}],
+ ['/notice/unread-count',3],['/activity/my-signups/summary',{total:6}],
+ ['/pet/list?',{total:17,records:[{id:21,title:'橘猫找家',petName:'大橘',petType:'橘猫',petAge:'三个月',petGender:1,type:0,content:'亲人健康待领养',address:'杭州西湖区',viewCount:12,likeCount:5,images:['/cat.jpg']}]}],
+ ['/activity/list?',{total:4,records:[{id:31,title:'周末草坪聚会',status:0,currentPeople:4,maxPeople:10,content:'带毛孩子一起玩',location:'市民公园',startTime:'2026-11-01T10:00:00'}]}],
+ ['/daily/feed?',{records:[{id:41,user:{nickname:'日记作者'},createTime:'2026-10-27T09:00:00',content:'今天带小猫晒太阳',topics:[{id:1,name:'养宠日常'}]}]}],
+ ];
+ for(const [path,data] of fixtures){const index=calls.findIndex(c=>c.path.includes(path));if(index>=0)await reply(index,data);}
+}
+test('dashboard prototype includes all six sections and real card metadata',async()=>{
+ await renderDashboard();await dashboardReplies();
+ for(const text of ['社区公告与动态','待领养萌宠','同城宠友活动','宠友暖心日记','AI 养宠顾问','温暖守候','宠友日记精选','我的活动报名 (6)','3 条未读','17 只','4 场','大橘','公 · 三个月','亲人健康待领养','杭州西湖区','12 浏览','5 赞','4 / 10 人 (40%)','日记作者','今天带小猫晒太阳','#养宠日常'])assert.ok(host.textContent.includes(text),text);
+ assert.equal(host.querySelectorAll('.dashboard-shortcut').length,4);
+ assert.equal(host.querySelector('progress').value,40);
+ assert.equal(host.querySelector('.dashboard-pet').getAttribute('href'),'/pets/21');
+ assert.equal(host.querySelector('.dashboard-activity').getAttribute('href'),'/pets/activity/31');
+ assert.equal(host.querySelector('.dashboard-diary').getAttribute('href'),'/daily/41');
+ assert.ok(calls.find(c=>c.path.includes('/pet/list?')).path.includes('status=1'));
+ assert.equal(calls.some(c=>/\/pet\/21|\/activity\/detail/.test(c.path)),false);
+});
+test('dashboard prototype publication button offers both pet and activity paths',async()=>{
+ await renderDashboard();await dashboardReplies();
+ await act(async()=>[...host.querySelectorAll('button')].find(b=>b.textContent.includes('发起领养或活动')).click());
+ assert.ok(host.querySelector('dialog a[href="/pets/create"]'));
+ assert.ok(host.querySelector('dialog a[href="/pets/create?type=2"]'));
+ const shortcuts=[...host.querySelectorAll('.dashboard-shortcut')].map(a=>a.getAttribute('href'));
+ assert.deepEqual(shortcuts,['/pets?type=0','/pets?type=2','/daily','/ai-chat']);
+});
+test('dashboard prototype keeps guest layout without protected requests or invented counts',async()=>{
+ await renderDashboard(null);await dashboardReplies();
+ assert.equal(calls.some(c=>/daily\/feed|my-signups|unread-count/.test(c.path)),false);
+ assert.ok(host.textContent.includes('登录查看日记'));assert.ok(host.querySelector('.dashboard-diaries'));
+ assert.equal(host.textContent.includes('天气晴朗'),false);assert.equal(host.textContent.includes('今日新增'),false);
+ assert.equal(host.textContent.includes('实名审核'),false);assert.equal(host.textContent.includes('我的活动报名 (0)'),false);
+});
+test('dashboard prototype failed diaries do not hide announcements or activity cards',async()=>{
+ await renderDashboard();const index=calls.findIndex(c=>c.path.includes('/daily/feed?'));await reply(index,null,500);
+ await reply(calls.findIndex(c=>c.path.includes('/activity/list?')),{records:[{id:1,title:'保留的活动',status:1,currentPeople:1,maxPeople:0}],total:1});
+ assert.ok(host.textContent.includes('保留的活动'));assert.ok(host.querySelector('.dashboard-announcements'));
+ assert.ok(host.querySelector('.dashboard-diaries [role="alert"]'));
+ assert.equal(host.querySelector('progress').value,0);
+});
+test('dashboard prototype greeting uses China time instead of fixed afternoon copy',()=>{
+ assert.equal(dashboardGreeting(new Date('2026-10-27T01:00:00Z')),'上午好');
+ assert.equal(dashboardGreeting(new Date('2026-10-27T07:00:00Z')),'下午好');
+ assert.equal(dashboardGreeting(new Date('2026-10-27T13:00:00Z')),'晚上好');
 });

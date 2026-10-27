@@ -26,6 +26,10 @@ public class PetListResponseDto {
      */
     private String title;
 
+    /** Public card preview, capped at 200 characters. */
+    private String content;
+    private String address;
+
     /**
      * 宠物名称
      */

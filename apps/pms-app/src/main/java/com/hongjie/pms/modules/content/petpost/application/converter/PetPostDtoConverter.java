@@ -37,6 +37,8 @@ public class PetPostDtoConverter implements EntityConverter<PetPostWithAuthor, P
                 .id(post.getId())
                 .type(post.getType())
                 .title(post.getTitle())
+                .content(post.getContent() == null ? null : post.getContent().substring(0, Math.min(200, post.getContent().length())))
+                .address(post.getAddress())
                 .petName(post.getPetName())
                 .petType(post.getPetBreed())
                 .petAge(post.getPetAgeText())
