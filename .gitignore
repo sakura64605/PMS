@@ -53,6 +53,9 @@ deploy.sh
 # 敏感配置文件（本地使用，不上传GitHub）
 /apps/pms-app/src/main/resources/application.yaml
 tokens.csv
+**/amap.env
+**/core-amap.env
+**/pms-amap.enabled.conf
 
 # Claude
 .claude/

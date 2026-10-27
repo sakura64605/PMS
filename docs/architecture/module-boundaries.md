@@ -20,6 +20,7 @@ apps/pms-app/src/main/java/com/hongjie/pms/
     ├── governance/               # audit、report：内容审核和举报
     ├── search/                   # 搜索查询、索引同步与维护
     ├── analytics/                # 数据统计和快照
+    ├── location/                 # 高德运行时配置；公共地图组件的服务端边界
     └── scheduling/               # XXL-JOB 接入、任务记录和调度
 
 apps/pms-app/src/main/resources/mapper/         # 按模块组织 MyBatis XML
@@ -41,6 +42,7 @@ docs/architecture/archive/        # 历史架构图
 | identity | user、avatar_history、账户及管理 | 对外提供认证、用户简档和限制状态 API，其他模块不直接读写用户表 |
 | content | pet_post、pet_category、daily_post、topic、daily_* | 审核、互动计数、Feed 改通过契约或事件协作 |
 | activity | activity、activity_signup | 用户限制、报名处罚、审核与任务回调不能依赖跨库行锁 |
+| location | 地图运行时配置，当前不拥有业务表 | 浏览器选点与业务坐标持久化、签到判定分开；服务端周边查询后续使用独立 Web服务 Key |
 | community | comment、like_record、favorite_record、follow、user_inbox | 明确各表最终所有者，以目标能力 API 或事件更新内容计数；当前收藏表仍位于 petpost 持久化包 |
 | communication | user_message、private_conversation、private_message、notice、notice_read_record | 统一通知投递契约、用户查询和客户端实时连接路由 |
 | governance | audit_record、report_record | 通过被治理模块的 API/事件执行状态变更，停止跨模块 Mapper 写入 |

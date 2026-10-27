@@ -4686,3 +4686,58 @@ textarea {
     font-size: 11px;
   }
 }
+.location-address-input,
+.location-search {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.location-address-input input,
+.location-search input {
+  min-width: 0;
+  flex: 1;
+}
+.location-address-input .btn {
+  flex-shrink: 0;
+}
+.location-picker {
+  display: grid;
+  gap: 12px;
+}
+.location-map {
+  height: 320px;
+  width: 100%;
+  border-radius: 12px;
+  background: #f2f1ec;
+}
+.location-results {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.location-results button {
+  width: 100%;
+  display: grid;
+  text-align: left;
+  gap: 4px;
+  padding: 10px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #e9e7e0;
+  cursor: pointer;
+}
+.location-selected {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+@media (max-width: 600px) {
+  .location-search {
+    flex-wrap: wrap;
+  }
+  .location-search input {
+    flex-basis: 100%;
+  }
+}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouteLocation } from "./routeTransition";
+import { LocationAddressField } from "./LocationPicker";
 import {
   ArrowRight,
   Bookmark,
@@ -1068,7 +1069,11 @@ export function Editor({ id, activity = false }: { id?: string; activity?: boole
               <>
                 {input("startTime", "开始时间", "datetime-local", true)}
                 {input("endTime", "结束时间", "datetime-local", true)}
-                {input("location", "活动地点", "text", true)}
+                <LocationAddressField
+                  label="活动地点"
+                  value={form.location}
+                  onChange={(value) => update("location", value)}
+                />
                 {input("maxPeople", "最大参与人数", "number", true)}
               </>
             ) : (
@@ -1113,7 +1118,11 @@ export function Editor({ id, activity = false }: { id?: string; activity?: boole
           </Field>
           {!activity && (
             <>
-              {input("address", "所在地址", "text", true)}
+              <LocationAddressField
+                label="所在地址"
+                value={form.address}
+                onChange={(value) => update("address", value)}
+              />
               <div className="form-grid">
                 {input("contactPhone", "联系电话", "tel", true)}
                 {input("contactWechat", "微信号")}
