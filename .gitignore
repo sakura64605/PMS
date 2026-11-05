@@ -76,3 +76,6 @@ __pycache__/
 !**/src/main/**/target/**
 !**/src/test/**/target/
 !**/src/test/**/target/**
+
+# Local deployment artifacts, verification logs and temporary scripts
+/.local/
