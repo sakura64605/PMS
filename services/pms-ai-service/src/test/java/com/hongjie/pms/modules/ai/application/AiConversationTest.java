@@ -17,7 +17,7 @@ import static org.mockito.Mockito.*;
 class AiConversationTest {
     AiSessions sessions = mock(AiSessions.class);
     AIAgentEngine engine = mock(AIAgentEngine.class);
-    AiConversationGateway gateway = new AiConversationGateway(sessions, engine);
+    AiConversationGateway gateway = new AiConversationGateway(sessions, engine, mock(AiPetProfiles.class), mock(AiPetRecords.class));
 
     AIAgentRequest input(String id) {
         var req = new AIAgentRequest();

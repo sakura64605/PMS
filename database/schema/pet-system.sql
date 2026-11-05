@@ -533,6 +533,7 @@ CREATE TABLE `daily_statistics` (
 CREATE TABLE `ai_chat_session` (
                                    `id` bigint NOT NULL AUTO_INCREMENT,
                                    `session_id` varchar(64) NOT NULL,
+                                   `pet_id` bigint DEFAULT NULL,
                                    `user_id` bigint DEFAULT NULL,
                                    `title` varchar(200) DEFAULT NULL,
                                    `status` tinyint DEFAULT '1',
@@ -589,4 +590,31 @@ CREATE TABLE `ai_human_transfer` (
                                      `transferred_at` datetime DEFAULT CURRENT_TIMESTAMP,
                                      `closed_at` datetime DEFAULT NULL,
                                      PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS ai_pet_profile (
+ id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ user_id BIGINT NOT NULL,
+ name VARCHAR(40) NOT NULL,
+ species VARCHAR(16) NOT NULL,
+ breed VARCHAR(60) NOT NULL DEFAULT '',
+ birth_date DATE NULL,
+ sex VARCHAR(16) NOT NULL DEFAULT 'unknown',
+ updated_at DATETIME NOT NULL,
+ INDEX idx_pet_owner(user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS ai_pet_record (
+ id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ user_id BIGINT NOT NULL,
+ pet_id BIGINT NOT NULL,
+ kind VARCHAR(16) NOT NULL,
+ content VARCHAR(1000) NOT NULL,
+ occurred_on DATE NULL,
+ event_state VARCHAR(16) NULL,
+ source_message_id VARCHAR(64) NULL,
+ status TINYINT NOT NULL DEFAULT 1,
+ created_at DATETIME NOT NULL,
+ updated_at DATETIME NOT NULL,
+ UNIQUE KEY uk_pet_source(user_id,pet_id,source_message_id),
+ KEY idx_pet_records(user_id,pet_id,status,kind,updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

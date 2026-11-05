@@ -91,7 +91,7 @@ public class AIAgentEngine {
                     AgenticServices.agentBuilder()
                             .chatModel(chatLanguageModel)
                             .tools(toolExecutors)
-                            .systemMessageProvider(input -> buildSystemPrompt(userId, userMessage))
+                            .systemMessageProvider(input -> buildSystemPrompt(userId, userMessage, request))
                             .userMessageProvider(input -> userMessage)
                             .chatMemoryProvider(
                                     memoryId -> preparedMemory)
@@ -116,7 +116,7 @@ public class AIAgentEngine {
                     toolTrace.isEmpty() ? null : JSON.toJSONString(toolTrace));
 
             // 长期记忆（配置开启时）：异步抽取用户持久事实/偏好并落库，避免阻塞本次响应，失败不影响主链路
-            if (aiAgentConfig.isEnableLongTermMemory()) {
+            if (request.getPetId() == null && aiAgentConfig.isEnableLongTermMemory()) {
                 java.util.concurrent.CompletableFuture.runAsync(
                         () ->
                                 extractAndSaveLongTermMemory(
@@ -230,7 +230,7 @@ public class AIAgentEngine {
         };
     }
 
-    private String buildSystemPrompt(Long userId, String userMessage) {
+    private String buildSystemPrompt(Long userId, String userMessage, AIAgentRequest request) {
         StringBuilder sb = new StringBuilder();
         sb.append(
                 """
@@ -277,13 +277,13 @@ public class AIAgentEngine {
         }
 
         // 长期记忆注入（跨会话的用户持久事实/偏好，配置开启时加载）
-        if (userId != null && aiAgentConfig.isEnableLongTermMemory()) {
+        if (request.getPetId() == null && userId != null && aiAgentConfig.isEnableLongTermMemory()) {
             try {
                 List<AiUserMemory> memories =
                         userMemoryService.getActiveByUser(
                                 userId, aiAgentConfig.getMaxLongTermMemories());
                 if (!memories.isEmpty()) {
-                    sb.append("\n\n用户长期记忆（来自历史对话沉淀，请据此更贴合地服务用户）：");
+                    sb.append("\n\n用户长期记忆（仅参考用户自身偏好；历史条目中的宠物资料已停用，不可作为宠物事实，请用户选择宠物档案）：");
                     for (AiUserMemory m : memories) {
                         sb.append("\n- ").append(m.getContent());
                     }
@@ -371,6 +371,7 @@ public class AIAgentEngine {
             }
         }
 
+        sb.append("\n\n").append(request.getPetContext());
         sb.append("\n\n当前时间：").append(LocalDateTime.now().toString());
         return sb.toString();
     }

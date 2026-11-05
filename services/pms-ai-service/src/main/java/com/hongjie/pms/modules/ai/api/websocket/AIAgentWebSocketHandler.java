@@ -67,6 +67,12 @@ public class AIAgentWebSocketHandler extends TextWebSocketHandler {
             String requested = (String) data.get("sessionId");
             request.setSessionId(requested);
             request.setMessage(userMessage);
+            Object petId = data.get("petId");
+            if (petId != null) {
+                if (!(petId instanceof Number) || !petId.toString().matches("[1-9][0-9]{0,18}"))
+                    throw new IllegalArgumentException("无效宠物编号");
+                request.setPetId(Long.valueOf(petId.toString()));
+            }
             request.setStream(false);
 
             if (requested == null || requested.isBlank()) {

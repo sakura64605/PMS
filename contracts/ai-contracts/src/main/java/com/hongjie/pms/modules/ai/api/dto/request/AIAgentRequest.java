@@ -14,6 +14,10 @@ public class AIAgentRequest {
 
     private String sessionId;
 
+    private Long petId;
+
+    private String petContext;
+
     @NotBlank(message = "消息内容不能为空")
     private String message;
 

@@ -17,6 +17,8 @@ public class AiChatSession {
 
     private String title;
 
+    private Long petId;
+
     private Integer status;
 
     private Integer messageCount;

@@ -90,6 +90,8 @@ class AiSessionModuleMySqlTest {
         context.registerBean(AiHumanTransferMapper.class, () -> handoffs);
         context.registerBean(RedisTemplate.class, () -> redis);
         context.registerBean(AIAgentEngine.class, () -> engine);
+        context.registerBean(AiPetProfiles.class, () -> mock(AiPetProfiles.class));
+        context.registerBean(AiPetRecords.class, () -> mock(AiPetRecords.class));
         context.registerBean(
                 org.springframework.transaction.PlatformTransactionManager.class,
                 () ->
