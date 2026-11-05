@@ -14,6 +14,7 @@
     <name>PMS services reactor</name>
     <properties>
         <java.version>17</java.version>
+        <fastjson2.version>2.0.66</fastjson2.version>
         <spring-cloud.version>2025.0.3</spring-cloud.version>
         <elasticsearch-client.version>8.7.1</elasticsearch-client.version>
         <mybatis-plus.version>3.5.17</mybatis-plus.version>
@@ -22,6 +23,16 @@
     </properties>
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.alibaba.fastjson2</groupId>
+                <artifactId>fastjson2</artifactId>
+                <version>${fastjson2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>${fastjson2.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
