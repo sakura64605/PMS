@@ -30,7 +30,16 @@ public class AIAgentConfig {
     private boolean enableMemory = true;
 
     /** 短期记忆滑动窗口：注入的最近对话轮数 */
-    private int maxMemoryRounds = 10;
+    private int maxMemoryRounds = 5;
+
+    /** 历史上下文压缩开关；关闭时仅使用原文窗口。 */
+    private boolean enableContextCompression = true;
+
+    /** 摘要最大字符数，不是 token 数。 */
+    private int memorySummaryMaxChars = 2000;
+
+    /** 单批压缩输入字符数，限制模型输入大小。 */
+    private int memoryCompressionBatchChars = 12000;
 
     /** 是否启用长期记忆（对话中抽取用户持久事实/偏好，跨会话注入） */
     private boolean enableLongTermMemory = false;

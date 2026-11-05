@@ -21,10 +21,7 @@ import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
 import dev.langchain4j.agentic.observability.AfterAgentToolExecution;
 import dev.langchain4j.agentic.observability.AgentListener;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.ChatMemory;
-import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.tool.ToolExecution;
 import dev.langchain4j.service.tool.ToolExecutor;
@@ -42,6 +39,7 @@ public class AIAgentEngine {
 
     private final ChatModel chatLanguageModel;
     private final ChatMemoryService memoryService;
+    private final com.hongjie.pms.modules.ai.application.memory.ConversationContext conversationContext;
     private final KnowledgeBaseService knowledgeBaseService;
     private final TokenUsageTracker tokenUsageTracker;
     private final ToolRegistry toolRegistry;
@@ -86,6 +84,8 @@ public class AIAgentEngine {
             Map<ToolSpecification, ToolExecutor> toolExecutors =
                     toolRegistry.getToolExecutors(userId);
 
+            ChatMemory preparedMemory = conversationContext.prepare(request.getSessionId());
+
             // 每请求现搭 ReAct Agent：内置 Thought→Action→Observation 循环，无共享状态、线程安全
             UntypedAgent agent =
                     AgenticServices.agentBuilder()
@@ -94,7 +94,7 @@ public class AIAgentEngine {
                             .systemMessageProvider(input -> buildSystemPrompt(userId, userMessage))
                             .userMessageProvider(input -> userMessage)
                             .chatMemoryProvider(
-                                    memoryId -> buildSeededMemory(request.getSessionId()))
+                                    memoryId -> preparedMemory)
                             .maxToolCallingRoundTrips(MAX_TOOL_CALLING_ROUND_TRIPS)
                             .listener(createToolTraceListener(toolTrace))
                             .build();
@@ -211,37 +211,7 @@ public class AIAgentEngine {
         }
     }
 
-    /**
-     * 短期记忆（滑动窗口）：从 ChatMemoryService（Redis + ai_chat_message）注入最近 N 轮到请求级内存窗口，
-     * N 由 ai.agent.max-memory-rounds 控制。保持多轮上下文连续，同时不改变 /ai/history 与 clearMemory 语义。
-     */
-    private ChatMemory buildSeededMemory(String sessionId) {
-        int rounds =
-                aiAgentConfig.getMaxMemoryRounds() > 0
-                        ? Math.min(aiAgentConfig.getMaxMemoryRounds(), 20)
-                        : 5;
-        MessageWindowChatMemory memory =
-                MessageWindowChatMemory.builder().id(sessionId).maxMessages(rounds * 2 + 2).build();
-        try {
-            List<ChatMemoryService.MemoryMessage> history =
-                    memoryService.getRecentMessages(sessionId, rounds);
-            for (ChatMemoryService.MemoryMessage msg : history) {
-                if ("user".equals(msg.getRole())) {
-                    memory.add(UserMessage.from(msg.getContent()));
-                } else if ("assistant".equals(msg.getRole())) {
-                    memory.add(AiMessage.from(msg.getContent()));
-                }
-            }
-        } catch (Exception e) {
-            log.warn("注入历史记忆失败: sessionId={}", sessionId, e);
-        }
-        return memory;
-    }
 
-    /**
-     * 观察 ReAct 循环每一步工具调用，收集 name/arguments/result 填充 toolCalls；
-     * 并在 invoke 结束后从最终 ChatResponse 取真实 token 用量。
-     */
     private AgentListener createToolTraceListener(List<ToolCall> trace) {
         return new AgentListener() {
             @Override
