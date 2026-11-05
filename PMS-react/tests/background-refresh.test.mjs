@@ -591,7 +591,10 @@ test("reference AI layout keeps all three real tools in the existing chat header
   assert.ok(host.querySelector(".ai-mobile-close"));
   assert.ok(host.querySelector('textarea[aria-label="给 AI 的问题"]'));
   assert.ok(host.textContent.includes("Shift+Enter"));
-  assert.equal(calls.length, 2);
+  assert.deepEqual(
+    calls.map((c) => c.path).sort(),
+    ["/pet-system/ai/pets", "/pet-system/ai/sessions", "/pet-system/ai/suggestions"].sort(),
+  );
   assert.equal(
     calls.some((c) => c.options.method !== "GET"),
     false,
@@ -2140,4 +2143,126 @@ test("dashboard prototype greeting uses China time instead of fixed afternoon co
   assert.equal(dashboardGreeting(new Date("2026-10-27T01:00:00Z")), "上午好");
   assert.equal(dashboardGreeting(new Date("2026-10-27T07:00:00Z")), "下午好");
   assert.equal(dashboardGreeting(new Date("2026-10-27T13:00:00Z")), "晚上好");
+});
+
+test("AI pet selection restores session binding and switching starts a fresh consultation without model calls", async () => {
+  await act(async () =>
+    root.render(
+      React.createElement(AppContext.Provider, { value: context(0) }, React.createElement(AIChat)),
+    ),
+  );
+  await replyWhere(
+    (p) => p.endsWith("/ai/pets"),
+    [
+      { id: 1, name: "圆圆", species: "cat" },
+      { id: 2, name: "豆豆", species: "dog" },
+    ],
+  );
+  await replyWhere(
+    (p) => p.endsWith("/ai/sessions"),
+    [{ sessionId: "pet-session", title: "圆圆咨询", petId: 1 }],
+  );
+  await replyWhere((p) => p.endsWith("/ai/suggestions"), []);
+  const historyButton = [...host.querySelectorAll(".chat-session button")].find((b) =>
+    b.textContent.includes("圆圆咨询"),
+  );
+  await act(async () => historyButton.click());
+  await replyWhere(
+    (p) => p.endsWith("/ai/history/pet-session"),
+    [{ role: "user", content: "昨天的情况" }],
+  );
+  const select = host.querySelector('select[aria-label="当前咨询宠物"]');
+  assert.equal(select.value, "1");
+  assert.ok(host.textContent.includes("昨天的情况"));
+  await act(async () => {
+    select.value = "2";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  assert.equal(select.value, "2");
+  assert.equal(host.textContent.includes("昨天的情况"), false);
+  assert.equal(
+    calls.some((c) => c.options.method !== "GET"),
+    false,
+  );
+});
+
+test("pet archive confirmation sends only the reviewed record and never calls AI", async () => {
+  const { PetRecordEditor } = await server.ssrLoadModule("/src/petRecords.tsx");
+  let saved = false,
+    closed = false;
+  await act(async () =>
+    root.render(
+      React.createElement(
+        AppContext.Provider,
+        { value: context(0) },
+        React.createElement(PetRecordEditor, {
+          petId: "12",
+          petName: "圆圆",
+          record: { content: "用户反馈已恢复", sourceMessageId: "source-1" },
+          onSaved: () => {
+            saved = true;
+          },
+          onClose: () => {
+            closed = true;
+          },
+        }),
+      ),
+    ),
+  );
+  assert.equal(calls.length, 0);
+  assert.ok(host.textContent.includes("保存到 圆圆 的档案"));
+  await act(async () =>
+    host
+      .querySelector("form")
+      .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
+  );
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].path, "/pet-system/ai/pets/12/records");
+  assert.deepEqual(JSON.parse(calls[0].options.body), {
+    kind: "event",
+    content: "用户反馈已恢复",
+    occurredOn: null,
+    eventState: "unknown",
+    sourceMessageId: "source-1",
+  });
+  await reply(0, { id: 99 });
+  assert.equal(saved, true);
+  assert.equal(closed, true);
+});
+
+test("pet archive editor keeps the original source and updates the existing record", async () => {
+  const { PetRecordEditor } = await server.ssrLoadModule("/src/petRecords.tsx");
+  await act(async () =>
+    root.render(
+      React.createElement(
+        AppContext.Provider,
+        { value: context(0) },
+        React.createElement(PetRecordEditor, {
+          petId: "12",
+          petName: "圆圆",
+          record: {
+            id: 8,
+            kind: "event",
+            content: "已结束",
+            occurredOn: "2026-11-01",
+            eventState: "resolved",
+            sourceMessageId: "source-1",
+          },
+          onSaved: () => {},
+          onClose: () => {},
+        }),
+      ),
+    ),
+  );
+  await act(async () =>
+    host
+      .querySelector("form")
+      .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
+  );
+  assert.equal(calls[0].path, "/pet-system/ai/pets/12/records/8");
+  assert.equal(calls[0].options.method, "PUT");
+  const data = JSON.parse(calls[0].options.body);
+  assert.equal(data.eventState, "resolved");
+  assert.equal(data.occurredOn, "2026-11-01");
+  await reply(0, { id: 8 });
 });

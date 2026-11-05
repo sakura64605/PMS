@@ -1,3 +1,5 @@
+import { PetRecordEditor } from "./petRecords";
+import { PetProfiles } from "./petProfiles";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { usePrivateHistory } from "./privateHistory";
 import { usePrivateComposer } from "./privateComposer";
@@ -512,6 +514,10 @@ function Memory({ onClose }: { onClose: () => void }) {
   );
 }
 export function AIChat() {
+  const [recordDraft, setRecordDraft] = useState<Row | null>(null);
+  const [petId, setPetId] = useState("");
+  const [profilesOpen, setProfilesOpen] = useState(false);
+  const pets = useData("/ai/pets");
   const [session, setSession] = useState(""),
     [text, setText] = useState(""),
     [sending, setSending] = useState(false),
@@ -537,6 +543,7 @@ export function AIChat() {
     try {
       const result = await api("/ai/chat", "POST", {
         sessionId: session || undefined,
+        petId: petId ? Number(petId) : undefined,
         message,
       });
       setText("");
@@ -594,6 +601,7 @@ export function AIChat() {
                     minWidth: 0,
                   }}
                   onClick={() => {
+                    setPetId(s.petId ? String(s.petId) : "");
                     setSession(s.sessionId);
                     setOptimistic([]);
                     setShowList(false);
@@ -683,6 +691,44 @@ export function AIChat() {
               </Button>
             </div>
           </header>
+          <div className="ai-pet-context">
+            <label>
+              当前咨询宠物
+              <select
+                aria-label="当前咨询宠物"
+                value={petId}
+                disabled={sending || pets.loading}
+                onChange={(e) => {
+                  setPetId(e.target.value);
+                  setSession("");
+                  setOptimistic([]);
+                  setLastError("");
+                }}
+              >
+                <option value="">未选择 · 通用咨询</option>
+                {petId && !rows(pets.data).some((p) => String(p.id) === petId) && (
+                  <option value={petId}>档案不可用，请重新选择</option>
+                )}
+                {rows(pets.data).map((p) => (
+                  <option key={p.id} value={String(p.id)}>
+                    {p.name} · {p.species === "cat" ? "猫" : p.species === "dog" ? "狗" : "其他"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Button tone="ghost small" disabled={sending} action={() => setProfilesOpen(true)}>
+              管理宠物档案
+            </Button>
+            <small>切换宠物将开启新咨询，避免混用历史信息。</small>
+            {pets.error && (
+              <span role="alert">
+                宠物档案加载失败，请重试。
+                <Button tone="ghost small" action={pets.reload}>
+                  重试
+                </Button>
+              </span>
+            )}
+          </div>
           <div className="chat-messages">
             {!session && !displayed.length && !sending ? (
               <div className="chat-empty">
@@ -726,6 +772,24 @@ export function AIChat() {
                         }}
                       />
                       <small>{time(m.createdAt)}</small>
+                      {m.role === "user" && m.messageId && petId && (
+                        <Button
+                          tone="ghost small"
+                          disabled={sending}
+                          action={() =>
+                            setRecordDraft({
+                              content: String(m.content || "").slice(0, 1000),
+                              sourceMessageId: m.messageId,
+                              petId,
+                              petName:
+                                rows(pets.data).find((p) => String(p.id) === petId)?.name ||
+                                "当前宠物",
+                            })
+                          }
+                        >
+                          保存到宠物档案
+                        </Button>
+                      )}
                       {m.role !== "user" && m.id && (
                         <div className="row-actions ai-message-actions">
                           <Button
@@ -821,6 +885,18 @@ export function AIChat() {
           <div className="ai-compose-hint">Enter 发送 · Shift+Enter 换行</div>
         </section>
       </div>
+      {recordDraft && (
+        <PetRecordEditor
+          petId={recordDraft.petId}
+          petName={recordDraft.petName}
+          record={recordDraft}
+          onClose={() => setRecordDraft(null)}
+          onSaved={() => {}}
+        />
+      )}
+      {profilesOpen && (
+        <PetProfiles onClose={() => setProfilesOpen(false)} onChange={pets.reload} />
+      )}
       {memory && <Memory onClose={() => setMemory(false)} />}
     </div>
   );

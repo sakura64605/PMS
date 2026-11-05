@@ -4741,3 +4741,78 @@ textarea {
     flex-basis: 100%;
   }
 }
+
+.ai-pet-context {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  border-bottom: 1px solid #e7e5e4;
+}
+.ai-pet-context label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+.ai-pet-context select {
+  max-width: 230px;
+  padding: 7px;
+  border: 1px solid #d6d3d1;
+  border-radius: 8px;
+  background: white;
+}
+.ai-pet-context small {
+  color: #78716c;
+}
+.ai-pet-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+.ai-pet-row > span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.ai-pet-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+.ai-pet-form label {
+  display: grid;
+  gap: 5px;
+}
+.ai-pet-form input,
+.ai-pet-form select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d6d3d1;
+  border-radius: 8px;
+  padding: 9px;
+  background: white;
+}
+@media (max-width: 600px) {
+  .ai-pet-context {
+    padding: 10px;
+    gap: 8px;
+  }
+  .ai-pet-context small {
+    width: 100%;
+  }
+}
+
+.ai-pet-record {
+  padding: 16px 0;
+  border-bottom: 1px solid #e7e5e4;
+}
+.ai-pet-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d6d3d1;
+  border-radius: 8px;
+  padding: 9px;
+}
