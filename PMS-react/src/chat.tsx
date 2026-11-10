@@ -604,7 +604,6 @@ export function AIChat() {
                     setPetId(s.petId ? String(s.petId) : "");
                     setSession(s.sessionId);
                     setOptimistic([]);
-                    setShowList(false);
                   }}
                 >
                   <strong>{s.title || s.sessionName || "养宠对话"}</strong>

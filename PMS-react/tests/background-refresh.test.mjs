@@ -2167,6 +2167,8 @@ test("AI pet selection restores session binding and switching starts a fresh con
     b.textContent.includes("圆圆咨询"),
   );
   await act(async () => historyButton.click());
+  assert.equal(host.querySelector(".ai-workspace .chat-layout").classList.contains("sidebar-collapsed"), false);
+  assert.equal(host.querySelector(".ai-workspace .chat-sidebar").classList.contains("hidden-mobile"), false);
   await replyWhere(
     (p) => p.endsWith("/ai/history/pet-session"),
     [{ role: "user", content: "昨天的情况" }],
