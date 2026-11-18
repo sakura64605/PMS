@@ -1,21 +1,24 @@
 spring:
   config:
-    import: configserver:${PMS_CONFIG_URL:http://127.0.0.1:8888}
+    import:
+      - "nacos:application-cloud.yaml?group=${PMS_NACOS_GROUP:PMS}&refreshEnabled=true"
+      - "nacos:${spring.application.name}-cloud.yaml?group=${PMS_NACOS_GROUP:PMS}&refreshEnabled=true"
   cloud:
-    config:
-      enabled: true
-eureka:
-  instance:
-    prefer-ip-address: true
-    ip-address: 127.0.0.1
-    instance-id: ${spring.application.name}:${server.port}
-    lease-renewal-interval-in-seconds: 2
-    lease-expiration-duration-in-seconds: 6
-  client:
-    enabled: true
-    registry-fetch-interval-seconds: 2
-    service-url:
-      defaultZone: ${PMS_EUREKA_URL:http://127.0.0.1:8761/eureka/}
+    nacos:
+      discovery:
+        enabled: true
+        server-addr: ${PMS_NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${PMS_NACOS_NAMESPACE:}
+        group: ${PMS_NACOS_GROUP:PMS}
+        username: ${PMS_NACOS_USERNAME:}
+        password: ${PMS_NACOS_PASSWORD:}
+        ip: ${PMS_SERVICE_IP:127.0.0.1}
+      config:
+        enabled: true
+        server-addr: ${PMS_NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${PMS_NACOS_NAMESPACE:}
+        username: ${PMS_NACOS_USERNAME:}
+        password: ${PMS_NACOS_PASSWORD:}
 management:
   endpoints:
     web:

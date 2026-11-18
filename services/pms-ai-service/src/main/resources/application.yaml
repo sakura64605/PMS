@@ -16,9 +16,6 @@ spring:
       host: ${PMS_REDIS_HOST:127.0.0.1}
       port: ${PMS_REDIS_PORT:6379}
       password: ${PMS_REDIS_PASSWORD:}
-eureka:
-  client:
-    enabled: false
 pms:
   ai:
     core:

@@ -9,9 +9,6 @@ spring:
   cloud:
     config:
       enabled: false
-eureka:
-  client:
-    enabled: false
 pms:
   gateway:
     jwt-secret: ${PMS_GATEWAY_JWT_SECRET:}

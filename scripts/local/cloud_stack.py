@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 RUN = ROOT / "target/cloud-validation"
 STATE = RUN / "runtime.json"
 CLIENT = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-PORTS = [8761, 8888, 8088, 8180, 8181, 8182, 8281, 5175]
+PORTS = [ 8088, 8180, 8181, 8182, 8281, 5175]
 FORWARDS = {
     13306: 3306,
     16379: 6379,
@@ -160,14 +160,14 @@ def main():
         "frontend": "http://127.0.0.1:5175",
         "gateway": "http://127.0.0.1:8088",
         "core": "http://127.0.0.1:8180",
-        "registry": "http://127.0.0.1:8761",
+        "nacos": "http://127.0.0.1:8848",
         "config": "http://127.0.0.1:8888",
     }
     save(state)
     java = shutil.which("java")
     common = {
         "PMS_CONFIG_URL": "http://127.0.0.1:8888",
-        "PMS_EUREKA_URL": "http://127.0.0.1:8761/eureka/",
+        "PMS_NACOS_SERVER_ADDR": os.environ.get("PMS_NACOS_SERVER_ADDR", "127.0.0.1:8848"),
     }
 
     def service(name, artifact, port, options=(), extra=None, cloud=False):
@@ -209,17 +209,7 @@ def main():
             ssh += ["ubuntu@111.229.254.252"]
             launch(state, "tunnel", ssh, {}, "127.0.0.1:13306:127.0.0.1:3306")
             time.sleep(1)
-        registry = service(
-            "registry", "services/pms-registry/target/pms-registry-0.0.1-SNAPSHOT.jar", 8761
-        )
-        wait_ready(registry, "http://127.0.0.1:8761/actuator/health")
-        config_server = service(
-            "config",
-            "services/pms-config-server/target/pms-config-server-0.0.1-SNAPSHOT.jar",
-            8888,
-            extra={"PMS_CONFIG_LOCATION": (ROOT / "config/cloud").as_uri() + "/"},
-        )
-        wait_ready(config_server, "http://127.0.0.1:8888/actuator/health")
+        # Nacos is provisioned separately and must already contain config/cloud Data IDs.
         for i, port in enumerate([8181, 8182], 1):
             entry = service(
                 "search-" + str(i),

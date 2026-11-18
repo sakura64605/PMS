@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.*;
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
             "pms.gateway.jwt-secret=gateway-test-key-at-least-32-characters",
-            "eureka.client.enabled=false",
+            "spring.cloud.nacos.discovery.enabled=false",
             "spring.cloud.config.enabled=false"
         })
 class GatewaySecurityTest {

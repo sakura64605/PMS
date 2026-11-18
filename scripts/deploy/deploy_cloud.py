@@ -103,6 +103,8 @@ WantedBy=multi-user.target
 
 
 def main():
+    raise RuntimeError("Legacy Eureka/Config Server rollout retired. Provision Nacos and use a coordinated Nacos rollout before publishing migrated services.")
+
     manifest = json.loads((release / "manifest.json").read_text())
     current = Path("/opt/pms/pms.jar")
     assert digest(current) == args.expected_sha, "Live jar changed; refusing promotion"

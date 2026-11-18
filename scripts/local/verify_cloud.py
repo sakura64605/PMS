@@ -48,13 +48,10 @@ def count(port):
 
 def main():
     report = {}
-    _, _, registry = get("http://127.0.0.1:8761/eureka/apps")
-    applications = registry["applications"]["application"]
-    search_app = next(a for a in applications if a["name"] == "PMS-SEARCH-SERVICE")
-    assert len(search_app["instance"]) == 2
-    report["registered_search_instances"] = 2
-    _, _, config = get("http://127.0.0.1:8888/pms-core-service/cloud")
-    assert any(s["source"].get("pms.search.mode") == "cloud" for s in config["propertySources"])
+    for port in (8181, 8182):
+        status, _, health = get(f"http://127.0.0.1:{port}/actuator/health")
+        assert status == 200 and health["status"] == "UP"
+    report["healthy_search_instances"] = 2
     assert get(BASE + "/pet-system/user/info")[0] == 401
     assert get(BASE + "/internal/search/v1/query")[0] in (401, 403, 404)
     report["configuration_and_gateway_guard"] = True

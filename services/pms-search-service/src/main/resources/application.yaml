@@ -19,6 +19,3 @@ management:
       exposure:
         include: health,info
 
-eureka:
-  client:
-    enabled: false
